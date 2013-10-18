@@ -297,11 +297,11 @@ func (s State) String() string {
 	return strings.Join(ss, "|")
 }
 
-// Specifies the security mechanism, used by (*Socket)GetMechanism() and ... TODO
+// Specifies the security mechanism, used by (*Socket)GetMechanism()
 type Mechanism int
 
 const (
-	// Constants for (*Socket)GetMechanism() and ... TODO
+	// Constants for (*Socket)GetMechanism()
 	// See: http://api.zeromq.org/4-0:zmq-getsockopt#toc31
 	NULL  = Mechanism(C.ZMQ_NULL)
 	PLAIN = Mechanism(C.ZMQ_PLAIN)
