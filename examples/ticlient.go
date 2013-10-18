@@ -5,7 +5,7 @@
 package main
 
 import (
-	"github.com/pebbe/zmq3/examples/mdapi"
+	"github.com/pebbe/zmq4/examples/mdapi"
 
 	"errors"
 	"fmt"

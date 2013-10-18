@@ -4,7 +4,7 @@ go get code.google.com/p/go-uuid/uuid
 
 for i in bstar mdapi flcliapi kvsimple kvmsg clone intface
 do
-    go install github.com/pebbe/zmq3/examples/$i
+    go install github.com/pebbe/zmq4/examples/$i
 done
 
 cd `dirname $0`
@@ -22,7 +22,7 @@ then
     gobin=$gobin/bin
 fi
 
-dir=$gobin/zmq3-examples
+dir=$gobin/zmq4-examples
 
 echo Installing examples in $dir
 

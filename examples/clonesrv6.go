@@ -5,9 +5,9 @@
 package main
 
 import (
-	zmq "github.com/pebbe/zmq3"
-	"github.com/pebbe/zmq3/examples/bstar"
-	"github.com/pebbe/zmq3/examples/kvmsg"
+	zmq "github.com/pebbe/zmq4"
+	"github.com/pebbe/zmq4/examples/bstar"
+	"github.com/pebbe/zmq4/examples/kvmsg"
 
 	"errors"
 	"fmt"

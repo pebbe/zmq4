@@ -7,8 +7,8 @@
 package main
 
 import (
-	zmq "github.com/pebbe/zmq3"
-	"github.com/pebbe/zmq3/examples/mdapi"
+	zmq "github.com/pebbe/zmq4"
+	"github.com/pebbe/zmq4/examples/mdapi"
 
 	"fmt"
 	"log"

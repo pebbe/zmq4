@@ -1,6 +1,6 @@
 // +build windows
 
-package zmq3
+package zmq4
 
 /*
 #include <zmq.h>

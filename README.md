@@ -1,4 +1,6 @@
-A Go interface to [ZeroMQ](http://www.zeromq.org/) version 3.
+A Go interface to [ZeroMQ](http://www.zeromq.org/) version 4.
+
+For ZeroMQ version 3, see: http://github.com/pebbe/zmq3
 
 For ZeroMQ version 2, see: http://github.com/pebbe/zmq2
 
@@ -8,8 +10,8 @@ Keywords: networks, distributed computing, message passing, fanout, pubsub, pipe
 
 ## Install
 
-    go get github.com/pebbe/zmq3
+    go get github.com/pebbe/zmq4
 
 ## Docs
 
- * [package help](http://godoc.org/github.com/pebbe/zmq3)
+ * [package help](http://godoc.org/github.com/pebbe/zmq4)

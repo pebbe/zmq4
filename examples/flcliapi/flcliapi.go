@@ -3,7 +3,7 @@
 package flcliapi
 
 import (
-	zmq "github.com/pebbe/zmq3"
+	zmq "github.com/pebbe/zmq4"
 
 	"fmt"
 	"strconv"

@@ -1,4 +1,4 @@
-package zmq3
+package zmq4
 
 import (
 	"fmt"

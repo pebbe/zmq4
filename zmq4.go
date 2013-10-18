@@ -1,9 +1,11 @@
-// A Go interface to ZeroMQ version 3.
+// A Go interface to ZeroMQ version 4.
+//
+// For ZeroMQ version 3, see: http://github.com/pebbe/zmq3
 //
 // For ZeroMQ version 2, see: http://github.com/pebbe/zmq2
 //
 // http://www.zeromq.org/
-package zmq3
+package zmq4
 
 /*
 #cgo !windows pkg-config: libzmq
@@ -469,7 +471,7 @@ Example:
     package main
 
     import (
-        zmq "github.com/pebbe/zmq3"
+        zmq "github.com/pebbe/zmq4"
         "log"
         "time"
     )

@@ -5,7 +5,7 @@
 package main
 
 import (
-	"github.com/pebbe/zmq3/examples/clone"
+	"github.com/pebbe/zmq4/examples/clone"
 
 	"fmt"
 	"log"
