@@ -19,7 +19,6 @@ It builds, that's all. No guaranties yet.
 
  * Rewrite Monitor() and RecvEvent()
  * Testing all old, zmq3 functionality
- * Fix links to documentation
  * Implement all functionality that is new in zmq4
  * Add link on http://zeromq.org/bindings:go
  * Add link on http://code.google.com/p/go-wiki/wiki/Projects#Networking

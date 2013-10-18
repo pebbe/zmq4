@@ -8,6 +8,7 @@ package zmq4
 import "C"
 
 import (
+	"errors"
 	"time"
 	"unsafe"
 )
@@ -47,56 +48,56 @@ func (soc *Socket) setUInt64(opt C.int, value uint64) error {
 
 // ZMQ_SNDHWM: Set high water mark for outbound messages
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc3
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc3
 func (soc *Socket) SetSndhwm(value int) error {
 	return soc.setInt(C.ZMQ_SNDHWM, value)
 }
 
 // ZMQ_RCVHWM: Set high water mark for inbound messages
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc4
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc4
 func (soc *Socket) SetRcvhwm(value int) error {
 	return soc.setInt(C.ZMQ_RCVHWM, value)
 }
 
 // ZMQ_AFFINITY: Set I/O thread affinity
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc5
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc5
 func (soc *Socket) SetAffinity(value uint64) error {
 	return soc.setUInt64(C.ZMQ_AFFINITY, value)
 }
 
 // ZMQ_SUBSCRIBE: Establish message filter
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc6
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc6
 func (soc *Socket) SetSubscribe(filter string) error {
 	return soc.setString(C.ZMQ_SUBSCRIBE, filter)
 }
 
 // ZMQ_UNSUBSCRIBE: Remove message filter
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc7
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc7
 func (soc *Socket) SetUnsubscribe(filter string) error {
 	return soc.setString(C.ZMQ_UNSUBSCRIBE, filter)
 }
 
 // ZMQ_IDENTITY: Set socket identity
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc8
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc8
 func (soc *Socket) SetIdentity(value string) error {
 	return soc.setString(C.ZMQ_IDENTITY, value)
 }
 
 // ZMQ_RATE: Set multicast data rate
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc9
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc9
 func (soc *Socket) SetRate(value int) error {
 	return soc.setInt(C.ZMQ_RATE, value)
 }
 
 // ZMQ_RECOVERY_IVL: Set multicast recovery interval
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc10
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc10
 func (soc *Socket) SetRecoveryIvl(value time.Duration) error {
 	val := int(value / time.Millisecond)
 	return soc.setInt(C.ZMQ_RECOVERY_IVL, val)
@@ -104,14 +105,14 @@ func (soc *Socket) SetRecoveryIvl(value time.Duration) error {
 
 // ZMQ_SNDBUF: Set kernel transmit buffer size
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc11
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc11
 func (soc *Socket) SetSndbuf(value int) error {
 	return soc.setInt(C.ZMQ_SNDBUF, value)
 }
 
 // ZMQ_RCVBUF: Set kernel receive buffer size
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc12
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc12
 func (soc *Socket) SetRcvbuf(value int) error {
 	return soc.setInt(C.ZMQ_RCVBUF, value)
 }
@@ -120,7 +121,7 @@ func (soc *Socket) SetRcvbuf(value int) error {
 //
 // Use -1 for infinite
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc13
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc13
 func (soc *Socket) SetLinger(value time.Duration) error {
 	val := int(value / time.Millisecond)
 	if value == -1 {
@@ -133,7 +134,7 @@ func (soc *Socket) SetLinger(value time.Duration) error {
 //
 // Use -1 for no reconnection
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc14
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc14
 func (soc *Socket) SetReconnectIvl(value time.Duration) error {
 	val := int(value / time.Millisecond)
 	if value == -1 {
@@ -144,7 +145,7 @@ func (soc *Socket) SetReconnectIvl(value time.Duration) error {
 
 // ZMQ_RECONNECT_IVL_MAX: Set maximum reconnection interval
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc15
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc15
 func (soc *Socket) SetReconnectIvlMax(value time.Duration) error {
 	val := int(value / time.Millisecond)
 	return soc.setInt(C.ZMQ_RECONNECT_IVL_MAX, val)
@@ -152,21 +153,21 @@ func (soc *Socket) SetReconnectIvlMax(value time.Duration) error {
 
 // ZMQ_BACKLOG: Set maximum length of the queue of outstanding connections
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc16
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc16
 func (soc *Socket) SetBacklog(value int) error {
 	return soc.setInt(C.ZMQ_BACKLOG, value)
 }
 
 // ZMQ_MAXMSGSIZE: Maximum acceptable inbound message size
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc17
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc17
 func (soc *Socket) SetMaxmsgsize(value int64) error {
 	return soc.setInt64(C.ZMQ_MAXMSGSIZE, value)
 }
 
 // ZMQ_MULTICAST_HOPS: Maximum network hops for multicast packets
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc18
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc18
 func (soc *Socket) SetMulticastHops(value int) error {
 	return soc.setInt(C.ZMQ_MULTICAST_HOPS, value)
 }
@@ -175,7 +176,7 @@ func (soc *Socket) SetMulticastHops(value int) error {
 //
 // Use -1 for infinite
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc19
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc19
 func (soc *Socket) SetRcvtimeo(value time.Duration) error {
 	val := int(value / time.Millisecond)
 	if value == -1 {
@@ -188,7 +189,7 @@ func (soc *Socket) SetRcvtimeo(value time.Duration) error {
 //
 // Use -1 for infinite
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc20
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc20
 func (soc *Socket) SetSndtimeo(value time.Duration) error {
 	val := int(value / time.Millisecond)
 	if value == -1 {
@@ -197,73 +198,213 @@ func (soc *Socket) SetSndtimeo(value time.Duration) error {
 	return soc.setInt(C.ZMQ_SNDTIMEO, val)
 }
 
-// ZMQ_IPV4ONLY: Use IPv4-only sockets
+// ZMQ_IPV6: Enable IPv6 on socket
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc21
-func (soc *Socket) SetIpv4only(value bool) error {
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc21
+func (soc *Socket) SetIpv6(value bool) error {
 	val := 0
 	if value {
 		val = 1
 	}
-	return soc.setInt(C.ZMQ_IPV4ONLY, val)
+	return soc.setInt(C.ZMQ_IPV6, val)
 }
 
-// ZMQ_DELAY_ATTACH_ON_CONNECT: Accept messages only when connections are made
+// ZMQ_IMMEDIATE: Queue messages only to completed connections
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc22
-func (soc *Socket) SetDelayAttachOnConnect(value bool) error {
-	val := int(0)
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc23
+func (soc *Socket) SetImmediate(value bool) error {
+	val := 0
 	if value {
 		val = 1
 	}
-	return soc.setInt(C.ZMQ_DELAY_ATTACH_ON_CONNECT, val)
+	return soc.setInt(C.ZMQ_IMMEDIATE, val)
 }
 
 // ZMQ_ROUTER_MANDATORY: accept only routable messages on ROUTER sockets
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc23
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc24
 func (soc *Socket) SetRouterMandatory(value int) error {
 	return soc.setInt(C.ZMQ_ROUTER_MANDATORY, value)
 }
 
+// ZMQ_ROUTER_RAW: switch ROUTER socket to raw mode
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc25
+func (soc *Socket) SetRouterRaw(value int) error {
+	return soc.setInt(C.ZMQ_ROUTER_RAW, value)
+}
+
+// ZMQ_PROBE_ROUTER: bootstrap connections to ROUTER sockets
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc26
+func (soc *Socket) SetProbeRouter(value int) error {
+	return soc.setInt(C.ZMQ_PROBE_ROUTER, value)
+}
+
 // ZMQ_XPUB_VERBOSE: provide all subscription messages on XPUB sockets
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc24
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc27
 func (soc *Socket) SetXpubVerbose(value int) error {
 	return soc.setInt(C.ZMQ_XPUB_VERBOSE, value)
 }
 
+// ZMQ_REQ_CORRELATE: match replies with requests
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc28
+func (soc *Socket) SetReqCorrelate(value int) error {
+	return soc.setInt(C.ZMQ_REQ_CORRELATE, value)
+}
+
+// ZMQ_REQ_RELAXED: relax strict alternation between request and reply
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc29
+func (soc *Socket) SetReqRelaxed(value int) error {
+	return soc.setInt(C.ZMQ_REQ_RELAXED, value)
+}
+
 // ZMQ_TCP_KEEPALIVE: Override SO_KEEPALIVE socket option
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc25
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc30
 func (soc *Socket) SetTcpKeepalive(value int) error {
 	return soc.setInt(C.ZMQ_TCP_KEEPALIVE, value)
 }
 
 // ZMQ_TCP_KEEPALIVE_IDLE: Override TCP_KEEPCNT(or TCP_KEEPALIVE on some OS)
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc26
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc31
 func (soc *Socket) SetTcpKeepaliveIdle(value int) error {
 	return soc.setInt(C.ZMQ_TCP_KEEPALIVE_IDLE, value)
 }
 
-// ZMQ_TCP_KEEPALIVE_CNT: ZMQ_TCP_KEEPALIVE_CNT: Override TCP_KEEPCNT socket option
+// ZMQ_TCP_KEEPALIVE_CNT: Override TCP_KEEPCNT socket option
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc27
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc32
 func (soc *Socket) SetTcpKeepaliveCnt(value int) error {
 	return soc.setInt(C.ZMQ_TCP_KEEPALIVE_CNT, value)
 }
 
 // ZMQ_TCP_KEEPALIVE_INTVL: Override TCP_KEEPINTVL socket option
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc28
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc33
 func (soc *Socket) SetTcpKeepaliveIntvl(value int) error {
 	return soc.setInt(C.ZMQ_TCP_KEEPALIVE_INTVL, value)
 }
 
 // ZMQ_TCP_ACCEPT_FILTER: Assign filters to allow new TCP connections
 //
-// See: http://api.zeromq.org/3-2:zmq-setsockopt#toc29
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc34
 func (soc *Socket) SetTcpAcceptFilter(filter string) error {
 	return soc.setString(C.ZMQ_TCP_ACCEPT_FILTER, filter)
+}
+
+// ZMQ_PLAIN_SERVER: Set PLAIN server role
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc35
+func (soc *Socket) SetPlainServer(value int) error {
+	return soc.setInt(C.ZMQ_PLAIN_SERVER, value)
+}
+
+// ZMQ_PLAIN_USERNAME: Set PLAIN security username
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc36
+func (soc *Socket) SetPlainUsername(username string) error {
+	return soc.setString(C.ZMQ_PLAIN_USERNAME, username)
+}
+
+// ZMQ_PLAIN_PASSWORD: Set PLAIN security password
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc37
+func (soc *Socket) SetPlainPassword(username string) error {
+	return soc.setString(C.ZMQ_PLAIN_PASSWORD, username)
+}
+
+// ZMQ_CURVE_SERVER: Set CURVE server role
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc38
+func (soc *Socket) SetCurveServer(value int) error {
+	return soc.setInt(C.ZMQ_CURVE_SERVER, value)
+}
+
+// ZMQ_CURVE_PUBLICKEY: Set CURVE public key
+//
+// `key` is either a []byte of length 32 with binary data
+// or a Z85 encoded string of length 40
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc39
+func (soc *Socket) SetCurvePublickey(key interface{}) error {
+	switch k := key.(type) {
+	case []byte:
+		if len(k) != 32 {
+			return errors.New("SetCurvePublickey: []byte must have length 32")
+		}
+		return soc.setString(C.ZMQ_CURVE_PUBLICKEY, string(k))
+	case string:
+		if len(k) != 40 {
+			return errors.New("SetCurvePublickey: string must have length 40")
+		}
+		return soc.setString(C.ZMQ_CURVE_PUBLICKEY, k)
+	}
+	return errors.New("SetCurvePublickey: invalid type")
+}
+
+// ZMQ_CURVE_SECRETKEY: Set CURVE secret key
+//
+// `key` is either a []byte of length 32 with binary data
+// or a Z85 encoded string of length 40
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc40
+func (soc *Socket) SetCurveSecretkey(key interface{}) error {
+	switch k := key.(type) {
+	case []byte:
+		if len(k) != 32 {
+			return errors.New("SetCurveSecretkey: []byte must have length 32")
+		}
+		return soc.setString(C.ZMQ_CURVE_SECRETKEY, string(k))
+	case string:
+		if len(k) != 40 {
+			return errors.New("SetCurveSecretkey: string must have length 40")
+		}
+		return soc.setString(C.ZMQ_CURVE_SECRETKEY, k)
+	}
+	return errors.New("SetCurveSecretkey: invalid type")
+}
+
+// ZMQ_CURVE_SERVERKEY: Set CURVE server key
+//
+// `key` is either a []byte of length 32 with binary data
+// or a Z85 encoded string of length 40
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc41
+func (soc *Socket) SetCurveServerkey(key interface{}) error {
+	switch t := key.(type) {
+	case []byte:
+		if len(t) != 32 {
+			return errors.New("SetCurveServerkey: []byte must have length 32")
+		}
+		return soc.setString(C.ZMQ_CURVE_SERVERKEY, string(t))
+	case string:
+		if len(t) != 40 {
+			return errors.New("SetCurveServerkey: string must have length 40")
+		}
+		return soc.setString(C.ZMQ_CURVE_SERVERKEY, t)
+	}
+	return errors.New("SetCurveServerkey: invalid type")
+}
+
+// ZMQ_ZAP_DOMAIN: Set RFC 27 authentication domain
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc42
+func (soc *Socket) SetZapDomain(domain string) error {
+	return soc.setString(C.ZMQ_ZAP_DOMAIN, domain)
+}
+
+// ZMQ_CONFLATE: Keep only last message
+//
+// See: http://api.zeromq.org/4-0:zmq-setsockopt#toc43
+func (soc *Socket) SetConflate(value bool) error {
+	val := 0
+	if value {
+		val = 1
+	}
+	return soc.setInt(C.ZMQ_CONFLATE, val)
 }
