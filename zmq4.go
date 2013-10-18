@@ -15,20 +15,19 @@ package zmq4
 #include <stdlib.h>
 #include <string.h>
 char *get_event(zmq_msg_t *msg, int *ev, int *val) {
-    zmq_event_t event;
     char *s;
-    int n;
-    memcpy(&event, zmq_msg_data(msg), sizeof(event));
-    *ev = event.event;
-    *val = event.data.connected.fd;
-    n = strlen(event.data.connected.addr);
-    s = (char *) malloc(n + 1);
-    if (s != NULL) {
-        memcpy(s, event.data.connected.addr, n);
-        s[n] = '\0';
-    }
+    zmq_event_t event;
+
+    const char* data = (char*)zmq_msg_data(msg);
+    memcpy(&(event.event), data, sizeof(event.event));
+    memcpy(&(event.value), data+sizeof(event.event), sizeof(event.value));
+    *ev = (int)(event.event);
+    *val = (int)(event.value);
+    s = NULL;
+
     return s;
 }
+
 */
 import "C"
 
@@ -546,26 +545,41 @@ func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value i
 		return
 	}
 	defer C.zmq_msg_close(&msg)
-
 	size, e := C.zmq_msg_recv(&msg, soc.soc, C.int(flags))
 	if size < 0 {
 		err = errget(e)
 		return
 	}
-
-	var t C.zmq_event_t
-	if size < C.int(unsafe.Sizeof(t)) {
-		err = errors.New("Not an event")
-		return
-	}
-
 	et := C.int(0)
 	val := C.int(0)
-	addrs := C.get_event(&msg, &et, &val)
-	defer C.free(unsafe.Pointer(addrs))
+	if v1, v2, _ := Version(); v1 == 3 && v2 < 3 {
+		var t C.zmq_event_t
+		if size < C.int(unsafe.Sizeof(t)) {
+			err = errors.New("Not an event")
+			return
+		}
+		addrs := C.get_event(&msg, &et, &val)
+		addr = C.GoString(addrs)
+		C.free(unsafe.Pointer(addrs))
+	} else {
+		C.get_event(&msg, &et, &val)
 
+		more, e := soc.GetRcvmore()
+		if e != nil {
+			err = errget(e)
+			return
+		}
+		if ! more {
+			err = errors.New("More expected")
+			return
+		}
+		addr, e = soc.Recv(flags)
+		if e != nil {
+			err = errget(e)
+			return
+		}
+	}
 	event_type = Event(et)
-	addr = C.GoString(addrs)
 	value = int(val)
 
 	return
