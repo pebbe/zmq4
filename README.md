@@ -21,6 +21,10 @@ It builds, that's all. No guaranties yet.
  * Testing all old, zmq3 functionality
  * Fix links to documentation
  * Implement all functionality that is new in zmq4
+ * Add link on http://zeromq.org/bindings:go
+ * Add link on http://code.google.com/p/go-wiki/wiki/Projects#Networking
+ * Announce on golang-nuts
+ * Update zmq2 and zmq3 with links to zmq4 (README and package doc)
 
 ## Install
 
