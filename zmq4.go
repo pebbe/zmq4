@@ -131,7 +131,7 @@ type Type int
 
 const (
 	// Constants for NewSocket()
-	// See: http://api.zeromq.org/3-2:zmq-socket#toc3
+	// See: http://api.zeromq.org/4-0:zmq-socket#toc3
 	REQ    = Type(C.ZMQ_REQ)
 	REP    = Type(C.ZMQ_REP)
 	DEALER = Type(C.ZMQ_DEALER)
@@ -143,6 +143,7 @@ const (
 	PUSH   = Type(C.ZMQ_PUSH)
 	PULL   = Type(C.ZMQ_PULL)
 	PAIR   = Type(C.ZMQ_PAIR)
+	STREAM = Type(C.ZMQ_STREAM)
 )
 
 /*
@@ -172,6 +173,8 @@ func (t Type) String() string {
 		return "PULL"
 	case PAIR:
 		return "PAIR"
+	case STREAM:
+		return "STREAM"
 	}
 	return "<INVALID>"
 }
@@ -181,8 +184,8 @@ type Flag int
 
 const (
 	// Flags for (*Socket)Send(), (*Socket)Recv()
-	// For Send, see: http://api.zeromq.org/3-2:zmq-send#toc2
-	// For Recv, see: http://api.zeromq.org/3-2:zmq-msg-recv#toc2
+	// For Send, see: http://api.zeromq.org/4-0:zmq-send#toc2
+	// For Recv, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
 	DONTWAIT = Flag(C.ZMQ_DONTWAIT)
 	SNDMORE  = Flag(C.ZMQ_SNDMORE)
 )
@@ -209,7 +212,7 @@ type Event int
 
 const (
 	// Flags for (*Socket)Monitor() and (*Socket)RecvEvent()
-	// See: http://api.zeromq.org/3-2:zmq-socket-monitor#toc2
+	// See: http://api.zeromq.org/4-0:zmq-socket-monitor#toc3
 	EVENT_ALL             = Event(C.ZMQ_EVENT_ALL)
 	EVENT_CONNECTED       = Event(C.ZMQ_EVENT_CONNECTED)
 	EVENT_CONNECT_DELAYED = Event(C.ZMQ_EVENT_CONNECT_DELAYED)
@@ -272,7 +275,7 @@ type State int
 
 const (
 	// Flags for (*Socket)GetEvents()
-	// See: http://api.zeromq.org/3-2:zmq-getsockopt#toc24
+	// See: http://api.zeromq.org/4-0:zmq-getsockopt#toc25
 	POLLIN  = State(C.ZMQ_POLLIN)
 	POLLOUT = State(C.ZMQ_POLLOUT)
 )
@@ -292,6 +295,32 @@ func (s State) String() string {
 		return "<NONE>"
 	}
 	return strings.Join(ss, "|")
+}
+
+// Specifies the security mechanism, used by (*Socket)GetMechanism() and ... TODO
+type Mechanism int
+
+const (
+	// Constants for (*Socket)GetMechanism() and ... TODO
+	// See: http://api.zeromq.org/4-0:zmq-getsockopt#toc31
+	NULL  = Mechanism(C.ZMQ_NULL)
+	PLAIN = Mechanism(C.ZMQ_PLAIN)
+	CURVE = Mechanism(C.ZMQ_CURVE)
+)
+
+/*
+Security mechanism as string.
+*/
+func (m Mechanism) String() string {
+	switch m {
+	case NULL:
+		return "NULL"
+	case PLAIN:
+		return "PLAIN"
+	case CURVE:
+		return "CURVE"
+	}
+	return "<INVALID>"
 }
 
 /*
@@ -321,7 +350,7 @@ WARNING:
 The Socket is not thread safe. This means that you cannot access the same Socket
 from different goroutines without using something like a mutex.
 
-For a description of socket types, see: http://api.zeromq.org/3-2:zmq-socket#toc3
+For a description of socket types, see: http://api.zeromq.org/4-0:zmq-socket#toc3
 */
 func NewSocket(t Type) (soc *Socket, err error) {
 	soc = &Socket{}
@@ -347,7 +376,7 @@ func (soc *Socket) Close() error {
 /*
 Accept incoming connections on a socket.
 
-For a description of endpoint, see: http://api.zeromq.org/3-2:zmq-bind#toc2
+For a description of endpoint, see: http://api.zeromq.org/4-0:zmq-bind#toc2
 */
 func (soc *Socket) Bind(endpoint string) error {
 	s := C.CString(endpoint)
@@ -361,7 +390,7 @@ func (soc *Socket) Bind(endpoint string) error {
 /*
 Stop accepting connections on a socket.
 
-For a description of endpoint, see: http://api.zeromq.org/3-2:zmq-bind#toc2
+For a description of endpoint, see: http://api.zeromq.org/4-0:zmq-bind#toc2
 */
 func (soc *Socket) Unbind(endpoint string) error {
 	s := C.CString(endpoint)
@@ -375,7 +404,7 @@ func (soc *Socket) Unbind(endpoint string) error {
 /*
 Create outgoing connection from socket.
 
-For a description of endpoint, see: http://api.zeromq.org/3-2:zmq-connect#toc2
+For a description of endpoint, see: http://api.zeromq.org/4-0:zmq-connect#toc2
 */
 func (soc *Socket) Connect(endpoint string) error {
 	s := C.CString(endpoint)
@@ -389,7 +418,7 @@ func (soc *Socket) Connect(endpoint string) error {
 /*
 Disconnect a socket.
 
-For a description of endpoint, see: http://api.zeromq.org/3-2:zmq-connect#toc2
+For a description of endpoint, see: http://api.zeromq.org/4-0:zmq-connect#toc2
 */
 func (soc *Socket) Disconnect(endpoint string) error {
 	s := C.CString(endpoint)
@@ -403,7 +432,7 @@ func (soc *Socket) Disconnect(endpoint string) error {
 /*
 Receive a message part from a socket.
 
-For a description of flags, see: http://api.zeromq.org/3-2:zmq-msg-recv#toc2
+For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
 */
 func (soc *Socket) Recv(flags Flag) (string, error) {
 	b, err := soc.RecvBytes(flags)
@@ -413,7 +442,7 @@ func (soc *Socket) Recv(flags Flag) (string, error) {
 /*
 Receive a message part from a socket.
 
-For a description of flags, see: http://api.zeromq.org/3-2:zmq-msg-recv#toc2
+For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
 */
 func (soc *Socket) RecvBytes(flags Flag) ([]byte, error) {
 	var msg C.zmq_msg_t
@@ -437,7 +466,7 @@ func (soc *Socket) RecvBytes(flags Flag) ([]byte, error) {
 /*
 Send a message part on a socket.
 
-For a description of flags, see: http://api.zeromq.org/3-2:zmq-send#toc2
+For a description of flags, see: http://api.zeromq.org/4-0:zmq-send#toc2
 */
 func (soc *Socket) Send(data string, flags Flag) (int, error) {
 	return soc.SendBytes([]byte(data), flags)
@@ -446,7 +475,7 @@ func (soc *Socket) Send(data string, flags Flag) (int, error) {
 /*
 Send a message part on a socket.
 
-For a description of flags, see: http://api.zeromq.org/3-2:zmq-send#toc2
+For a description of flags, see: http://api.zeromq.org/4-0:zmq-send#toc2
 */
 func (soc *Socket) SendBytes(data []byte, flags Flag) (int, error) {
 	d := data
@@ -463,7 +492,7 @@ func (soc *Socket) SendBytes(data []byte, flags Flag) (int, error) {
 /*
 Register a monitoring callback.
 
-See: http://api.zeromq.org/3-2:zmq-socket-monitor#toc2
+See: http://api.zeromq.org/4-0:zmq-socket-monitor#toc2
 
 Example:
 
@@ -532,9 +561,9 @@ func (soc *Socket) Monitor(addr string, events Event) error {
 /*
 Receive a message part from a socket interpreted as an event.
 
-For a description of flags, see: http://api.zeromq.org/3-2:zmq-msg-recv#toc2
+For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
 
-For a description of event_type, see: http://api.zeromq.org/3-2:zmq-socket-monitor#toc2
+For a description of event_type, see: http://api.zeromq.org/4-0:zmq-socket-monitor#toc3
 
 For an example, see: func (*Socket) Monitor
 */
@@ -569,7 +598,7 @@ func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value i
 			err = errget(e)
 			return
 		}
-		if ! more {
+		if !more {
 			err = errors.New("More expected")
 			return
 		}
@@ -588,7 +617,7 @@ func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value i
 /*
 Start built-in ØMQ proxy
 
-See: http://api.zeromq.org/3-2:zmq-proxy
+See: http://api.zeromq.org/4-0:zmq-proxy#toc2
 */
 func Proxy(frontend, backend, capture *Socket) error {
 	var capt unsafe.Pointer
