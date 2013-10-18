@@ -209,11 +209,11 @@ func (soc *Socket) GetIpv6() (bool, error) {
 	return v != 0, err
 }
 
-// ZMQ_DELAY_ATTACH_ON_CONNECT: Retrieve attach-on-connect value
+// ZMQ_IMMEDIATE: Retrieve attach-on-connect value
 //
 // See: http://api.zeromq.org/4-0:zmq-getsockopt#toc23
-func (soc *Socket) GetDelayAttachOnConnect() (bool, error) {
-	v, err := soc.getInt(C.ZMQ_DELAY_ATTACH_ON_CONNECT)
+func (soc *Socket) GetImmediate() (bool, error) {
+	v, err := soc.getInt(C.ZMQ_IMMEDIATE)
 	return v != 0, err
 }
 
