@@ -22,6 +22,13 @@ func (soc *Socket) setString(opt C.int, s string) error {
 	return nil
 }
 
+func (soc *Socket) setNullString(opt C.int) error {
+	if i, err := C.zmq_setsockopt(soc.soc, opt, nil, 0); i != 0 {
+		return errget(err)
+	}
+	return nil
+}
+
 func (soc *Socket) setInt(opt C.int, value int) error {
 	val := C.int(value)
 	if i, err := C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val))); i != 0 {
@@ -294,6 +301,9 @@ func (soc *Socket) SetTcpKeepaliveIntvl(value int) error {
 //
 // See: http://api.zeromq.org/4-0:zmq-setsockopt#toc34
 func (soc *Socket) SetTcpAcceptFilter(filter string) error {
+	if len(filter) == 0 {
+		return soc.setNullString(C.ZMQ_TCP_ACCEPT_FILTER)
+	}
 	return soc.setString(C.ZMQ_TCP_ACCEPT_FILTER, filter)
 }
 
@@ -308,14 +318,20 @@ func (soc *Socket) SetPlainServer(value int) error {
 //
 // See: http://api.zeromq.org/4-0:zmq-setsockopt#toc36
 func (soc *Socket) SetPlainUsername(username string) error {
+	if len(username) == 0 {
+		return soc.setNullString(C.ZMQ_PLAIN_USERNAME)
+	}
 	return soc.setString(C.ZMQ_PLAIN_USERNAME, username)
 }
 
 // ZMQ_PLAIN_PASSWORD: Set PLAIN security password
 //
 // See: http://api.zeromq.org/4-0:zmq-setsockopt#toc37
-func (soc *Socket) SetPlainPassword(username string) error {
-	return soc.setString(C.ZMQ_PLAIN_PASSWORD, username)
+func (soc *Socket) SetPlainPassword(password string) error {
+	if len(password) == 0 {
+		return soc.setNullString(C.ZMQ_PLAIN_PASSWORD)
+	}
+	return soc.setString(C.ZMQ_PLAIN_PASSWORD, password)
 }
 
 // ZMQ_CURVE_SERVER: Set CURVE server role
