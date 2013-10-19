@@ -627,3 +627,41 @@ func Proxy(frontend, backend, capture *Socket) error {
 	_, err := C.zmq_proxy(frontend.soc, backend.soc, capt)
 	return errget(err)
 }
+
+/*
+Encode a binary key as Z85 printable text
+
+See: http://api.zeromq.org/4-0:zmq-z85-encode
+*/
+func Z85encode(data string) string {
+	l1 := len(data)
+	if l1%4 != 0 {
+		panic("Z85encode: Length of data not a multiple of 4")
+	}
+	d := []byte(data)
+
+	l2 := 5*l1/4
+	dest := make([]byte, l2 + 1)
+
+	C.zmq_z85_encode((*C.char)(unsafe.Pointer(&dest[0])), (*C.uint8_t)(&d[0]), C.size_t(l1))
+
+	return string(dest[:l2])
+}
+
+/*
+Decode a binary key from Z85 printable text
+
+See: http://api.zeromq.org/4-0:zmq-z85-decode
+*/
+func Z85decode(s string) string {
+	l1 := len(s)
+	if l1%5 != 0 {
+		panic("Z85decode: Length of Z85 string not a multiple of 5")
+	}
+	l2 := 4 * l1 / 5
+	dest := make([]byte, l2)
+	cs := C.CString(s)
+	defer C.free(unsafe.Pointer(cs))
+	C.zmq_z85_decode((*C.uint8_t)(&dest[0]), cs)
+	return string(dest)
+}
