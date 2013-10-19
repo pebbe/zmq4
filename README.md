@@ -3,7 +3,7 @@
 
 A Go interface to [ZeroMQ](http://www.zeromq.org/) version 4.
 
-This requires ZeroMQ version 4.0.1 or above.
+This requires ZeroMQ version 4.0.1 or above, with libsodium enabled.
 
 For ZeroMQ version 3, see: http://github.com/pebbe/zmq3
 
