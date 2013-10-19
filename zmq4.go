@@ -672,10 +672,10 @@ Generate a new CURVE keypair
 
 See: http://api.zeromq.org/4-0:zmq-curve-keypair
 */
-func NewCurveKeypair() (z85_public_key, z85_secret_key string) {
+func NewCurveKeypair() (z85_public_key, z85_secret_key string, err error) {
 	var pubkey, seckey [41]byte
-	if C.zmq_curve_keypair((*C.char)(unsafe.Pointer(&pubkey[0])), (*C.char)(unsafe.Pointer(&seckey[0]))) != 0 {
-		panic("NewCurveKeypair() failure")
+	if i, err := C.zmq_curve_keypair((*C.char)(unsafe.Pointer(&pubkey[0])), (*C.char)(unsafe.Pointer(&seckey[0]))); i != 0 {
+		return "", "", errget(err)
 	}
-	return string(pubkey[:40]), string(seckey[:40])
+	return string(pubkey[:40]), string(seckey[:40]), nil
 }
