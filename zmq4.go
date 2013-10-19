@@ -12,6 +12,7 @@ package zmq4
 #cgo windows CFLAGS: -I/usr/local/include
 #cgo windows LDFLAGS: -L/usr/local/lib -lzmq
 #include <zmq.h>
+#include <zmq_utils.h>
 #include <stdlib.h>
 #include <string.h>
 char *get_event(zmq_msg_t *msg, int *ev, int *val) {
@@ -640,8 +641,8 @@ func Z85encode(data string) string {
 	}
 	d := []byte(data)
 
-	l2 := 5*l1/4
-	dest := make([]byte, l2 + 1)
+	l2 := 5 * l1 / 4
+	dest := make([]byte, l2+1)
 
 	C.zmq_z85_encode((*C.char)(unsafe.Pointer(&dest[0])), (*C.uint8_t)(&d[0]), C.size_t(l1))
 
@@ -664,4 +665,17 @@ func Z85decode(s string) string {
 	defer C.free(unsafe.Pointer(cs))
 	C.zmq_z85_decode((*C.uint8_t)(&dest[0]), cs)
 	return string(dest)
+}
+
+/*
+Generate a new CURVE keypair
+
+See: http://api.zeromq.org/4-0:zmq-curve-keypair
+*/
+func NewCurveKeypair() (z85_public_key, z85_secret_key string) {
+	var pubkey, seckey [41]byte
+	if C.zmq_curve_keypair((*C.char)(unsafe.Pointer(&pubkey[0])), (*C.char)(unsafe.Pointer(&seckey[0]))) != 0 {
+		panic("NewCurveKeypair() failure")
+	}
+	return string(pubkey[:40]), string(seckey[:40])
 }

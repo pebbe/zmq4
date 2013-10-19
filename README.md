@@ -3,6 +3,8 @@
 
 A Go interface to [ZeroMQ](http://www.zeromq.org/) version 4.
 
+This requires ZeroMQ version 4.0.1 or above.
+
 For ZeroMQ version 3, see: http://github.com/pebbe/zmq3
 
 For ZeroMQ version 2, see: http://github.com/pebbe/zmq2
