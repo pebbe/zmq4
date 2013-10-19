@@ -8,7 +8,6 @@ package zmq4
 import "C"
 
 import (
-	"errors"
 	"time"
 	"unsafe"
 )
@@ -343,68 +342,23 @@ func (soc *Socket) SetCurveServer(value int) error {
 
 // ZMQ_CURVE_PUBLICKEY: Set CURVE public key
 //
-// `key` is either a []byte of length 32 with binary data
-// or a Z85 encoded string of length 40
-//
 // See: http://api.zeromq.org/4-0:zmq-setsockopt#toc39
-func (soc *Socket) SetCurvePublickey(key interface{}) error {
-	switch k := key.(type) {
-	case []byte:
-		if len(k) != 32 {
-			return errors.New("SetCurvePublickey: []byte must have length 32")
-		}
-		return soc.setString(C.ZMQ_CURVE_PUBLICKEY, string(k))
-	case string:
-		if len(k) != 40 {
-			return errors.New("SetCurvePublickey: string must have length 40")
-		}
-		return soc.setString(C.ZMQ_CURVE_PUBLICKEY, k)
-	}
-	return errors.New("SetCurvePublickey: invalid type")
+func (soc *Socket) SetCurvePublickey(key string) error {
+	return soc.setString(C.ZMQ_CURVE_PUBLICKEY, key)
 }
 
 // ZMQ_CURVE_SECRETKEY: Set CURVE secret key
 //
-// `key` is either a []byte of length 32 with binary data
-// or a Z85 encoded string of length 40
-//
 // See: http://api.zeromq.org/4-0:zmq-setsockopt#toc40
-func (soc *Socket) SetCurveSecretkey(key interface{}) error {
-	switch k := key.(type) {
-	case []byte:
-		if len(k) != 32 {
-			return errors.New("SetCurveSecretkey: []byte must have length 32")
-		}
-		return soc.setString(C.ZMQ_CURVE_SECRETKEY, string(k))
-	case string:
-		if len(k) != 40 {
-			return errors.New("SetCurveSecretkey: string must have length 40")
-		}
-		return soc.setString(C.ZMQ_CURVE_SECRETKEY, k)
-	}
-	return errors.New("SetCurveSecretkey: invalid type")
+func (soc *Socket) SetCurveSecretkey(key string) error {
+	return soc.setString(C.ZMQ_CURVE_SECRETKEY, key)
 }
 
 // ZMQ_CURVE_SERVERKEY: Set CURVE server key
 //
-// `key` is either a []byte of length 32 with binary data
-// or a Z85 encoded string of length 40
-//
 // See: http://api.zeromq.org/4-0:zmq-setsockopt#toc41
-func (soc *Socket) SetCurveServerkey(key interface{}) error {
-	switch t := key.(type) {
-	case []byte:
-		if len(t) != 32 {
-			return errors.New("SetCurveServerkey: []byte must have length 32")
-		}
-		return soc.setString(C.ZMQ_CURVE_SERVERKEY, string(t))
-	case string:
-		if len(t) != 40 {
-			return errors.New("SetCurveServerkey: string must have length 40")
-		}
-		return soc.setString(C.ZMQ_CURVE_SERVERKEY, t)
-	}
-	return errors.New("SetCurveServerkey: invalid type")
+func (soc *Socket) SetCurveServerkey(key string) error {
+	return soc.setString(C.ZMQ_CURVE_SERVERKEY, key)
 }
 
 // ZMQ_ZAP_DOMAIN: Set RFC 27 authentication domain
