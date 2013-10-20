@@ -7,11 +7,21 @@ package zmq4
 import "C"
 
 import (
+	"strings"
 	"time"
 	"unsafe"
 )
 
 func (soc *Socket) getString(opt C.int, bufsize int) (string, error) {
+	value := make([]byte, bufsize)
+	size := C.size_t(bufsize)
+	if i, err := C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value[0]), &size); i != 0 {
+		return "", errget(err)
+	}
+	return strings.TrimRight(string(value[:int(size)]), "\x00"), nil
+}
+
+func (soc *Socket) getStringRaw(opt C.int, bufsize int) (string, error) {
 	value := make([]byte, bufsize)
 	size := C.size_t(bufsize)
 	if i, err := C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value[0]), &size); i != 0 {
@@ -84,7 +94,7 @@ func (soc *Socket) GetAffinity() (uint64, error) {
 	return soc.getUInt64(C.ZMQ_AFFINITY)
 }
 
-// ZMQ_IDENTITY: Set socket identity
+// ZMQ_IDENTITY: Retrieve socket identity
 //
 // See: http://api.zeromq.org/4-0:zmq-getsockopt#toc8
 func (soc *Socket) GetIdentity() (string, error) {
@@ -304,63 +314,47 @@ func (soc *Socket) GetPlainPassword() (string, error) {
 //
 // See: http://api.zeromq.org/4-0:zmq-getsockopt#toc35
 func (soc *Socket) GetCurvePublickeyRaw() (string, error) {
-	return soc.getString(C.ZMQ_CURVE_PUBLICKEY, 32)
+	return soc.getStringRaw(C.ZMQ_CURVE_PUBLICKEY, 32)
 }
 
 // ZMQ_CURVE_PUBLICKEY: Retrieve current CURVE public key
 //
 // See: http://api.zeromq.org/4-0:zmq-getsockopt#toc35
 func (soc *Socket) GetCurvePublickeykeyZ85() (string, error) {
-	s, e := soc.getString(C.ZMQ_CURVE_PUBLICKEY, 41)
-	if e == nil {
-		s = s[:40]
-	}
-	return s, e
+	return soc.getString(C.ZMQ_CURVE_PUBLICKEY, 41)
 }
 
 // ZMQ_CURVE_SECRETKEY: Retrieve current CURVE secret key
 //
 // See: http://api.zeromq.org/4-0:zmq-getsockopt#toc36
 func (soc *Socket) GetCurveSecretkeyRaw() (string, error) {
-	return soc.getString(C.ZMQ_CURVE_SECRETKEY, 32)
+	return soc.getStringRaw(C.ZMQ_CURVE_SECRETKEY, 32)
 }
 
 // ZMQ_CURVE_SECRETKEY: Retrieve current CURVE secret key
 //
 // See: http://api.zeromq.org/4-0:zmq-getsockopt#toc36
 func (soc *Socket) GetCurveSecretkeyZ85() (string, error) {
-	s, e := soc.getString(C.ZMQ_CURVE_SECRETKEY, 41)
-	if e == nil {
-		s = s[:40]
-	}
-	return s, e
+	return soc.getString(C.ZMQ_CURVE_SECRETKEY, 41)
 }
 
 // ZMQ_CURVE_SERVERKEY: Retrieve current CURVE server key
 //
 // See: http://api.zeromq.org/4-0:zmq-getsockopt#toc37
 func (soc *Socket) GetCurveServerkeyRaw() (string, error) {
-	return soc.getString(C.ZMQ_CURVE_SERVERKEY, 32)
+	return soc.getStringRaw(C.ZMQ_CURVE_SERVERKEY, 32)
 }
 
 // ZMQ_CURVE_SERVERKEY: Retrieve current CURVE server key
 //
 // See: http://api.zeromq.org/4-0:zmq-getsockopt#toc37
 func (soc *Socket) GetCurveServerkeyZ85() (string, error) {
-	s, e := soc.getString(C.ZMQ_CURVE_SERVERKEY, 41)
-	if e == nil {
-		s = s[:40]
-	}
-	return s, e
+	return soc.getString(C.ZMQ_CURVE_SERVERKEY, 41)
 }
 
 // ZMQ_ZAP_DOMAIN: Retrieve RFC 27 authentication domain
 //
 // See: http://api.zeromq.org/4-0:zmq-getsockopt#toc38
 func (soc *Socket) GetZapDomain() (string, error) {
-	s, err := soc.getString(C.ZMQ_ZAP_DOMAIN, 1024)
-	if n := len(s); n > 0 && s[n - 1] == 0 {
-		s = s[:n - 1]
-	}
-	return s, err
+	return soc.getString(C.ZMQ_ZAP_DOMAIN, 1024)
 }
