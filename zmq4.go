@@ -77,6 +77,11 @@ func Error(e int) string {
 
 //. Context
 
+const (
+	MaxSocketsDflt = int(C.ZMQ_MAX_SOCKETS_DFLT)
+	IoThreadsDflt  = int(C.ZMQ_IO_THREADS_DFLT)
+)
+
 func getOption(o C.int) (int, error) {
 	nc, err := C.zmq_ctx_get(ctx, o)
 	n := int(nc)
@@ -94,6 +99,15 @@ func GetIoThreads() (int, error) {
 // Returns the maximum number of sockets allowed.
 func GetMaxSockets() (int, error) {
 	return getOption(C.ZMQ_MAX_SOCKETS)
+}
+
+// Returns the IPv6 option
+func GetIpv6() (bool, error) {
+	i, e := getOption(C.ZMQ_IPV6)
+	if i == 0 {
+		return false, e
+	}
+	return true, e
 }
 
 func setOption(o C.int, n int) error {
@@ -123,6 +137,21 @@ Default value   1024
 */
 func SetMaxSockets(n int) error {
 	return setOption(C.ZMQ_MAX_SOCKETS, n)
+}
+
+/*
+Sets the IPv6 value for all sockets created in the context from this point onwards.
+A value of true means IPv6 is enabled, while false means the socket will use only IPv4.
+When IPv6 is enabled, a socket will connect to, or accept connections from, both IPv4 and IPv6 hosts.
+
+Default value	false
+*/
+func SetIpv6(i bool) error {
+	n := 0
+	if i {
+		n = 1
+	}
+	return setOption(C.ZMQ_IPV6, n)
 }
 
 //. Sockets
@@ -628,6 +657,8 @@ func Proxy(frontend, backend, capture *Socket) error {
 	_, err := C.zmq_proxy(frontend.soc, backend.soc, capt)
 	return errget(err)
 }
+
+//. CURVE
 
 /*
 Encode a binary key as Z85 printable text
