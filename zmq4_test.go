@@ -54,7 +54,7 @@ func Example_test_abstract_ipc() {
 
 func Example_test_conflate() {
 
-    bind_to := "tcp://127.0.0.1:5555"
+	bind_to := "tcp://127.0.0.1:5555"
 
 	err := zmq.SetIoThreads(1)
 	if checkErr(err) {
@@ -76,7 +76,7 @@ func Example_test_conflate() {
 		return
 	}
 
-    s_out, err := zmq.NewSocket(zmq.PUSH)
+	s_out, err := zmq.NewSocket(zmq.PUSH)
 	if checkErr(err) {
 		return
 	}
@@ -86,14 +86,14 @@ func Example_test_conflate() {
 		return
 	}
 
-    message_count := 20
+	message_count := 20
 
-    for j := 0; j < message_count; j++ {
+	for j := 0; j < message_count; j++ {
 		_, err = s_out.Send(fmt.Sprint(j), 0)
 		if checkErr(err) {
 			return
 		}
-    }
+	}
 
 	time.Sleep(time.Second)
 
@@ -105,7 +105,7 @@ func Example_test_conflate() {
 	if checkErr(err) {
 		return
 	}
-	if i != message_count - 1 {
+	if i != message_count-1 {
 		checkErr(errors.New("payload_recved != message_count - 1"))
 		return
 	}
@@ -123,7 +123,6 @@ func Example_test_conflate() {
 	// Output:
 }
 
-
 func Example_test_connect_resolve() {
 
 	sock, err := zmq.NewSocket(zmq.PUB)
@@ -134,13 +133,13 @@ func Example_test_connect_resolve() {
 	err = sock.Connect("tcp://localhost:1234")
 	checkErr(err)
 
-    err = sock.Connect("tcp://localhost:invalid")
+	err = sock.Connect("tcp://localhost:invalid")
 	fmt.Println(err)
 
-    err = sock.Connect("tcp://in val id:1234")
+	err = sock.Connect("tcp://in val id:1234")
 	fmt.Println(err)
 
-    err = sock.Connect("invalid://localhost:1234")
+	err = sock.Connect("invalid://localhost:1234")
 	fmt.Println(err)
 
 	err = sock.Close()
@@ -152,13 +151,10 @@ func Example_test_connect_resolve() {
 	// protocol not supported
 }
 
-
 func Example_test_ctx_destroy() {
-
 
 	// Output:
 }
-
 
 func Example_test_ctx_options() {
 
@@ -188,272 +184,320 @@ func Example_test_ctx_options() {
 	// <nil>
 }
 
-
 func Example_test_disconnect_inproc() {
 
+	publicationsReceived := 0
+	isSubscribed := false
+
+	pubSocket, err := zmq.NewSocket(zmq.XPUB)
+	if checkErr(err) {
+		return
+	}
+	subSocket, err := zmq.NewSocket(zmq.SUB)
+	if checkErr(err) {
+		return
+	}
+	err = subSocket.SetSubscribe("foo")
+	if checkErr(err) {
+		return
+	}
+
+	err = pubSocket.Bind("inproc://someInProcDescriptor")
+	if checkErr(err) {
+		return
+	}
+
+	iteration := 0
+
+	poller := zmq.NewPoller()
+	poller.Add(subSocket, zmq.POLLIN) // read publications
+	poller.Add(pubSocket, zmq.POLLIN) // read subscriptions
+	for {
+		sockets, err := poller.Poll(100 * time.Millisecond)
+		if checkErr(err) {
+			break //  Interrupted
+		}
+
+		for _, socket := range sockets {
+			if socket.Socket == pubSocket {
+				for {
+					buffer, err := pubSocket.Recv(0)
+					if checkErr(err) {
+						return
+					}
+					fmt.Printf("pubSocket: %q\n", buffer)
+
+					if buffer[0] == 0 {
+						fmt.Println("pubSocket, isSubscribed == true:", isSubscribed == true)
+						isSubscribed = false
+					} else {
+						fmt.Println("pubSocket, isSubscribed == false:", isSubscribed == false)
+						isSubscribed = true
+					}
+
+					more, err := pubSocket.GetRcvmore()
+					if checkErr(err) {
+						return
+					}
+					if !more {
+						break //  Last message part
+					}
+				}
+				break
+			}
+		}
+
+		for _, socket := range sockets {
+			if socket.Socket == subSocket {
+				for {
+					msg, err := subSocket.Recv(0)
+					if checkErr(err) {
+						return
+					}
+					fmt.Printf("subSocket: %q\n", msg)
+					more, err := subSocket.GetRcvmore()
+					if checkErr(err) {
+						return
+					}
+					if !more {
+						publicationsReceived++
+						break //  Last message part
+					}
+
+				}
+				break
+			}
+		}
+
+		if iteration == 1 {
+			err := subSocket.Connect("inproc://someInProcDescriptor")
+			checkErr(err)
+		}
+		if iteration == 4 {
+			err := subSocket.Disconnect("inproc://someInProcDescriptor")
+			checkErr(err)
+		}
+		if iteration > 4 && len(sockets) == 0 {
+			break
+		}
+
+		_, err = pubSocket.Send("foo", zmq.SNDMORE)
+		checkErr(err)
+		_, err = pubSocket.Send("this is foo!", 0)
+		checkErr(err)
+
+		iteration++
+
+	}
+
+	fmt.Println("publicationsReceived == 3:", publicationsReceived == 3)
+	fmt.Println("!isSubscribed:", !isSubscribed)
+
+	err = pubSocket.Close()
+	checkErr(err)
+	err = subSocket.Close()
+	checkErr(err)
 
 	// Output:
+	// pubSocket: "\x01foo"
+	// pubSocket, isSubscribed == false: true
+	// subSocket: "foo"
+	// subSocket: "this is foo!"
+	// subSocket: "foo"
+	// subSocket: "this is foo!"
+	// subSocket: "foo"
+	// subSocket: "this is foo!"
+	// pubSocket: "\x00foo"
+	// pubSocket, isSubscribed == true: true
+	// publicationsReceived == 3: true
+	// !isSubscribed: true
 }
-
 
 func Example_test_fork() {
 
-
 	// Output:
 }
-
 
 func Example_test_hwm() {
 
-
 	// Output:
 }
-
 
 func Example_test_immediate() {
 
-
 	// Output:
 }
-
 
 func Example_test_inproc_connect() {
 
-
 	// Output:
 }
-
 
 func Example_test_invalid_rep() {
 
-
 	// Output:
 }
-
 
 func Example_test_iov() {
 
-
 	// Output:
 }
-
 
 func Example_test_issue_566() {
 
-
 	// Output:
 }
-
 
 func Example_test_last_endpoint() {
 
-
 	// Output:
 }
-
 
 func Example_test_linger() {
 
-
 	// Output:
 }
-
 
 func Example_test_monitor() {
 
-
 	// Output:
 }
-
 
 func Example_test_msg_flags() {
 
-
 	// Output:
 }
-
 
 func Example_test_pair_inproc() {
 
-
 	// Output:
 }
-
 
 func Example_test_pair_ipc() {
 
-
 	// Output:
 }
-
 
 func Example_test_pair_tcp() {
 
-
 	// Output:
 }
-
 
 func Example_test_probe_router() {
 
-
 	// Output:
 }
-
 
 func Example_test_req_correlate() {
 
-
 	// Output:
 }
-
 
 func Example_test_req_relaxed() {
 
-
 	// Output:
 }
-
 
 func Example_test_reqrep_device() {
 
-
 	// Output:
 }
-
 
 func Example_test_reqrep_inproc() {
 
-
 	// Output:
 }
-
 
 func Example_test_reqrep_ipc() {
 
-
 	// Output:
 }
-
 
 func Example_test_reqrep_tcp() {
 
-
 	// Output:
 }
-
 
 func Example_test_router_mandatory() {
 
-
 	// Output:
 }
-
 
 func Example_test_security_curve() {
 
-
 	// Output:
 }
-
 
 func Example_test_security_null() {
 
-
 	// Output:
 }
-
 
 func Example_test_security_plain() {
 
-
 	// Output:
 }
-
 
 func Example_test_shutdown_stress() {
 
-
 	// Output:
 }
-
 
 func Example_test_spec_dealer() {
 
-
 	// Output:
 }
-
 
 func Example_test_spec_pushpull() {
 
-
 	// Output:
 }
-
 
 func Example_test_spec_rep() {
 
-
 	// Output:
 }
-
 
 func Example_test_spec_req() {
 
-
 	// Output:
 }
-
 
 func Example_test_spec_router() {
 
-
 	// Output:
 }
-
 
 func Example_test_stream() {
 
-
 	// Output:
 }
-
 
 func Example_test_sub_forward() {
 
-
 	// Output:
 }
-
 
 func Example_test_system() {
 
-
 	// Output:
 }
-
 
 func Example_test_term_endpoint() {
 
-
 	// Output:
 }
-
 
 func Example_test_timeo() {
 
-
 	// Output:
 }
 
-
-
 func bounce(server, client *zmq.Socket) {
 
-    content := "12345678ABCDEFGH12345678abcdefgh"
+	content := "12345678ABCDEFGH12345678abcdefgh"
 
-    //  Send message from client to server
+	//  Send message from client to server
 	rc, err := client.Send(content, zmq.SNDMORE)
 	if checkErr(err) {
 		return
@@ -470,13 +514,13 @@ func bounce(server, client *zmq.Socket) {
 		checkErr(errors.New("rc != 32"))
 	}
 
-    //  Receive message at server side
+	//  Receive message at server side
 	msg, err := server.Recv(0)
 	if checkErr(err) {
 		return
 	}
 
-    //  Check that message is still the same
+	//  Check that message is still the same
 	if msg != content {
 		checkErr(errors.New(fmt.Sprintf("%q != %q", msg, content)))
 	}
@@ -485,18 +529,18 @@ func bounce(server, client *zmq.Socket) {
 	if checkErr(err) {
 		return
 	}
-	if ! rcvmore {
+	if !rcvmore {
 		checkErr(errors.New(fmt.Sprint("rcvmore ==", rcvmore)))
 		return
 	}
 
-    //  Receive message at server side
+	//  Receive message at server side
 	msg, err = server.Recv(0)
 	if checkErr(err) {
 		return
 	}
 
-    //  Check that message is still the same
+	//  Check that message is still the same
 	if msg != content {
 		checkErr(errors.New(fmt.Sprintf("%q != %q", msg, content)))
 	}
@@ -510,10 +554,9 @@ func bounce(server, client *zmq.Socket) {
 		return
 	}
 
-
 	// The same, from server back to client
 
-    //  Send message from server to client
+	//  Send message from server to client
 	rc, err = server.Send(content, zmq.SNDMORE)
 	if checkErr(err) {
 		return
@@ -530,13 +573,13 @@ func bounce(server, client *zmq.Socket) {
 		checkErr(errors.New("rc != 32"))
 	}
 
-    //  Receive message at client side
+	//  Receive message at client side
 	msg, err = client.Recv(0)
 	if checkErr(err) {
 		return
 	}
 
-    //  Check that message is still the same
+	//  Check that message is still the same
 	if msg != content {
 		checkErr(errors.New(fmt.Sprintf("%q != %q", msg, content)))
 	}
@@ -545,18 +588,18 @@ func bounce(server, client *zmq.Socket) {
 	if checkErr(err) {
 		return
 	}
-	if ! rcvmore {
+	if !rcvmore {
 		checkErr(errors.New(fmt.Sprint("rcvmore ==", rcvmore)))
 		return
 	}
 
-    //  Receive message at client side
+	//  Receive message at client side
 	msg, err = client.Recv(0)
 	if checkErr(err) {
 		return
 	}
 
-    //  Check that message is still the same
+	//  Check that message is still the same
 	if msg != content {
 		checkErr(errors.New(fmt.Sprintf("%q != %q", msg, content)))
 	}
@@ -569,7 +612,6 @@ func bounce(server, client *zmq.Socket) {
 		checkErr(errors.New(fmt.Sprint("rcvmore == ", rcvmore)))
 		return
 	}
-
 
 }
 
@@ -585,4 +627,3 @@ func checkErr(err error) bool {
 	}
 	return false
 }
-
