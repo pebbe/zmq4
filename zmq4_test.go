@@ -48,8 +48,10 @@ func Example_test_abstract_ipc() {
 		return
 	}
 
+	fmt.Println("Done")
 	// Output:
 	// "ipc://@/tmp/tester"
+	// Done
 }
 
 func Example_test_conflate() {
@@ -120,7 +122,9 @@ func Example_test_conflate() {
 		return
 	}
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_connect_resolve() {
@@ -145,15 +149,19 @@ func Example_test_connect_resolve() {
 	err = sock.Close()
 	checkErr(err)
 
+	fmt.Println("Done")
 	// Output:
 	// invalid argument
 	// invalid argument
 	// protocol not supported
+	// Done
 }
 
 func Example_test_ctx_destroy() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_ctx_options() {
@@ -175,6 +183,7 @@ func Example_test_ctx_options() {
 
 	fmt.Println(router.Close())
 
+	fmt.Println("Done")
 	// Output:
 	// true <nil>
 	// true <nil>
@@ -182,6 +191,7 @@ func Example_test_ctx_options() {
 	// true <nil>
 	// true <nil>
 	// <nil>
+	// Done
 }
 
 func Example_test_disconnect_inproc() {
@@ -298,6 +308,7 @@ func Example_test_disconnect_inproc() {
 	err = subSocket.Close()
 	checkErr(err)
 
+	fmt.Println("Done")
 	// Output:
 	// pubSocket: "\x01foo"
 	// pubSocket, isSubscribed == false: true
@@ -311,187 +322,681 @@ func Example_test_disconnect_inproc() {
 	// pubSocket, isSubscribed == true: true
 	// publicationsReceived == 3: true
 	// !isSubscribed: true
+	// Done
 }
 
 func Example_test_fork() {
 
+	address := "tcp://127.0.0.1:6571"
+	NUM_MESSAGES := 5
+
+	//  Create and bind pull socket to receive messages
+	pull, err := zmq.NewSocket(zmq.PULL)
+	if checkErr(err) {
+		return
+	}
+	err = pull.Bind(address)
+	if checkErr(err) {
+		return
+	}
+
+	done := make(chan bool)
+
+	go func() {
+		defer func() { done <- true }()
+
+		//  Create new socket, connect and send some messages
+
+		push, err := zmq.NewSocket(zmq.PUSH)
+		if checkErr(err) {
+			return
+		}
+		defer func() {
+			err := push.Close()
+			checkErr(err)
+		}()
+
+		err = push.Connect(address)
+		if checkErr(err) {
+			return
+		}
+
+		for count := 0; count < NUM_MESSAGES; count++ {
+			_, err = push.Send("Hello", 0)
+			if checkErr(err) {
+				return
+			}
+		}
+
+	}()
+
+	for count := 0; count < NUM_MESSAGES; count++ {
+		msg, err := pull.Recv(0)
+		fmt.Printf("%q %v\n", msg, err)
+	}
+
+	err = pull.Close()
+	checkErr(err)
+
+	<-done
+
+	fmt.Println("Done")
 	// Output:
+	// "Hello" <nil>
+	// "Hello" <nil>
+	// "Hello" <nil>
+	// "Hello" <nil>
+	// "Hello" <nil>
+	// Done
 }
 
 func Example_test_hwm() {
 
+	MAX_SENDS := 10000
+	BIND_FIRST := 1
+	CONNECT_FIRST := 2
+
+	test_defaults := func() int {
+
+		// Set up bind socket
+		bind_socket, err := zmq.NewSocket(zmq.PULL)
+		if checkErr(err) {
+			return 0
+		}
+		defer func() {
+			err := bind_socket.Close()
+			checkErr(err)
+		}()
+
+		err = bind_socket.Bind("inproc://a")
+		if checkErr(err) {
+			return 0
+		}
+
+		// Set up connect socket
+		connect_socket, err := zmq.NewSocket(zmq.PUSH)
+		if checkErr(err) {
+			return 0
+		}
+		defer func() {
+			err := connect_socket.Close()
+			checkErr(err)
+		}()
+
+		err = connect_socket.Connect("inproc://a")
+		if checkErr(err) {
+			return 0
+		}
+
+		// Send until we block
+		send_count := 0
+		for send_count < MAX_SENDS {
+			_, err := connect_socket.Send("", zmq.DONTWAIT)
+			if err != nil {
+				fmt.Println("Send:", err)
+				break
+			}
+			send_count++
+		}
+
+		// Now receive all sent messages
+		recv_count := 0
+		for {
+			_, err := bind_socket.Recv(zmq.DONTWAIT)
+			if err != nil {
+				fmt.Println("Recv:", err)
+				break
+			}
+			recv_count++
+		}
+		fmt.Println("send_count == recv_count:", send_count == recv_count)
+
+		return send_count
+	}
+
+	count_msg := func(send_hwm, recv_hwm, testType int) int {
+
+		var bind_socket, connect_socket *zmq.Socket
+		var err error
+
+		if testType == BIND_FIRST {
+			// Set up bind socket
+			bind_socket, err = zmq.NewSocket(zmq.PULL)
+			if checkErr(err) {
+				return 0
+			}
+			defer func() {
+				err := bind_socket.Close()
+				checkErr(err)
+			}()
+
+			err = bind_socket.SetRcvhwm(recv_hwm)
+			if checkErr(err) {
+				return 0
+			}
+
+			err = bind_socket.Bind("inproc://a")
+			if checkErr(err) {
+				return 0
+			}
+
+			// Set up connect socket
+			connect_socket, err = zmq.NewSocket(zmq.PUSH)
+			if checkErr(err) {
+				return 0
+			}
+			defer func() {
+				err := connect_socket.Close()
+				checkErr(err)
+			}()
+
+			err = connect_socket.SetSndhwm(send_hwm)
+			if checkErr(err) {
+				return 0
+			}
+
+			err = connect_socket.Connect("inproc://a")
+			if checkErr(err) {
+				return 0
+			}
+		} else {
+			// Set up connect socket
+			connect_socket, err = zmq.NewSocket(zmq.PUSH)
+			if checkErr(err) {
+				return 0
+			}
+			defer func() {
+				err := connect_socket.Close()
+				checkErr(err)
+			}()
+
+			err = connect_socket.SetSndhwm(send_hwm)
+			if checkErr(err) {
+				return 0
+			}
+
+			err = connect_socket.Connect("inproc://a")
+			if checkErr(err) {
+				return 0
+			}
+
+			// Set up bind socket
+			bind_socket, err = zmq.NewSocket(zmq.PULL)
+			if checkErr(err) {
+				return 0
+			}
+			defer func() {
+				err := bind_socket.Close()
+				checkErr(err)
+			}()
+
+			err = bind_socket.SetRcvhwm(recv_hwm)
+			if checkErr(err) {
+				return 0
+			}
+
+			err = bind_socket.Bind("inproc://a")
+			if checkErr(err) {
+				return 0
+			}
+		}
+
+		// Send until we block
+		send_count := 0
+		for send_count < MAX_SENDS {
+			_, err := connect_socket.Send("", zmq.DONTWAIT)
+			if err != nil {
+				fmt.Println("Send:", err)
+				break
+			}
+			send_count++
+		}
+
+		// Now receive all sent messages
+		recv_count := 0
+		for {
+			_, err := bind_socket.Recv(zmq.DONTWAIT)
+			if err != nil {
+				fmt.Println("Recv:", err)
+				break
+			}
+			recv_count++
+		}
+		fmt.Println("send_count == recv_count:", send_count == recv_count)
+
+		// Now it should be possible to send one more.
+		_, err = connect_socket.Send("", 0)
+		if checkErr(err) {
+			return 0
+		}
+
+		//  Consume the remaining message.
+		_, err = bind_socket.Recv(0)
+		checkErr(err)
+
+		return send_count
+	}
+
+	test_inproc_bind_first := func(send_hwm, recv_hwm int) int {
+		return count_msg(send_hwm, recv_hwm, BIND_FIRST)
+	}
+
+	test_inproc_connect_first := func(send_hwm, recv_hwm int) int {
+		return count_msg(send_hwm, recv_hwm, CONNECT_FIRST)
+	}
+
+	test_inproc_connect_and_close_first := func(send_hwm, recv_hwm int) int {
+
+		// Set up connect socket
+		connect_socket, err := zmq.NewSocket(zmq.PUSH)
+		if checkErr(err) {
+			return 0
+		}
+
+		err = connect_socket.SetSndhwm(send_hwm)
+		if checkErr(err) {
+			connect_socket.Close()
+			return 0
+		}
+
+		err = connect_socket.Connect("inproc://a")
+		if checkErr(err) {
+			connect_socket.Close()
+			return 0
+		}
+
+		// Send until we block
+		send_count := 0
+		for send_count < MAX_SENDS {
+			_, err := connect_socket.Send("", zmq.DONTWAIT)
+			if err != nil {
+				fmt.Println("Send:", err)
+				break
+			}
+			send_count++
+		}
+
+		// Close connect
+		err = connect_socket.Close()
+		if checkErr(err) {
+			return 0
+		}
+
+		// Set up bind socket
+		bind_socket, err := zmq.NewSocket(zmq.PULL)
+		if checkErr(err) {
+			return 0
+		}
+		defer func() {
+			err := bind_socket.Close()
+			checkErr(err)
+		}()
+
+		err = bind_socket.SetRcvhwm(recv_hwm)
+		if checkErr(err) {
+			return 0
+		}
+
+		err = bind_socket.Bind("inproc://a")
+		if checkErr(err) {
+			return 0
+		}
+
+		// Now receive all sent messages
+		recv_count := 0
+		for {
+			_, err := bind_socket.Recv(zmq.DONTWAIT)
+			if err != nil {
+				fmt.Println("Recv:", err)
+				break
+			}
+			recv_count++
+		}
+		fmt.Println("send_count == recv_count:", send_count == recv_count)
+
+		return send_count
+	}
+
+	// Default values are 1000 on send and 1000 one receive, so 2000 total
+	fmt.Println("Default values")
+	count := test_defaults()
+	fmt.Println("count:", count)
+	time.Sleep(100 * time.Millisecond)
+
+	// Infinite send and receive buffer
+	fmt.Println("\nInfinite send and receive")
+	count = test_inproc_bind_first(0, 0)
+	fmt.Println("count:", count)
+	time.Sleep(100 * time.Millisecond)
+	count = test_inproc_connect_first(0, 0)
+	fmt.Println("count:", count)
+	time.Sleep(100 * time.Millisecond)
+
+	// Infinite send buffer
+	fmt.Println("\nInfinite send buffer")
+	count = test_inproc_bind_first(1, 0)
+	fmt.Println("count:", count)
+	time.Sleep(100 * time.Millisecond)
+	count = test_inproc_connect_first(1, 0)
+	fmt.Println("count:", count)
+	time.Sleep(100 * time.Millisecond)
+
+	// Infinite receive buffer
+	fmt.Println("\nInfinite receive buffer")
+	count = test_inproc_bind_first(0, 1)
+	fmt.Println("count:", count)
+	time.Sleep(100 * time.Millisecond)
+	count = test_inproc_connect_first(0, 1)
+	fmt.Println("count:", count)
+	time.Sleep(100 * time.Millisecond)
+
+	// Send and recv buffers hwm 1, so total that can be queued is 2
+	fmt.Println("\nSend and recv buffers hwm 1")
+	count = test_inproc_bind_first(1, 1)
+	fmt.Println("count:", count)
+	time.Sleep(100 * time.Millisecond)
+	count = test_inproc_connect_first(1, 1)
+	fmt.Println("count:", count)
+	time.Sleep(100 * time.Millisecond)
+
+	// Send hwm of 1, send before bind so total that can be queued is 1
+	fmt.Println("\nSend hwm of 1, send before bind")
+	count = test_inproc_connect_and_close_first(1, 0)
+	fmt.Println("count:", count)
+	time.Sleep(100 * time.Millisecond)
+
+	fmt.Println("\nDone")
 	// Output:
+	// Default values
+	// Send: resource temporarily unavailable
+	// Recv: resource temporarily unavailable
+	// send_count == recv_count: true
+	// count: 2000
+	//
+	// Infinite send and receive
+	// Recv: resource temporarily unavailable
+	// send_count == recv_count: true
+	// count: 10000
+	// Recv: resource temporarily unavailable
+	// send_count == recv_count: true
+	// count: 10000
+	//
+	// Infinite send buffer
+	// Recv: resource temporarily unavailable
+	// send_count == recv_count: true
+	// count: 10000
+	// Recv: resource temporarily unavailable
+	// send_count == recv_count: true
+	// count: 10000
+	//
+	// Infinite receive buffer
+	// Recv: resource temporarily unavailable
+	// send_count == recv_count: true
+	// count: 10000
+	// Recv: resource temporarily unavailable
+	// send_count == recv_count: true
+	// count: 10000
+	//
+	// Send and recv buffers hwm 1
+	// Send: resource temporarily unavailable
+	// Recv: resource temporarily unavailable
+	// send_count == recv_count: true
+	// count: 2
+	// Send: resource temporarily unavailable
+	// Recv: resource temporarily unavailable
+	// send_count == recv_count: true
+	// count: 2
+	//
+	// Send hwm of 1, send before bind
+	// Send: resource temporarily unavailable
+	// Recv: resource temporarily unavailable
+	// send_count == recv_count: true
+	// count: 1
+	//
+	// Done
 }
+
+/*
 
 func Example_test_immediate() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_inproc_connect() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_invalid_rep() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_iov() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_issue_566() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_last_endpoint() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_linger() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_monitor() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_msg_flags() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_pair_inproc() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_pair_ipc() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_pair_tcp() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_probe_router() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_req_correlate() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_req_relaxed() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_reqrep_device() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_reqrep_inproc() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_reqrep_ipc() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_reqrep_tcp() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_router_mandatory() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_security_curve() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_security_null() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_security_plain() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_shutdown_stress() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_spec_dealer() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_spec_pushpull() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_spec_rep() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_spec_req() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_spec_router() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_stream() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_sub_forward() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_system() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_term_endpoint() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
 
 func Example_test_timeo() {
 
+	fmt.Println("Done")
 	// Output:
+	// Done
 }
+
+*/
 
 func bounce(server, client *zmq.Socket) {
 
