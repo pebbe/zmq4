@@ -157,12 +157,16 @@ func Example_test_connect_resolve() {
 	// Done
 }
 
+/*
+
 func Example_test_ctx_destroy() {
 
 	fmt.Println("Done")
 	// Output:
 	// Done
 }
+
+*/
 
 func Example_test_ctx_options() {
 
@@ -905,12 +909,131 @@ func Example_test_security_curve() {
 	// Done
 }
 
+*/
+
 func Example_test_security_null() {
+
+	handler, err := zmq.NewSocket(zmq.REP)
+	if checkErr(err) {
+		return
+	}
+	err = handler.Bind("inproc://zeromq.zap.01")
+	if checkErr(err) {
+		return
+	}
+
+	doHandler := func(state zmq.State) error {
+		msg, err := handler.RecvMessage(0)
+		if err != nil {
+			return err         //  Terminating
+		}
+		version := msg[0]
+		sequence := msg[1]
+		domain := msg[2]
+		// address := msg[3]
+		// identity := msg[4]
+		mechanism := msg[5]
+
+		fmt.Printf("%q %q\n", version, mechanism)
+
+		if domain == "TEST" {
+			handler.SendMessage(version, sequence, "200", "OK", "anonymous", "")
+		} else {
+			handler.SendMessage(version, sequence, "400", "BAD DOMAIN", "", "")
+		}
+		return nil
+	}
+
+	doQuit := func(i interface{}) error {
+		handler.Close()
+		return errors.New("Quit")
+	}
+	quit := make(chan interface{})
+
+	reactor := zmq.NewReactor()
+	reactor.AddSocket(handler, zmq.POLLIN, doHandler)
+	reactor.AddChannel(quit, 0, doQuit)
+	go func() {
+		reactor.Run(100 * time.Millisecond)
+		fmt.Println("Reactor finished")
+	}()
+	defer func() {
+		quit <- true
+		time.Sleep(100 * time.Millisecond)
+	}()
+
+    //  We bounce between a binding server and a connecting client
+    server, err := zmq.NewSocket(zmq.DEALER)
+	if checkErr(err) {
+		return
+	}
+    client, err := zmq.NewSocket(zmq.DEALER)
+	if checkErr(err) {
+		return
+	}
+
+    //  We first test client/server with no ZAP domain
+    //  Libzmq does not call our ZAP handler, the connect must succeed
+    err = server.Bind("tcp://127.0.0.1:9000")
+	if checkErr(err) {
+		return
+	}
+    err = client.Connect("tcp://127.0.0.1:9000")
+	if checkErr(err) {
+		return
+	}
+    bounce (server, client)
+    server.Unbind("tcp://127.0.0.1:9000")
+    client.Disconnect("tcp://127.0.0.1:9000")
+
+
+    //  Now define a ZAP domain for the server; this enables
+    //  authentication. We're using the wrong domain so this test
+    //  must fail.
+    err = server.SetZapDomain("WRONG")
+	if checkErr(err) {
+		return
+	}
+    err = server.Bind("tcp://127.0.0.1:9001")
+	if checkErr(err) {
+		return
+	}
+    err = client.Connect("tcp://127.0.0.1:9001")
+	if checkErr(err) {
+		return
+	}
+    // bounce (server, client) // this hangs forever
+    server.Unbind("tcp://127.0.0.1:9001")
+    client.Disconnect("tcp://127.0.0.1:9001")
+
+
+
+    //  Now use the right domain, the test must pass
+    err = server.SetZapDomain("TEST")
+	if checkErr(err) {
+		return
+	}
+    err = server.Bind("tcp://127.0.0.1:9002")
+	if checkErr(err) {
+		return
+	}
+    err = client.Connect("tcp://127.0.0.1:9002")
+	if checkErr(err) {
+		return
+	}
+    bounce (server, client)
+    server.Unbind("tcp://127.0.0.1:9002")
+    client.Disconnect("tcp://127.0.0.1:9002")
+
 
 	fmt.Println("Done")
 	// Output:
+	// "1.0" "NULL"
 	// Done
+	// Reactor finished
 }
+
+/*
 
 func Example_test_security_plain() {
 
@@ -1003,7 +1126,7 @@ func bounce(server, client *zmq.Socket) {
 	content := "12345678ABCDEFGH12345678abcdefgh"
 
 	//  Send message from client to server
-	rc, err := client.Send(content, zmq.SNDMORE)
+	rc, err := client.Send(content, zmq.SNDMORE | zmq.DONTWAIT)
 	if checkErr(err) {
 		return
 	}
@@ -1011,7 +1134,7 @@ func bounce(server, client *zmq.Socket) {
 		checkErr(errors.New("rc != 32"))
 	}
 
-	rc, err = client.Send(content, 0)
+	rc, err = client.Send(content, zmq.DONTWAIT)
 	if checkErr(err) {
 		return
 	}
