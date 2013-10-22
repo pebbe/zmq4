@@ -925,16 +925,14 @@ func Example_test_security_null() {
 	doHandler := func(state zmq.State) error {
 		msg, err := handler.RecvMessage(0)
 		if err != nil {
-			return err         //  Terminating
+			return err //  Terminating
 		}
 		version := msg[0]
 		sequence := msg[1]
 		domain := msg[2]
 		// address := msg[3]
 		// identity := msg[4]
-		mechanism := msg[5]
-
-		fmt.Printf("%q %q\n", version, mechanism)
+		// mechanism := msg[5]
 
 		if domain == "TEST" {
 			handler.SendMessage(version, sequence, "200", "OK", "anonymous", "")
@@ -945,7 +943,9 @@ func Example_test_security_null() {
 	}
 
 	doQuit := func(i interface{}) error {
-		handler.Close()
+		err := handler.Close()
+		checkErr(err)
+		fmt.Println("Handler closed")
 		return errors.New("Quit")
 	}
 	quit := make(chan interface{})
@@ -956,91 +956,233 @@ func Example_test_security_null() {
 	go func() {
 		reactor.Run(100 * time.Millisecond)
 		fmt.Println("Reactor finished")
+		quit <- true
 	}()
 	defer func() {
 		quit <- true
-		time.Sleep(100 * time.Millisecond)
+		<-quit
+		close(quit)
 	}()
 
-    //  We bounce between a binding server and a connecting client
-    server, err := zmq.NewSocket(zmq.DEALER)
+	//  We bounce between a binding server and a connecting client
+	server, err := zmq.NewSocket(zmq.DEALER)
 	if checkErr(err) {
 		return
 	}
-    client, err := zmq.NewSocket(zmq.DEALER)
+	client, err := zmq.NewSocket(zmq.DEALER)
 	if checkErr(err) {
 		return
 	}
 
-    //  We first test client/server with no ZAP domain
-    //  Libzmq does not call our ZAP handler, the connect must succeed
-    err = server.Bind("tcp://127.0.0.1:9000")
+	//  We first test client/server with no ZAP domain
+	//  Libzmq does not call our ZAP handler, the connect must succeed
+	err = server.Bind("tcp://127.0.0.1:9000")
 	if checkErr(err) {
 		return
 	}
-    err = client.Connect("tcp://127.0.0.1:9000")
+	err = client.Connect("tcp://127.0.0.1:9000")
 	if checkErr(err) {
 		return
 	}
-    bounce (server, client)
-    server.Unbind("tcp://127.0.0.1:9000")
-    client.Disconnect("tcp://127.0.0.1:9000")
+	bounce(server, client)
+	server.Unbind("tcp://127.0.0.1:9000")
+	client.Disconnect("tcp://127.0.0.1:9000")
 
+	//  Now define a ZAP domain for the server; this enables
+	//  authentication. We're using the wrong domain so this test
+	//  must fail.
+	err = server.SetZapDomain("WRONG")
+	if checkErr(err) {
+		return
+	}
+	err = server.Bind("tcp://127.0.0.1:9001")
+	if checkErr(err) {
+		return
+	}
+	err = client.Connect("tcp://127.0.0.1:9001")
+	if checkErr(err) {
+		return
+	}
+	err = client.SetRcvtimeo(150 * time.Millisecond)
+	if checkErr(err) {
+		return
+	}
+	err = server.SetRcvtimeo(150 * time.Millisecond)
+	if checkErr(err) {
+		return
+	}
+	bounce(server, client)
+	server.Unbind("tcp://127.0.0.1:9001")
+	client.Disconnect("tcp://127.0.0.1:9001")
 
-    //  Now define a ZAP domain for the server; this enables
-    //  authentication. We're using the wrong domain so this test
-    //  must fail.
-    err = server.SetZapDomain("WRONG")
+	//  Now use the right domain, the test must pass
+	err = server.SetZapDomain("TEST")
 	if checkErr(err) {
 		return
 	}
-    err = server.Bind("tcp://127.0.0.1:9001")
+	err = server.Bind("tcp://127.0.0.1:9002")
 	if checkErr(err) {
 		return
 	}
-    err = client.Connect("tcp://127.0.0.1:9001")
+	err = client.Connect("tcp://127.0.0.1:9002")
 	if checkErr(err) {
 		return
 	}
-    // bounce (server, client) // this hangs forever
-    server.Unbind("tcp://127.0.0.1:9001")
-    client.Disconnect("tcp://127.0.0.1:9001")
+	bounce(server, client)
+	server.Unbind("tcp://127.0.0.1:9002")
+	client.Disconnect("tcp://127.0.0.1:9002")
 
-
-
-    //  Now use the right domain, the test must pass
-    err = server.SetZapDomain("TEST")
-	if checkErr(err) {
-		return
-	}
-    err = server.Bind("tcp://127.0.0.1:9002")
-	if checkErr(err) {
-		return
-	}
-    err = client.Connect("tcp://127.0.0.1:9002")
-	if checkErr(err) {
-		return
-	}
-    bounce (server, client)
-    server.Unbind("tcp://127.0.0.1:9002")
-    client.Disconnect("tcp://127.0.0.1:9002")
-
+	err = client.Close()
+	checkErr(err)
+	err = server.Close()
+	checkErr(err)
 
 	fmt.Println("Done")
 	// Output:
-	// "1.0" "NULL"
+	// resource temporarily unavailable
 	// Done
+	// Handler closed
 	// Reactor finished
 }
 
-/*
-
 func Example_test_security_plain() {
+
+	handler, err := zmq.NewSocket(zmq.REP)
+	if checkErr(err) {
+		return
+	}
+	err = handler.Bind("inproc://zeromq.zap.01")
+	if checkErr(err) {
+		return
+	}
+
+	doHandler := func(state zmq.State) error {
+		msg, err := handler.RecvMessage(0)
+		if err != nil {
+			return err //  Terminating
+		}
+		version := msg[0]
+		sequence := msg[1]
+		// domain := msg[2]
+		// address := msg[3]
+		// identity := msg[4]
+		// mechanism := msg[5]
+		username := msg[6]
+		password := msg[7]
+
+		if username == "admin" && password == "password" {
+			handler.SendMessage(version, sequence, "200", "OK", "anonymous", "")
+		} else {
+			handler.SendMessage(version, sequence, "400", "Invalid username or password", "", "")
+		}
+		return nil
+	}
+
+	doQuit := func(i interface{}) error {
+		err := handler.Close()
+		checkErr(err)
+		fmt.Println("Handler closed")
+		return errors.New("Quit")
+	}
+	quit := make(chan interface{})
+
+	reactor := zmq.NewReactor()
+	reactor.AddSocket(handler, zmq.POLLIN, doHandler)
+	reactor.AddChannel(quit, 0, doQuit)
+	go func() {
+		reactor.Run(100 * time.Millisecond)
+		fmt.Println("Reactor finished")
+		quit <- true
+	}()
+	defer func() {
+		quit <- true
+		<-quit
+		close(quit)
+	}()
+
+	//  Server socket will accept connections
+	server, err := zmq.NewSocket(zmq.DEALER)
+	if checkErr(err) {
+		return
+	}
+	err = server.SetIdentity("IDENT")
+	if checkErr(err) {
+		return
+	}
+	err = server.SetPlainServer(1)
+	if checkErr(err) {
+		return
+	}
+	err = server.Bind("tcp://127.0.0.1:9998")
+	if checkErr(err) {
+		return
+	}
+
+	//  Check PLAIN security with correct username/password
+	client, err := zmq.NewSocket(zmq.DEALER)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetPlainUsername("admin")
+	if checkErr(err) {
+		return
+	}
+	err = client.SetPlainPassword("password")
+	if checkErr(err) {
+		return
+	}
+	err = client.Connect("tcp://127.0.0.1:9998")
+	if checkErr(err) {
+		return
+	}
+	bounce(server, client)
+	err = client.Close()
+	if checkErr(err) {
+		return
+	}
+
+	//  Check PLAIN security with badly configured client (as_server)
+	//  This will be caught by the plain_server class, not passed to ZAP
+	client, err = zmq.NewSocket(zmq.DEALER)
+	if checkErr(err) {
+		return
+	}
+	client.SetPlainServer(1)
+	if checkErr(err) {
+		return
+	}
+	err = client.Connect("tcp://127.0.0.1:9998")
+	if checkErr(err) {
+		return
+	}
+	err = client.SetRcvtimeo(150 * time.Millisecond)
+	if checkErr(err) {
+		return
+	}
+	err = server.SetRcvtimeo(150 * time.Millisecond)
+	if checkErr(err) {
+		return
+	}
+	bounce(server, client)
+	client.SetLinger(0)
+	err = client.Close()
+	if checkErr(err) {
+		return
+	}
+
+	err = server.Close()
+	checkErr(err)
 
 	fmt.Println("Done")
 	// Output:
+	// resource temporarily unavailable
 	// Done
+	// Handler closed
+	// Reactor finished
+
 }
+
+/*
 
 func Example_test_shutdown_stress() {
 
@@ -1126,59 +1268,59 @@ func bounce(server, client *zmq.Socket) {
 	content := "12345678ABCDEFGH12345678abcdefgh"
 
 	//  Send message from client to server
-	rc, err := client.Send(content, zmq.SNDMORE | zmq.DONTWAIT)
-	if checkErr(err) {
+	rc, err := client.Send(content, zmq.SNDMORE|zmq.DONTWAIT)
+	if checkErr0(err) {
 		return
 	}
 	if rc != 32 {
-		checkErr(errors.New("rc != 32"))
+		checkErr0(errors.New("rc != 32"))
 	}
 
 	rc, err = client.Send(content, zmq.DONTWAIT)
-	if checkErr(err) {
+	if checkErr0(err) {
 		return
 	}
 	if rc != 32 {
-		checkErr(errors.New("rc != 32"))
+		checkErr0(errors.New("rc != 32"))
 	}
 
 	//  Receive message at server side
 	msg, err := server.Recv(0)
-	if checkErr(err) {
+	if checkErr0(err) {
 		return
 	}
 
 	//  Check that message is still the same
 	if msg != content {
-		checkErr(errors.New(fmt.Sprintf("%q != %q", msg, content)))
+		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)))
 	}
 
 	rcvmore, err := server.GetRcvmore()
-	if checkErr(err) {
+	if checkErr0(err) {
 		return
 	}
 	if !rcvmore {
-		checkErr(errors.New(fmt.Sprint("rcvmore ==", rcvmore)))
+		checkErr0(errors.New(fmt.Sprint("rcvmore ==", rcvmore)))
 		return
 	}
 
 	//  Receive message at server side
 	msg, err = server.Recv(0)
-	if checkErr(err) {
+	if checkErr0(err) {
 		return
 	}
 
 	//  Check that message is still the same
 	if msg != content {
-		checkErr(errors.New(fmt.Sprintf("%q != %q", msg, content)))
+		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)))
 	}
 
 	rcvmore, err = server.GetRcvmore()
-	if checkErr(err) {
+	if checkErr0(err) {
 		return
 	}
 	if rcvmore {
-		checkErr(errors.New(fmt.Sprint("rcvmore == ", rcvmore)))
+		checkErr0(errors.New(fmt.Sprint("rcvmore == ", rcvmore)))
 		return
 	}
 
@@ -1186,61 +1328,69 @@ func bounce(server, client *zmq.Socket) {
 
 	//  Send message from server to client
 	rc, err = server.Send(content, zmq.SNDMORE)
-	if checkErr(err) {
+	if checkErr0(err) {
 		return
 	}
 	if rc != 32 {
-		checkErr(errors.New("rc != 32"))
+		checkErr0(errors.New("rc != 32"))
 	}
 
 	rc, err = server.Send(content, 0)
-	if checkErr(err) {
+	if checkErr0(err) {
 		return
 	}
 	if rc != 32 {
-		checkErr(errors.New("rc != 32"))
+		checkErr0(errors.New("rc != 32"))
 	}
 
 	//  Receive message at client side
 	msg, err = client.Recv(0)
-	if checkErr(err) {
+	if checkErr0(err) {
 		return
 	}
 
 	//  Check that message is still the same
 	if msg != content {
-		checkErr(errors.New(fmt.Sprintf("%q != %q", msg, content)))
+		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)))
 	}
 
 	rcvmore, err = client.GetRcvmore()
-	if checkErr(err) {
+	if checkErr0(err) {
 		return
 	}
 	if !rcvmore {
-		checkErr(errors.New(fmt.Sprint("rcvmore ==", rcvmore)))
+		checkErr0(errors.New(fmt.Sprint("rcvmore ==", rcvmore)))
 		return
 	}
 
 	//  Receive message at client side
 	msg, err = client.Recv(0)
-	if checkErr(err) {
+	if checkErr0(err) {
 		return
 	}
 
 	//  Check that message is still the same
 	if msg != content {
-		checkErr(errors.New(fmt.Sprintf("%q != %q", msg, content)))
+		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)))
 	}
 
 	rcvmore, err = client.GetRcvmore()
-	if checkErr(err) {
+	if checkErr0(err) {
 		return
 	}
 	if rcvmore {
-		checkErr(errors.New(fmt.Sprint("rcvmore == ", rcvmore)))
+		checkErr0(errors.New(fmt.Sprint("rcvmore == ", rcvmore)))
 		return
 	}
 
+}
+
+func checkErr0(err error) bool {
+	if err != nil {
+		fmt.Println(err)
+		return true
+	}
+	return false
 }
 
 func checkErr(err error) bool {
