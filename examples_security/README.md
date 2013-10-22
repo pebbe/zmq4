@@ -5,6 +5,6 @@ in the [czmq library](http://czmq.zeromq.org).
 
 There are some differences:
 
- * The czmq library doesn't handle domains. The Go version does.
- * The czmq library handles files with usernames/passwords and directories with certificates.
+ * The zauth module doesn't handle domains. The Go version does.
+ * The zauth module handles files with usernames/passwords and directories with certificates.
    The Go version just uses maps of usernames/passwords and lists of public user keys.
