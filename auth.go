@@ -12,10 +12,10 @@ const CURVE_ALLOW_ANY = "*"
 var (
 	auth_lock    sync.Mutex
 	auth_handler *Socket
-	auth_quit    = make(chan interface{})
+	auth_quit    *Socket
 
-	auth_init            = false
-	auth_verbose         = false
+	auth_init    = false
+	auth_verbose = false
 
 	auth_allow = make(map[string]bool)
 	auth_deny  = make(map[string]bool)
@@ -25,91 +25,103 @@ var (
 	auth_pubkeys = make(map[string]map[string]bool)
 )
 
-func auth_do_handler(state State) error {
-	msg, err := auth_handler.RecvMessage(0)
-	if err != nil {
-		if auth_verbose {
-			fmt.Println("AUTH: Terminating")
+func auth_do_handler() {
+	for {
+
+		msg, err := auth_handler.RecvMessage(0)
+		if err != nil {
+			if auth_verbose {
+				fmt.Println("AUTH: Terminating")
+			}
+			break
 		}
-		return errors.New("TERM")
-	}
 
-	version := msg[0]
-	if version != "1.0" {
-		panic("AUTH: version != 1.0")
-	}
-
-	sequence := msg[1]
-	domain := msg[2]
-	address := msg[3]
-	//identity := msg[4]
-	mechanism := msg[5]
-
-	username := ""
-	password := ""
-	//client_key := ""
-	if mechanism == "PLAIN" {
-		username = msg[6]
-		password = msg[7]
-	} else if mechanism == "CURVE" {
-		s := msg[6]
-		if len(s) != 32 {
-			panic("AUTH: len(client_key) != 32")
+		if msg[0] == "QUIT" {
+			if auth_verbose {
+				fmt.Println("AUTH: Quiting")
+			}
+			auth_handler.SendMessage("QUIT")
+			break
 		}
-		//client_key = Z85encode(s)
-	}
 
-	allowed := false
-	denied := false
-
-	if len(auth_allow) > 0 {
-		if auth_allow[address] {
-			allowed = true
-			if auth_verbose {
-				fmt.Printf("AUTH: PASSED (whitelist) address=%s\n", address)
-			}
-		} else {
-			denied = true
-			if auth_verbose {
-				fmt.Printf("AUTH: DENIED (not in whitelist) address=%s\n", address)
-			}
+		version := msg[0]
+		if version != "1.0" {
+			panic("AUTH: version != 1.0")
 		}
-	} else if len(auth_deny) > 0 {
-		if auth_deny[address] {
-			denied = true
-			if auth_verbose {
-				fmt.Printf("AUTH: DENIED (blacklist) address=%s\n", address)
-			}
-		} else {
-			allowed = true
-			if auth_verbose {
-				fmt.Printf("AUTH: PASSED (not in blacklist) address=%s\n", address)
-			}
-		}
-	}
 
-	//  Mechanism-specific checks
-	if !denied {
-		if mechanism == "NULL" && !allowed {
-			//  For NULL, we allow if the address wasn't blacklisted
-			if auth_verbose {
-				fmt.Printf("AUTH: ALLOWED (NULL)\n")
-			}
-			allowed = true
-		} else if mechanism == "PLAIN" {
-			//  For PLAIN, even a whitelisted address must authenticate
-			allowed = authenticate_plain(domain, username, password)
+		sequence := msg[1]
+		domain := msg[2]
+		address := msg[3]
+		//identity := msg[4]  // TODO: what is this used for?
+		mechanism := msg[5]
+
+		username := ""
+		password := ""
+		client_key := ""
+		if mechanism == "PLAIN" {
+			username = msg[6]
+			password = msg[7]
 		} else if mechanism == "CURVE" {
-			//  For CURVE, even a whitelisted address must authenticate
-			allowed = authenticate_curve()
+			s := msg[6]
+			if len(s) != 32 {
+				panic("AUTH: len(client_key) != 32")
+			}
+			client_key = Z85encode(s)
+		}
+
+		allowed := false
+		denied := false
+
+		if len(auth_allow) > 0 {
+			if auth_allow[address] {
+				allowed = true
+				if auth_verbose {
+					fmt.Printf("AUTH: PASSED (whitelist) address=%s\n", address)
+				}
+			} else {
+				denied = true
+				if auth_verbose {
+					fmt.Printf("AUTH: DENIED (not in whitelist) address=%s\n", address)
+				}
+			}
+		} else if len(auth_deny) > 0 {
+			if auth_deny[address] {
+				denied = true
+				if auth_verbose {
+					fmt.Printf("AUTH: DENIED (blacklist) address=%s\n", address)
+				}
+			} else {
+				allowed = true
+				if auth_verbose {
+					fmt.Printf("AUTH: PASSED (not in blacklist) address=%s\n", address)
+				}
+			}
+		}
+
+		// Mechanism-specific checks
+		if !denied {
+			if mechanism == "NULL" && !allowed {
+				// For NULL, we allow if the address wasn't blacklisted
+				if auth_verbose {
+					fmt.Printf("AUTH: ALLOWED (NULL)\n")
+				}
+				allowed = true
+			} else if mechanism == "PLAIN" {
+				// For PLAIN, even a whitelisted address must authenticate
+				allowed = authenticate_plain(domain, username, password)
+			} else if mechanism == "CURVE" {
+				// For CURVE, even a whitelisted address must authenticate
+				allowed = authenticate_curve(domain, client_key)
+			}
+		}
+		if allowed {
+			auth_handler.SendMessage(version, sequence, "200", "OK", "", "")
+		} else {
+			auth_handler.SendMessage(version, sequence, "400", "NO ACCESS", "", "")
 		}
 	}
-	if allowed {
-		auth_handler.SendMessage(version, sequence, "200", "OK", "anonymous", "")
-	} else {
-		auth_handler.SendMessage(version, sequence, "400", "NO ACCESS", "", "")
-	}
-	return nil
+
+	auth_handler.Close()
 }
 
 func authenticate_plain(domain, username, password string) bool {
@@ -129,17 +141,32 @@ func authenticate_plain(domain, username, password string) bool {
 	return false
 }
 
-func authenticate_curve() bool {
-	return true
-}
-
-func auth_do_quit(i interface{}) error {
-	if auth_verbose {
-		fmt.Println("AUTH: Quit")
+func authenticate_curve(domain, client_key string) bool {
+	for _, dom := range []string{domain, "*"} {
+		if m, ok := auth_pubkeys[dom]; ok {
+			if m[CURVE_ALLOW_ANY] {
+				if auth_verbose {
+					fmt.Printf("AUTH: ALLOWED (CURVE allow any client, domain=%s)\n", dom)
+				}
+				return true
+			}
+			if m[client_key] {
+				if auth_verbose {
+					fmt.Printf("AUTH: ALLOWED (CURVE) domain=%s client_key=%s\n", dom, client_key)
+				}
+				return true
+			}
+		}
 	}
-	return errors.New("Quit")
+	if auth_verbose {
+		fmt.Printf("AUTH: DENIED (CURVE) domain=%s client_key=%s\n", domain, client_key)
+	}
+	return false
 }
 
+// Start authentication.
+// Note that until you add policies, all incoming NULL connections are allowed
+// (classic ZeroMQ behaviour), and all PLAIN and CURVE connections are denied.
 func AuthStart() (err error) {
 	auth_lock.Lock()
 	defer auth_lock.Unlock()
@@ -150,10 +177,6 @@ func AuthStart() (err error) {
 		}
 		return errors.New("Auth is already running")
 	}
-	auth_init = true
-	if auth_verbose {
-		fmt.Println("AUTH: Starting")
-	}
 
 	auth_handler, err = NewSocket(REP)
 	if err != nil {
@@ -161,84 +184,116 @@ func AuthStart() (err error) {
 	}
 	err = auth_handler.Bind("inproc://zeromq.zap.01")
 	if err != nil {
+		auth_handler.Close()
 		return
 	}
 
-	reactor := NewReactor()
-	reactor.AddSocket(auth_handler, POLLIN, auth_do_handler)
-	reactor.AddChannel(auth_quit, 0, auth_do_quit)
-	go func() {
-		reactor.Run(100 * time.Millisecond)
-		err := auth_handler.Close()
-		if auth_verbose && err != nil {
-			fmt.Println("AUTH:", err)
-		}
-		if auth_verbose {
-			fmt.Println("AUTH: Finished")
-		}
-		auth_init = false
-	}()
-	if auth_verbose {
-		fmt.Println("AUTH: Started")
+	auth_quit, err = NewSocket(REQ)
+	if err != nil {
+		auth_handler.Close()
+		return
 	}
+	err = auth_quit.Connect("inproc://zeromq.zap.01")
+	if err != nil {
+		auth_handler.Close()
+		auth_quit.Close()
+		return
+	}
+
+	go auth_do_handler()
+
+	if auth_verbose {
+		fmt.Println("AUTH: Starting")
+	}
+
+	auth_init = true
+
 	return
 }
 
+// Stop authentication.
 func AuthStop() {
+	auth_lock.Lock()
+	defer auth_lock.Unlock()
+	if !auth_init {
+		if auth_verbose {
+			fmt.Println("AUTH: Not running, can't stop")
+		}
+		return
+	}
 	if auth_verbose {
 		fmt.Println("AUTH: Stopping")
 	}
-	auth_quit <- true
+	auth_quit.SendMessage("QUIT")
+	auth_quit.RecvMessage(0)
+	auth_quit.Close()
 	time.Sleep(100 * time.Millisecond)
+	if auth_verbose {
+		fmt.Println("AUTH: Stopped")
+	}
 }
 
-//  Allow (whitelist) some IP addresses. For NULL, all clients from these
-//  addresses will be accepted. For PLAIN and CURVE, they will be allowed to
-//  continue with authentication. You can call this method multiple times
-//  to whitelist multiple IP addresses. If you whitelist a single address,
-//  any non-whitelisted addresses are treated as blacklisted.
+// Allow (whitelist) some IP addresses. For NULL, all clients from these
+// addresses will be accepted. For PLAIN and CURVE, they will be allowed to
+// continue with authentication. You can call this method multiple times
+// to whitelist multiple IP addresses. If you whitelist a single address,
+// any non-whitelisted addresses are treated as blacklisted.
 func AuthAllow(addresses ...string) {
 	for _, address := range addresses {
 		auth_allow[address] = true
 	}
 }
 
-//  Deny (blacklist) some IP addresses. For all security mechanisms, this
-//  rejects the connection without any further authentication. Use either a
-//  whitelist, or a blacklist, not not both. If you define both a whitelist
-//  and a blacklist, only the whitelist takes effect.
+// Deny (blacklist) some IP addresses. For all security mechanisms, this
+// rejects the connection without any further authentication. Use either a
+// whitelist, or a blacklist, not both. If you define both a whitelist
+// and a blacklist, only the whitelist takes effect.
 func AuthDeny(addresses ...string) {
 	for _, address := range addresses {
 		auth_deny[address] = true
 	}
 }
 
-//  Configure PLAIN authentication for a given domain.
-//  The `users` is a map from username to passwords.
-//  Set `domain` to "*" to apply to all domains.
-func AuthConfigurePlain(domain string, users map[string]string) {
+// Configure PLAIN authentication for a given domain.
+// Set `domain` to "*" to apply to all domains.
+func AuthConfigurePlain(domain, username, password string) {
 	if _, ok := auth_users[domain]; !ok {
 		auth_users[domain] = make(map[string]string)
 	}
-	for key := range users {
-		auth_users[domain][key] = users[key]
+	auth_users[domain][username] = password
+}
+
+// Configure PLAIN authentication for a given domain.
+// Remove users from domain.
+func AuthConfigurePlainRemove(domain string, usernames ...string) {
+	if u, ok := auth_users[domain]; ok {
+		for _, username := range usernames {
+			delete(u, username)
+		}
 	}
 }
 
-//  Configure CURVE authentication for a given domain. CURVE authentication
-//  uses a directory that holds all public client certificates, i.e. their
-//  public keys. The certificates must be in zcert_save () format. The
-//  location is treated as a printf format. To cover all domains, use "*".
-//  You can add and remove certificates in that directory at any time.
-//  To allow all client keys without checking, specify CURVE_ALLOW_ANY
-//  for the location.
-
+// Configure CURVE authentication for a given domain.
+// To cover all domains, use "*".
+// CURVE authentication uses a set of public keys in Z85 printable text format.
+// To allow all client keys without checking, specify CURVE_ALLOW_ANY
+// for the pubkey.
 func AuthConfigureCurve(domain string, pubkeys ...string) {
 	if _, ok := auth_pubkeys[domain]; !ok {
 		auth_pubkeys[domain] = make(map[string]bool)
 	}
-	for key := range pubkeys {
+	for _, key := range pubkeys {
 		auth_pubkeys[domain][key] = true
+	}
+}
+
+// Configure CURVE authentication for a given domain.
+// Remove public keys from domain.
+func AuthConfigureCurveRemove(domain string, pubkeys ...string) {
+	if p, ok := auth_pubkeys[domain]; ok {
+		for _, pubkey := range pubkeys {
+			delete(p, pubkey)
+		}
 	}
 }
 
