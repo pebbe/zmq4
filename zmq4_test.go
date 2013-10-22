@@ -902,16 +902,300 @@ func Example_test_router_mandatory() {
 	// Done
 }
 
+*/
+
 func Example_test_security_curve() {
+
+	time.Sleep(100 * time.Millisecond)
+
+	//  Generate new keypairs for this test
+	client_public, client_secret, err := zmq.NewCurveKeypair()
+	if checkErr(err) {
+		return
+	}
+	server_public, server_secret, err := zmq.NewCurveKeypair()
+	if checkErr(err) {
+		return
+	}
+
+	handler, err := zmq.NewSocket(zmq.REP)
+	if checkErr(err) {
+		return
+	}
+	err = handler.Bind("inproc://zeromq.zap.01")
+	if checkErr(err) {
+		return
+	}
+
+	doHandler := func(state zmq.State) error {
+		msg, err := handler.RecvMessage(0)
+		if err != nil {
+			return err //  Terminating
+		}
+		version := msg[0]
+		sequence := msg[1]
+		// domain := msg[2]
+		// address := msg[3]
+		identity := msg[4]
+		mechanism := msg[5]
+		client_key := msg[6]
+		client_key_text := zmq.Z85encode(client_key)
+
+		if version != "1.0" {
+			return errors.New("version != 1.0")
+		}
+		if mechanism != "CURVE" {
+			return errors.New("mechanism != CURVE")
+		}
+		if identity != "IDENT" {
+			return errors.New("identity != IDENT")
+		}
+
+		if client_key_text == client_public {
+			handler.SendMessage(version, sequence, "200", "OK", "anonymous", "")
+		} else {
+			handler.SendMessage(version, sequence, "400", "Invalid client public key", "", "")
+		}
+		return nil
+	}
+
+	doQuit := func(i interface{}) error {
+		err := handler.Close()
+		checkErr(err)
+		fmt.Println("Handler closed")
+		return errors.New("Quit")
+	}
+	quit := make(chan interface{})
+
+	reactor := zmq.NewReactor()
+	reactor.AddSocket(handler, zmq.POLLIN, doHandler)
+	reactor.AddChannel(quit, 0, doQuit)
+	go func() {
+		reactor.Run(100 * time.Millisecond)
+		fmt.Println("Reactor finished")
+		quit <- true
+	}()
+	defer func() {
+		quit <- true
+		<-quit
+		close(quit)
+	}()
+
+	//  Server socket will accept connections
+	server, err := zmq.NewSocket(zmq.DEALER)
+	if checkErr(err) {
+		return
+	}
+	err = server.SetCurveServer(1)
+	if checkErr(err) {
+		return
+	}
+	err = server.SetCurveSecretkey(server_secret)
+	if checkErr(err) {
+		return
+	}
+	err = server.SetIdentity("IDENT")
+	if checkErr(err) {
+		return
+	}
+	server.Bind("tcp://127.0.0.1:9998")
+	if checkErr(err) {
+		return
+	}
+
+	err = server.SetRcvtimeo(150 * time.Millisecond)
+	if checkErr(err) {
+		return
+	}
+
+	//  Check CURVE security with valid credentials
+	client, err := zmq.NewSocket(zmq.DEALER)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurveServerkey(server_public)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurvePublickey(client_public)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurveSecretkey(client_secret)
+	if checkErr(err) {
+		return
+	}
+	err = client.Connect("tcp://127.0.0.1:9998")
+	if checkErr(err) {
+		return
+	}
+	bounce(server, client)
+	err = client.Close()
+	if checkErr(err) {
+		return
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	//  Check CURVE security with a garbage server key
+	//  This will be caught by the curve_server class, not passed to ZAP
+	garbage_key := "0000111122223333444455556666777788889999"
+	client, err = zmq.NewSocket(zmq.DEALER)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurveServerkey(garbage_key)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurvePublickey(client_public)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurveSecretkey(client_secret)
+	if checkErr(err) {
+		return
+	}
+	err = client.Connect("tcp://127.0.0.1:9998")
+	if checkErr(err) {
+		return
+	}
+	err = client.SetRcvtimeo(150 * time.Millisecond)
+	if checkErr(err) {
+		return
+	}
+	bounce(server, client)
+	client.SetLinger(0)
+	err = client.Close()
+	if checkErr(err) {
+		return
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	//  Check CURVE security with a garbage client secret key
+	//  This will be caught by the curve_server class, not passed to ZAP
+	client, err = zmq.NewSocket(zmq.DEALER)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurveServerkey(server_public)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurvePublickey(garbage_key)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurveSecretkey(client_secret)
+	if checkErr(err) {
+		return
+	}
+	err = client.Connect("tcp://127.0.0.1:9998")
+	if checkErr(err) {
+		return
+	}
+	err = client.SetRcvtimeo(150 * time.Millisecond)
+	if checkErr(err) {
+		return
+	}
+	bounce(server, client)
+	client.SetLinger(0)
+	err = client.Close()
+	if checkErr(err) {
+		return
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	//  Check CURVE security with a garbage client secret key
+	//  This will be caught by the curve_server class, not passed to ZAP
+	client, err = zmq.NewSocket(zmq.DEALER)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurveServerkey(server_public)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurvePublickey(client_public)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurveSecretkey(garbage_key)
+	if checkErr(err) {
+		return
+	}
+	err = client.Connect("tcp://127.0.0.1:9998")
+	if checkErr(err) {
+		return
+	}
+	err = client.SetRcvtimeo(150 * time.Millisecond)
+	if checkErr(err) {
+		return
+	}
+	bounce(server, client)
+	client.SetLinger(0)
+	err = client.Close()
+	if checkErr(err) {
+		return
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	//  Check CURVE security with bogus client credentials
+	//  This must be caught by the ZAP handler
+
+	bogus_public, bogus_secret, _ := zmq.NewCurveKeypair()
+	client, err = zmq.NewSocket(zmq.DEALER)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurveServerkey(server_public)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurvePublickey(bogus_public)
+	if checkErr(err) {
+		return
+	}
+	err = client.SetCurveSecretkey(bogus_secret)
+	if checkErr(err) {
+		return
+	}
+	err = client.Connect("tcp://127.0.0.1:9998")
+	if checkErr(err) {
+		return
+	}
+	err = client.SetRcvtimeo(150 * time.Millisecond)
+	if checkErr(err) {
+		return
+	}
+	bounce(server, client)
+	client.SetLinger(0)
+	err = client.Close()
+	if checkErr(err) {
+		return
+	}
+
+	//  Shutdown
+	err = server.Close()
+	checkErr(err)
 
 	fmt.Println("Done")
 	// Output:
+	// resource temporarily unavailable
+	// resource temporarily unavailable
+	// resource temporarily unavailable
+	// resource temporarily unavailable
 	// Done
+	// Handler closed
+	// Reactor finished
 }
 
-*/
-
 func Example_test_security_null() {
+
+	time.Sleep(100 * time.Millisecond)
 
 	handler, err := zmq.NewSocket(zmq.REP)
 	if checkErr(err) {
@@ -932,7 +1216,14 @@ func Example_test_security_null() {
 		domain := msg[2]
 		// address := msg[3]
 		// identity := msg[4]
-		// mechanism := msg[5]
+		mechanism := msg[5]
+
+		if version != "1.0" {
+			return errors.New("version != 1.0")
+		}
+		if mechanism != "NULL" {
+			return errors.New("mechanism != NULL")
+		}
 
 		if domain == "TEST" {
 			handler.SendMessage(version, sequence, "200", "OK", "anonymous", "")
@@ -1047,6 +1338,8 @@ func Example_test_security_null() {
 
 func Example_test_security_plain() {
 
+	time.Sleep(100 * time.Millisecond)
+
 	handler, err := zmq.NewSocket(zmq.REP)
 	if checkErr(err) {
 		return
@@ -1065,10 +1358,20 @@ func Example_test_security_plain() {
 		sequence := msg[1]
 		// domain := msg[2]
 		// address := msg[3]
-		// identity := msg[4]
-		// mechanism := msg[5]
+		identity := msg[4]
+		mechanism := msg[5]
 		username := msg[6]
 		password := msg[7]
+
+		if version != "1.0" {
+			return errors.New("version != 1.0")
+		}
+		if mechanism != "PLAIN" {
+			return errors.New("mechanism != PLAIN")
+		}
+		if identity != "IDENT" {
+			return errors.New("identity != IDENT")
+		}
 
 		if username == "admin" && password == "password" {
 			handler.SendMessage(version, sequence, "200", "OK", "anonymous", "")
