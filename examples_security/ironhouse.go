@@ -30,11 +30,11 @@ func main() {
 	checkErr(err)
 
 	//  Tell authenticator to use this public client key
-	zmq.AuthCurveAdd("THIS", client_public)
+	zmq.AuthCurveAdd("global", client_public)
 
 	//  Create and bind server socket
 	server, _ := zmq.NewSocket(zmq.PUSH)
-	server.ServerAuthCurve("THIS", server_secret)
+	server.ServerAuthCurve("global", server_secret)
 	server.Bind("tcp://*:9000")
 
 	//  Create and connect client socket

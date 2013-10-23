@@ -1,3 +1,17 @@
+/*
+
+This file implements functionality very similar to that of the xauth module in czmq.
+
+Notable differences in here:
+
+ - domains are supported
+ - usernames/passwords are read from memory, not from file
+ - public keys are read from memory, not from file
+ - additional functions for configuring server or client socket with a single command
+
+*/
+
+
 package zmq4
 
 import (
@@ -310,6 +324,8 @@ func AuthCurveRemoveAll(domain string) {
 func AuthSetVerbose(verbose bool) {
 	auth_verbose = verbose
 }
+
+//. Additional functions for configuring server or client socket with a single command
 
 // Set NULL server role.
 func (server *Socket) ServerAuthNull(domain string) error {

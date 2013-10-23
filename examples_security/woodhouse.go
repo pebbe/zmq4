@@ -21,11 +21,11 @@ func main() {
 	zmq.AuthAllow("127.0.0.1")
 
 	//  Tell the authenticator how to handle PLAIN requests
-	zmq.AuthPlainAdd("THIS", "admin", "secret")
+	zmq.AuthPlainAdd("global", "admin", "secret")
 
 	//  Create and bind server socket
 	server, _ := zmq.NewSocket(zmq.PUSH)
-	server.ServerAuthPlain("THIS")
+	server.ServerAuthPlain("global")
 	server.Bind("tcp://*:9000")
 
 	//  Create and connect client socket
