@@ -30,19 +30,16 @@ func main() {
 	checkErr(err)
 
 	//  Tell authenticator to use this public client key
-	zmq.AuthConfigureCurve("*", client_public)
+	zmq.AuthCurveAdd("THIS", client_public)
 
     //  Create and bind server socket
 	server, _ := zmq.NewSocket(zmq.PUSH)
-	server.SetCurveSecretkey(server_secret)
-	server.SetCurveServer(1)
+	server.ServerAuthCurve("THIS", server_secret)
     server.Bind("tcp://*:9000")
 
 	//  Create and connect client socket
 	client, _ := zmq.NewSocket(zmq.PULL)
-	client.SetCurveServerkey(server_public)
-	client.SetCurvePublickey(client_public)
-	client.SetCurveSecretkey(client_secret)
+	client.ClientAuthCurve(server_public, client_public, client_secret)
 	client.Connect("tcp://127.0.0.1:9000")
 
 	//  Send a single message from server to client

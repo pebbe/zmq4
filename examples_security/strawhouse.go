@@ -30,7 +30,7 @@ func main() {
     //  Create and bind server socket
 	server, err := zmq.NewSocket(zmq.PUSH)
 	checkErr(err)
-	server.SetZapDomain("global")
+	server.ServerAuthNull("global")
     server.Bind("tcp://*:9000")
 
 	//  Create and connect client socket

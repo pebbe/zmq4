@@ -3,14 +3,11 @@ package zmq4
 import (
 	"errors"
 	"fmt"
-	"sync"
-	"time"
 )
 
 const CURVE_ALLOW_ANY = "*"
 
 var (
-	auth_lock    sync.Mutex
 	auth_handler *Socket
 	auth_quit    *Socket
 
@@ -165,12 +162,10 @@ func authenticate_curve(domain, client_key string) bool {
 }
 
 // Start authentication.
+//
 // Note that until you add policies, all incoming NULL connections are allowed
 // (classic ZeroMQ behaviour), and all PLAIN and CURVE connections are denied.
 func AuthStart() (err error) {
-	auth_lock.Lock()
-	defer auth_lock.Unlock()
-
 	if auth_init {
 		if auth_verbose {
 			fmt.Println("AUTH: Already running")
@@ -213,8 +208,6 @@ func AuthStart() (err error) {
 
 // Stop authentication.
 func AuthStop() {
-	auth_lock.Lock()
-	defer auth_lock.Unlock()
 	if !auth_init {
 		if auth_verbose {
 			fmt.Println("AUTH: Not running, can't stop")
@@ -227,26 +220,31 @@ func AuthStop() {
 	auth_quit.SendMessage("QUIT")
 	auth_quit.RecvMessage(0)
 	auth_quit.Close()
-	time.Sleep(100 * time.Millisecond)
 	if auth_verbose {
 		fmt.Println("AUTH: Stopped")
 	}
 }
 
-// Allow (whitelist) some IP addresses. For NULL, all clients from these
-// addresses will be accepted. For PLAIN and CURVE, they will be allowed to
-// continue with authentication. You can call this method multiple times
-// to whitelist multiple IP addresses. If you whitelist a single address,
-// any non-whitelisted addresses are treated as blacklisted.
+// Allow (whitelist) some IP addresses.
+//
+// For NULL, all clients from these addresses will be accepted.
+//
+// For PLAIN and CURVE, they will be allowed to continue with authentication.
+//
+// You can call this method multiple times to whitelist multiple IP addresses.
+//
+// If you whitelist a single address, any non-whitelisted addresses are treated as blacklisted.
 func AuthAllow(addresses ...string) {
 	for _, address := range addresses {
 		auth_allow[address] = true
 	}
 }
 
-// Deny (blacklist) some IP addresses. For all security mechanisms, this
-// rejects the connection without any further authentication. Use either a
-// whitelist, or a blacklist, not both. If you define both a whitelist
+// Deny (blacklist) some IP addresses.
+//
+// For all security mechanisms, this rejects the connection without any further authentication.
+//
+// Use either a whitelist, or a blacklist, not both. If you define both a whitelist
 // and a blacklist, only the whitelist takes effect.
 func AuthDeny(addresses ...string) {
 	for _, address := range addresses {
@@ -254,18 +252,18 @@ func AuthDeny(addresses ...string) {
 	}
 }
 
-// Configure PLAIN authentication for a given domain.
+// Add a user for PLAIN authentication for a given domain.
+//
 // Set `domain` to "*" to apply to all domains.
-func AuthConfigurePlain(domain, username, password string) {
+func AuthPlainAdd(domain, username, password string) {
 	if _, ok := auth_users[domain]; !ok {
 		auth_users[domain] = make(map[string]string)
 	}
 	auth_users[domain][username] = password
 }
 
-// Configure PLAIN authentication for a given domain.
-// Remove users from domain.
-func AuthConfigurePlainRemove(domain string, usernames ...string) {
+// Remove users from PLAIN authentication for a given domain.
+func AuthPlainRemove(domain string, usernames ...string) {
 	if u, ok := auth_users[domain]; ok {
 		for _, username := range usernames {
 			delete(u, username)
@@ -273,12 +271,19 @@ func AuthConfigurePlainRemove(domain string, usernames ...string) {
 	}
 }
 
-// Configure CURVE authentication for a given domain.
+// Remove all users from PLAIN authentication for a given domain.
+func AuthPlainRemoveAll(domain string) {
+	delete(auth_users, domain)
+}
+
+// Add public user keys for CURVE authentication for a given domain.
+//
 // To cover all domains, use "*".
-// CURVE authentication uses a set of public keys in Z85 printable text format.
-// To allow all client keys without checking, specify CURVE_ALLOW_ANY
-// for the pubkey.
-func AuthConfigureCurve(domain string, pubkeys ...string) {
+//
+// Public keys are in Z85 printable text format.
+//
+// To allow all client keys without checking, specify CURVE_ALLOW_ANY for the key.
+func AuthCurveAdd(domain string, pubkeys ...string) {
 	if _, ok := auth_pubkeys[domain]; !ok {
 		auth_pubkeys[domain] = make(map[string]bool)
 	}
@@ -287,9 +292,8 @@ func AuthConfigureCurve(domain string, pubkeys ...string) {
 	}
 }
 
-// Configure CURVE authentication for a given domain.
-// Remove public keys from domain.
-func AuthConfigureCurveRemove(domain string, pubkeys ...string) {
+// Remove user keys from CURVE authentication for a given domain.
+func AuthCurveRemove(domain string, pubkeys ...string) {
 	if p, ok := auth_pubkeys[domain]; ok {
 		for _, pubkey := range pubkeys {
 			delete(p, pubkey)
@@ -297,7 +301,63 @@ func AuthConfigureCurveRemove(domain string, pubkeys ...string) {
 	}
 }
 
-// Enable verbose tracing of commands and activity
+// Remove all user keys from CURVE authentication for a given domain.
+func AuthCurveRemoveAll(domain string) {
+	delete(auth_pubkeys, domain)
+}
+
+// Enable verbose tracing of commands and activity.
 func AuthSetVerbose(verbose bool) {
 	auth_verbose = verbose
+}
+
+// Set NULL server role.
+func (server *Socket) ServerAuthNull(domain string) error {
+	err := server.SetPlainServer(0)
+	if err == nil {
+		err = server.SetZapDomain(domain)
+	}
+	return err
+}
+
+// Set PLAIN server role.
+func (server *Socket) ServerAuthPlain(domain string) error {
+	err := server.SetPlainServer(1)
+	if err == nil {
+		err = server.SetZapDomain(domain)
+	}
+	return err
+}
+
+// Set CURVE server role.
+func (server *Socket) ServerAuthCurve(domain, secret_key string) error {
+	err := server.SetCurveServer(1)
+	if err == nil {
+		err = server.SetCurveSecretkey(secret_key)
+	}
+	if err == nil {
+		err = server.SetZapDomain(domain)
+	}
+	return err
+}
+
+// Set PLAIN client role.
+func (client *Socket) ClientAuthPlain(username, password string) error {
+	err := client.SetPlainUsername(username)
+	if err == nil {
+		err = client.SetPlainPassword(password)
+	}
+	return err
+}
+
+// Set CURVE client role.
+func (client *Socket) ClientAuthCurve(server_public_key, client_public_key, client_secret_key string) error {
+	err := client.SetCurveServerkey(server_public_key)
+	if err == nil {
+		err = client.SetCurvePublickey(client_public_key)
+	}
+	if err == nil {
+		client.SetCurveSecretkey(client_secret_key)
+	}
+	return err
 }
