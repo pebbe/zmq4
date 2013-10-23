@@ -11,7 +11,6 @@ Notable differences in here:
 
 */
 
-
 package zmq4
 
 import (

@@ -154,6 +154,19 @@ func SetIpv6(i bool) error {
 	return setOption(C.ZMQ_IPV6, n)
 }
 
+/*
+Terminates the context.
+
+For linger behavior, see: http://api.zeromq.org/4-0:zmq-ctx-term
+*/
+func Term() error {
+	n, err := C.zmq_ctx_term(ctx)
+	if n != 0 {
+		return errget(err)
+	}
+	return nil
+}
+
 //. Sockets
 
 // Specifies the type of a socket, used by NewSocket()
