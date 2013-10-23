@@ -16,22 +16,22 @@ import (
 
 func main() {
 
-    //  Get some indication of what the authenticator is deciding
+	//  Get some indication of what the authenticator is deciding
 	zmq.AuthSetVerbose(true)
 
 	//  Start the authentication engine. This engine
-    //  allows or denies incoming connections (talking to the libzmq
-    //  core over a protocol called ZAP).
+	//  allows or denies incoming connections (talking to the libzmq
+	//  core over a protocol called ZAP).
 	zmq.AuthStart()
 
-    //  Whitelist our address; any other address will be rejected
-    zmq.AuthAllow("127.0.0.1")
+	//  Whitelist our address; any other address will be rejected
+	zmq.AuthAllow("127.0.0.1")
 
-    //  Create and bind server socket
+	//  Create and bind server socket
 	server, err := zmq.NewSocket(zmq.PUSH)
 	checkErr(err)
 	server.ServerAuthNull("global")
-    server.Bind("tcp://*:9000")
+	server.Bind("tcp://*:9000")
 
 	//  Create and connect client socket
 	client, err := zmq.NewSocket(zmq.PULL)

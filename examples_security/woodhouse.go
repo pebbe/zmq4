@@ -15,18 +15,18 @@ import (
 
 func main() {
 
-    //  Start authentication engine
+	//  Start authentication engine
 	zmq.AuthSetVerbose(true)
 	zmq.AuthStart()
-    zmq.AuthAllow("127.0.0.1")
+	zmq.AuthAllow("127.0.0.1")
 
-    //  Tell the authenticator how to handle PLAIN requests
-    zmq.AuthPlainAdd("THIS", "admin", "secret")
+	//  Tell the authenticator how to handle PLAIN requests
+	zmq.AuthPlainAdd("THIS", "admin", "secret")
 
-    //  Create and bind server socket
+	//  Create and bind server socket
 	server, _ := zmq.NewSocket(zmq.PUSH)
 	server.ServerAuthPlain("THIS")
-    server.Bind("tcp://*:9000")
+	server.Bind("tcp://*:9000")
 
 	//  Create and connect client socket
 	client, _ := zmq.NewSocket(zmq.PULL)
@@ -60,5 +60,3 @@ func checkErr(err error) {
 		}
 	}
 }
-
-
