@@ -15,8 +15,7 @@ package zmq4
 #include <zmq_utils.h>
 #include <stdlib.h>
 #include <string.h>
-char *get_event(zmq_msg_t *msg, int *ev, int *val) {
-    char *s;
+void get_event(zmq_msg_t *msg, int *ev, int *val) {
     zmq_event_t event;
 
     const char* data = (char*)zmq_msg_data(msg);
@@ -24,9 +23,6 @@ char *get_event(zmq_msg_t *msg, int *ev, int *val) {
     memcpy(&(event.value), data+sizeof(event.event), sizeof(event.value));
     *ev = (int)(event.event);
     *val = (int)(event.value);
-    s = NULL;
-
-    return s;
 }
 
 */
@@ -627,33 +623,24 @@ func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value i
 	}
 	et := C.int(0)
 	val := C.int(0)
-	if v1, v2, _ := Version(); v1 == 3 && v2 < 3 {
-		var t C.zmq_event_t
-		if size < C.int(unsafe.Sizeof(t)) {
-			err = errors.New("Not an event")
-			return
-		}
-		addrs := C.get_event(&msg, &et, &val)
-		addr = C.GoString(addrs)
-		C.free(unsafe.Pointer(addrs))
-	} else {
-		C.get_event(&msg, &et, &val)
 
-		more, e := soc.GetRcvmore()
-		if e != nil {
-			err = errget(e)
-			return
-		}
-		if !more {
-			err = errors.New("More expected")
-			return
-		}
-		addr, e = soc.Recv(flags)
-		if e != nil {
-			err = errget(e)
-			return
-		}
+	C.get_event(&msg, &et, &val)
+
+	more, e := soc.GetRcvmore()
+	if e != nil {
+		err = errget(e)
+		return
 	}
+	if !more {
+		err = errors.New("More expected")
+		return
+	}
+	addr, e = soc.Recv(flags)
+	if e != nil {
+		err = errget(e)
+		return
+	}
+
 	event_type = Event(et)
 	value = int(val)
 

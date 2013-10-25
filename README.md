@@ -12,10 +12,6 @@ Including all examples of [ØMQ - The Guide](http://zguide.zeromq.org/page:all).
 
 Keywords: networks, distributed computing, message passing, fanout, pubsub, pipeline, request-reply
 
-## To do:
-
- * Rewrite Monitor() and RecvEvent()
-
 ## Install
 
     go get github.com/pebbe/zmq4
