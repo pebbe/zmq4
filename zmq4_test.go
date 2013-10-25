@@ -187,6 +187,8 @@ func Example_test_ctx_options() {
 
 	fmt.Println(router.Close())
 
+	zmq.SetIpv6(false)
+
 	fmt.Println("Done")
 	// Output:
 	// true <nil>
