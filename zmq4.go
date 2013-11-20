@@ -24,7 +24,9 @@ void get_event(zmq_msg_t *msg, int *ev, int *val) {
     *ev = (int)(event.event);
     *val = (int)(event.value);
 }
-
+void *my_memcpy(void *dest, const void *src, size_t n) {
+	memcpy(dest, src, n);
+}
 */
 import "C"
 
@@ -498,7 +500,7 @@ func (soc *Socket) RecvBytes(flags Flag) ([]byte, error) {
 		return []byte{}, nil
 	}
 	data := make([]byte, int(size))
-	C.memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&msg), C.size_t(size))
+	C.my_memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&msg), C.size_t(size))
 	return data, nil
 }
 
