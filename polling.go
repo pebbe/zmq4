@@ -71,6 +71,24 @@ Example:
     }
 */
 func (p *Poller) Poll(timeout time.Duration) ([]Polled, error) {
+	return p.poll(timeout, false)
+}
+
+/*
+This is like (*Poller)Poll, but it returns a list of all sockets,
+in the same order as they were added to the poller,
+not just those sockets that had an event.
+
+For each socket in the list, you have to check the Events field
+to see if there was actually an event.
+
+When error is not nil, the return list contains no sockets.
+*/
+func (p *Poller) PollAll(timeout time.Duration) ([]Polled, error) {
+	return p.poll(timeout, true)
+}
+
+func (p *Poller) poll(timeout time.Duration, all bool) ([]Polled, error) {
 	lst := make([]Polled, 0, p.size)
 	t := timeout
 	if t > 0 {
@@ -84,7 +102,7 @@ func (p *Poller) Poll(timeout time.Duration) ([]Polled, error) {
 		return lst, errget(err)
 	}
 	for i, it := range p.items {
-		if it.events&it.revents != 0 {
+		if all || it.events&it.revents != 0 {
 			lst = append(lst, Polled{p.socks[i], State(it.revents)})
 		}
 	}

@@ -3,6 +3,15 @@
 //  Prototypes the full flow of status and tasks
 //
 
+/*
+
+One of the differences between peering2 and peering3 is that
+peering2 always uses Poll() and then uses a helper function socketInPolled()
+to check if a specific socket returned a result, while peering3 uses PollAll()
+and checks the event state of the socket in a specific index in the list.
+
+*/
+
 package main
 
 import (
@@ -200,7 +209,7 @@ func main() {
 		if local_capacity == 0 {
 			timeout = -1
 		}
-		sockets, err := primary.Poll(timeout)
+		sockets, err := primary.PollAll(timeout)
 		if err != nil {
 			break //  Interrupted
 		}
@@ -211,7 +220,7 @@ func main() {
 		//  Handle reply from local worker
 		msg = msg[0:0]
 
-		if socketInPolled(localbe, sockets) {
+		if sockets[0].Events&zmq.POLLIN != 0 { // 0 == localbe
 			msg, err = localbe.RecvMessage(0)
 			if err != nil {
 				break //  Interrupted
@@ -225,7 +234,7 @@ func main() {
 			if msg[0] == WORKER_READY {
 				msg = msg[0:0]
 			}
-		} else if socketInPolled(cloudbe, sockets) {
+		} else if sockets[1].Events&zmq.POLLIN != 0 { // 1 == cloudbe
 			//  Or handle reply from peer broker
 			msg, err = cloudbe.RecvMessage(0)
 			if err != nil {
@@ -255,14 +264,14 @@ func main() {
 		//  If we have input messages on our statefe or monitor sockets we
 		//  can process these immediately:
 
-		if socketInPolled(statefe, sockets) {
+		if sockets[2].Events&zmq.POLLIN != 0 { // 2 == statefe
 			var status string
 			m, _ := statefe.RecvMessage(0)
 			_, m = unwrap(m) // peer
 			status, _ = unwrap(m)
 			cloud_capacity, _ = strconv.Atoi(status)
 		}
-		if socketInPolled(monitor, sockets) {
+		if sockets[3].Events&zmq.POLLIN != 0 { // 3 == monitor
 			status, _ := monitor.Recv(0)
 			fmt.Println(status)
 		}
@@ -275,17 +284,17 @@ func main() {
 			var sockets []zmq.Polled
 			var err error
 			if local_capacity > 0 {
-				sockets, err = secondary2.Poll(0)
+				sockets, err = secondary2.PollAll(0)
 			} else {
-				sockets, err = secondary1.Poll(0)
+				sockets, err = secondary1.PollAll(0)
 			}
 			if err != nil {
 				panic(err)
 			}
 
-			if socketInPolled(localfe, sockets) {
+			if sockets[0].Events&zmq.POLLIN != 0 { // 0 == localfe
 				msg, _ = localfe.RecvMessage(0)
-			} else if socketInPolled(cloudfe, sockets) {
+			} else if len(sockets) > 1 && sockets[1].Events&zmq.POLLIN != 0 { // 1 == cloudfe
 				msg, _ = cloudfe.RecvMessage(0)
 			} else {
 				break //  No work, go back to primary
@@ -323,14 +332,4 @@ func unwrap(msg []string) (head string, tail []string) {
 		tail = msg[1:]
 	}
 	return
-}
-
-// Returns true if *Socket is in []Polled
-func socketInPolled(s *zmq.Socket, p []zmq.Polled) bool {
-	for _, pp := range p {
-		if pp.Socket == s {
-			return true
-		}
-	}
-	return false
 }
