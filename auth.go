@@ -236,6 +236,9 @@ func AuthStop() {
 	if auth_verbose {
 		fmt.Println("AUTH: Stopped")
 	}
+
+	auth_init = false
+
 }
 
 // Allow (whitelist) some IP addresses.
