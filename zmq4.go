@@ -1,4 +1,4 @@
-// A Go interface to ZeroMQ version 4.
+// A Go interface to ZeroMQ (zmq, 0mq) version 4.
 //
 // For ZeroMQ version 3, see: http://github.com/pebbe/zmq3
 //
