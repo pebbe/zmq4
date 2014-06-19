@@ -12,17 +12,23 @@ package zmq4
 #cgo windows CFLAGS: -I/usr/local/include
 #cgo windows LDFLAGS: -L/usr/local/lib -lzmq
 #include <zmq.h>
+#include "zmq4.h"
 #include <zmq_utils.h>
 #include <stdlib.h>
 #include <string.h>
-void get_event(zmq_msg_t *msg, int *ev, int *val) {
+void get_event40(zmq_msg_t *msg, int *ev, int *val) {
     zmq_event_t event;
-
     const char* data = (char*)zmq_msg_data(msg);
     memcpy(&(event.event), data, sizeof(event.event));
     memcpy(&(event.value), data+sizeof(event.event), sizeof(event.value));
     *ev = (int)(event.event);
     *val = (int)(event.value);
+}
+void get_event41(zmq_msg_t *msg, int *ev, int *val) {
+    uint8_t *data = (uint8_t *) zmq_msg_data (msg);
+    uint16_t event = *(uint16_t *) (data);
+    *ev = (int)event;
+    *val = (int)(*(uint32_t *) (data + 2));
 }
 void *my_memcpy(void *dest, const void *src, size_t n) {
 	return memcpy(dest, src, n);
@@ -265,6 +271,7 @@ const (
 	EVENT_CLOSED          = Event(C.ZMQ_EVENT_CLOSED)
 	EVENT_CLOSE_FAILED    = Event(C.ZMQ_EVENT_CLOSE_FAILED)
 	EVENT_DISCONNECTED    = Event(C.ZMQ_EVENT_DISCONNECTED)
+	EVENT_MONITOR_STOPPED = Event(C.ZMQ_EVENT_MONITOR_STOPPED)
 )
 
 /*
@@ -612,6 +619,7 @@ For a description of event_type, see: http://api.zeromq.org/4-0:zmq-socket-monit
 For an example, see: func (*Socket) Monitor
 */
 func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value int, err error) {
+
 	var msg C.zmq_msg_t
 	if i, e := C.zmq_msg_init(&msg); i != 0 {
 		err = errget(e)
@@ -626,8 +634,11 @@ func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value i
 	et := C.int(0)
 	val := C.int(0)
 
-	C.get_event(&msg, &et, &val)
-
+	if _, minor, _ := Version(); minor == 0 {
+		C.get_event40(&msg, &et, &val)
+	} else {
+		C.get_event41(&msg, &et, &val)
+	}
 	more, e := soc.GetRcvmore()
 	if e != nil {
 		err = errget(e)
