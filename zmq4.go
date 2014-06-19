@@ -15,15 +15,7 @@ package zmq4
 #include <zmq_utils.h>
 #include <stdlib.h>
 #include <string.h>
-void get_event(zmq_msg_t *msg, int *ev, int *val) {
-    zmq_event_t event;
 
-    const char* data = (char*)zmq_msg_data(msg);
-    memcpy(&(event.event), data, sizeof(event.event));
-    memcpy(&(event.value), data+sizeof(event.event), sizeof(event.value));
-    *ev = (int)(event.event);
-    *val = (int)(event.value);
-}
 void *my_memcpy(void *dest, const void *src, size_t n) {
 	return memcpy(dest, src, n);
 }
@@ -600,53 +592,6 @@ func (soc *Socket) Monitor(addr string, events Event) error {
 		return errget(err)
 	}
 	return nil
-}
-
-/*
-Receive a message part from a socket interpreted as an event.
-
-For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
-
-For a description of event_type, see: http://api.zeromq.org/4-0:zmq-socket-monitor#toc3
-
-For an example, see: func (*Socket) Monitor
-*/
-func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value int, err error) {
-	var msg C.zmq_msg_t
-	if i, e := C.zmq_msg_init(&msg); i != 0 {
-		err = errget(e)
-		return
-	}
-	defer C.zmq_msg_close(&msg)
-	size, e := C.zmq_msg_recv(&msg, soc.soc, C.int(flags))
-	if size < 0 {
-		err = errget(e)
-		return
-	}
-	et := C.int(0)
-	val := C.int(0)
-
-	C.get_event(&msg, &et, &val)
-
-	more, e := soc.GetRcvmore()
-	if e != nil {
-		err = errget(e)
-		return
-	}
-	if !more {
-		err = errors.New("More expected")
-		return
-	}
-	addr, e = soc.Recv(flags)
-	if e != nil {
-		err = errget(e)
-		return
-	}
-
-	event_type = Event(et)
-	value = int(val)
-
-	return
 }
 
 /*
