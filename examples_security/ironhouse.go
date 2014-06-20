@@ -1,8 +1,7 @@
-//  The Stonehouse Pattern
+//  The Ironhouse Pattern
 //
-//  Where we allow any clients to connect, but we promise clients
-//  that we are who we claim to be, and our conversations won't be
-//  tampered with or modified, or spied on.
+//  Security doesn't get any stronger than this. An attacker is going to
+//  have to break into your systems to see data before/after encryption.
 
 package main
 
