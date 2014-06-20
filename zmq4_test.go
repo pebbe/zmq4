@@ -129,6 +129,8 @@ func Example_test_conflate() {
 
 func Example_test_connect_resolve() {
 
+	_, minor, _ := zmq.Version()
+
 	sock, err := zmq.NewSocket(zmq.PUB)
 	if checkErr(err) {
 		return
@@ -137,11 +139,21 @@ func Example_test_connect_resolve() {
 	err = sock.Connect("tcp://localhost:1234")
 	checkErr(err)
 
+	// ZeroMQ 4.0 and 4.1 behave differently
 	err = sock.Connect("tcp://localhost:invalid")
-	fmt.Println(err)
+	if minor == 0 {
+		fmt.Println(err, "<nil>")
+	} else {
+		fmt.Println("invalid argument", err)
+	}
 
+	// ZeroMQ 4.0 and 4.1 behave differently
 	err = sock.Connect("tcp://in val id:1234")
-	fmt.Println(err)
+	if minor == 0 {
+		fmt.Println(err, "<nil>")
+	} else {
+		fmt.Println("invalid argument", err)
+	}
 
 	err = sock.Connect("invalid://localhost:1234")
 	fmt.Println(err)
@@ -151,8 +163,8 @@ func Example_test_connect_resolve() {
 
 	fmt.Println("Done")
 	// Output:
-	// invalid argument
-	// invalid argument
+	// invalid argument <nil>
+	// invalid argument <nil>
 	// protocol not supported
 	// Done
 }
