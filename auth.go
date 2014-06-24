@@ -86,24 +86,24 @@ func auth_do_handler() {
 			if auth_allow[address] {
 				allowed = true
 				if auth_verbose {
-					fmt.Printf("AUTH: PASSED (whitelist) address=%s\n", address)
+					fmt.Printf("AUTH: PASSED (whitelist) address=%q\n", address)
 				}
 			} else {
 				denied = true
 				if auth_verbose {
-					fmt.Printf("AUTH: DENIED (not in whitelist) address=%s\n", address)
+					fmt.Printf("AUTH: DENIED (not in whitelist) address=%q\n", address)
 				}
 			}
 		} else if len(auth_deny) > 0 {
 			if auth_deny[address] {
 				denied = true
 				if auth_verbose {
-					fmt.Printf("AUTH: DENIED (blacklist) address=%s\n", address)
+					fmt.Printf("AUTH: DENIED (blacklist) address=%q\n", address)
 				}
 			} else {
 				allowed = true
 				if auth_verbose {
-					fmt.Printf("AUTH: PASSED (not in blacklist) address=%s\n", address)
+					fmt.Printf("AUTH: PASSED (not in blacklist) address=%q\n", address)
 				}
 			}
 		}
@@ -139,14 +139,14 @@ func authenticate_plain(domain, username, password string) bool {
 		if m, ok := auth_users[dom]; ok {
 			if m[username] == password {
 				if auth_verbose {
-					fmt.Printf("AUTH: ALLOWED (PLAIN) domain=%s username=%s password=%s\n", dom, username, password)
+					fmt.Printf("AUTH: ALLOWED (PLAIN) domain=%q username=%q password=%q\n", dom, username, password)
 				}
 				return true
 			}
 		}
 	}
 	if auth_verbose {
-		fmt.Printf("AUTH: DENIED (PLAIN) domain=%s username=%s password=%s\n", domain, username, password)
+		fmt.Printf("AUTH: DENIED (PLAIN) domain=%q username=%q password=%q\n", domain, username, password)
 	}
 	return false
 }
@@ -156,20 +156,20 @@ func authenticate_curve(domain, client_key string) bool {
 		if m, ok := auth_pubkeys[dom]; ok {
 			if m[CURVE_ALLOW_ANY] {
 				if auth_verbose {
-					fmt.Printf("AUTH: ALLOWED (CURVE allow any client, domain=%s)\n", dom)
+					fmt.Printf("AUTH: ALLOWED (CURVE any client) domain=%q\n", dom)
 				}
 				return true
 			}
 			if m[client_key] {
 				if auth_verbose {
-					fmt.Printf("AUTH: ALLOWED (CURVE) domain=%s client_key=%s\n", dom, client_key)
+					fmt.Printf("AUTH: ALLOWED (CURVE) domain=%q client_key=%q\n", dom, client_key)
 				}
 				return true
 			}
 		}
 	}
 	if auth_verbose {
-		fmt.Printf("AUTH: DENIED (CURVE) domain=%s client_key=%s\n", domain, client_key)
+		fmt.Printf("AUTH: DENIED (CURVE) domain=%q client_key=%q\n", domain, client_key)
 	}
 	return false
 }
