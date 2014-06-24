@@ -7,15 +7,51 @@ import (
 	"fmt"
 	"runtime"
 	"strconv"
-	"sync"
 	"time"
 )
 
 func Example_multiple_contexts() {
 	chQuit := make(chan interface{})
-	var wg sync.WaitGroup
-	new_service := func(addr string) {
-		var sock *zmq.Socket
+	chReactor := make(chan bool)
+
+	addr1 := "tcp://127.0.0.1:1234"
+	addr2 := "tcp://127.0.0.1:1235"
+
+	serv_ctx1, err := zmq.NewContext()
+	if checkErr(err) {
+		return
+	}
+	serv1, err := serv_ctx1.NewSocket(zmq.REP)
+	if checkErr(err) {
+		return
+	}
+	err = serv1.Bind(addr1)
+	if checkErr(err) {
+		return
+	}
+	defer func() {
+		serv1.Close()
+		serv_ctx1.Term()
+	}()
+
+	serv_ctx2, err := zmq.NewContext()
+	if checkErr(err) {
+		return
+	}
+	serv2, err := serv_ctx2.NewSocket(zmq.REP)
+	if checkErr(err) {
+		return
+	}
+	err = serv2.Bind(addr2)
+	if checkErr(err) {
+		return
+	}
+	defer func() {
+		serv2.Close()
+		serv_ctx2.Term()
+	}()
+
+	new_service := func(sock *zmq.Socket, addr string) {
 		socket_handler := func(state zmq.State) error {
 			msg, err := sock.RecvMessage(0)
 			if checkErr(err) {
@@ -31,33 +67,19 @@ func Example_multiple_contexts() {
 			return errors.New("quit")
 		}
 
-		wg.Add(1)
-		defer wg.Done()
-		ctx, err := zmq.NewContext()
-		if checkErr(err) {
-			return
-		}
-		sock, err = ctx.NewSocket(zmq.REP)
-		if checkErr(err) {
-			return
-		}
-		err = sock.Bind(addr)
-		if checkErr(err) {
-			return
-		}
+		defer func() {
+			chReactor <- true
+		}()
+
 		reactor := zmq.NewReactor()
 		reactor.AddSocket(sock, zmq.POLLIN, socket_handler)
 		reactor.AddChannel(chQuit, 1, quit_handler)
 		err = reactor.Run(100 * time.Millisecond)
 		fmt.Println(err)
-		sock.Close()
-		ctx.Term()
 	}
 
-	addr1 := "tcp://127.0.0.1:1234"
-	addr2 := "tcp://127.0.0.1:1235"
-	go new_service(addr1)
-	go new_service(addr2)
+	go new_service(serv1, addr1)
+	go new_service(serv2, addr2)
 
 	time.Sleep(time.Second)
 
@@ -158,8 +180,9 @@ func Example_multiple_contexts() {
 
 	// close(chQuit) doesn't work because the reactor removes closed channels, instead of acting on them
 	chQuit <- true
+	<-chReactor
 	chQuit <- true
-	wg.Wait()
+	<-chReactor
 
 	fmt.Println("Done")
 	// Output:
@@ -291,6 +314,8 @@ func Example_test_conflate() {
 
 func Example_test_connect_resolve() {
 
+	_, minor, _ := zmq.Version()
+
 	sock, err := zmq.NewSocket(zmq.PUB)
 	if checkErr(err) {
 		return
@@ -299,11 +324,21 @@ func Example_test_connect_resolve() {
 	err = sock.Connect("tcp://localhost:1234")
 	checkErr(err)
 
+	// ZeroMQ 4.0 and 4.1 behave differently
 	err = sock.Connect("tcp://localhost:invalid")
-	fmt.Println(err)
+	if minor == 0 {
+		fmt.Println(err, "resource temporarily unavailable")
+	} else {
+		fmt.Println("invalid argument", err)
+	}
 
+	// ZeroMQ 4.0 and 4.1 behave differently
 	err = sock.Connect("tcp://in val id:1234")
-	fmt.Println(err)
+	if minor == 0 {
+		fmt.Println(err, "resource temporarily unavailable")
+	} else {
+		fmt.Println("invalid argument", err)
+	}
 
 	err = sock.Connect("invalid://localhost:1234")
 	fmt.Println(err)
@@ -313,8 +348,8 @@ func Example_test_connect_resolve() {
 
 	fmt.Println("Done")
 	// Output:
-	// invalid argument
-	// invalid argument
+	// invalid argument resource temporarily unavailable
+	// invalid argument resource temporarily unavailable
 	// protocol not supported
 	// Done
 }
