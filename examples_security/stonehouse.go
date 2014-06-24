@@ -29,7 +29,7 @@ func main() {
 	//  to make a CURVE connection.
 	client_public, client_secret, err := zmq.NewCurveKeypair()
 	checkErr(err)
-	server_public, server_secret, _ := zmq.NewCurveKeypair()
+	server_public, server_secret, err := zmq.NewCurveKeypair()
 	checkErr(err)
 
 	//  Create and bind server socket
