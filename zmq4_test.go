@@ -7,8 +7,170 @@ import (
 	"fmt"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 )
+
+func Example_multiple_contexts() {
+	chQuit := make(chan interface{})
+	var wg sync.WaitGroup
+	new_service := func(addr string) {
+		var sock *zmq.Socket
+		socket_handler := func(state zmq.State) error {
+			msg, err := sock.RecvMessage(0)
+			if checkErr(err) {
+				return err
+			}
+			_, err = sock.SendMessage(addr, msg)
+			if checkErr(err) {
+				return err
+			}
+			return nil
+		}
+		quit_handler := func(interface{}) error {
+			return errors.New("quit")
+		}
+
+		wg.Add(1)
+		defer wg.Done()
+		ctx, err := zmq.NewContext()
+		if checkErr(err) {
+			return
+		}
+		sock, err = ctx.NewSocket(zmq.REP)
+		if checkErr(err) {
+			return
+		}
+		err = sock.Bind(addr)
+		if checkErr(err) {
+			return
+		}
+		reactor := zmq.NewReactor()
+		reactor.AddSocket(sock, zmq.POLLIN, socket_handler)
+		reactor.AddChannel(chQuit, 1, quit_handler)
+		err = reactor.Run(100 * time.Millisecond)
+		fmt.Println(err)
+		sock.Close()
+		ctx.Term()
+	}
+
+	addr1 := "tcp://127.0.0.1:1234"
+	addr2 := "tcp://127.0.0.1:1235"
+	go new_service(addr1)
+	go new_service(addr2)
+
+	time.Sleep(time.Second)
+
+	// default context
+
+	sock1, err := zmq.NewSocket(zmq.REQ)
+	if checkErr(err) {
+		return
+	}
+	sock2, err := zmq.NewSocket(zmq.REQ)
+	if checkErr(err) {
+		return
+	}
+	err = sock1.Connect(addr1)
+	if checkErr(err) {
+		return
+	}
+	err = sock2.Connect(addr2)
+	if checkErr(err) {
+		return
+	}
+	_, err = sock1.SendMessage(addr1)
+	if checkErr(err) {
+		return
+	}
+	_, err = sock2.SendMessage(addr2)
+	if checkErr(err) {
+		return
+	}
+	msg, err := sock1.RecvMessage(0)
+	fmt.Println(err, msg)
+	msg, err = sock2.RecvMessage(0)
+	fmt.Println(err, msg)
+	err = sock1.Close()
+	if checkErr(err) {
+		return
+	}
+	err = sock2.Close()
+	if checkErr(err) {
+		return
+	}
+
+	// non-default contexts
+
+	ctx1, err := zmq.NewContext()
+	if checkErr(err) {
+		return
+	}
+	ctx2, err := zmq.NewContext()
+	if checkErr(err) {
+		return
+	}
+	sock1, err = ctx1.NewSocket(zmq.REQ)
+	if checkErr(err) {
+		return
+	}
+	sock2, err = ctx2.NewSocket(zmq.REQ)
+	if checkErr(err) {
+		return
+	}
+	err = sock1.Connect(addr1)
+	if checkErr(err) {
+		return
+	}
+	err = sock2.Connect(addr2)
+	if checkErr(err) {
+		return
+	}
+	_, err = sock1.SendMessage(addr1)
+	if checkErr(err) {
+		return
+	}
+	_, err = sock2.SendMessage(addr2)
+	if checkErr(err) {
+		return
+	}
+	msg, err = sock1.RecvMessage(0)
+	fmt.Println(err, msg)
+	msg, err = sock2.RecvMessage(0)
+	fmt.Println(err, msg)
+	err = sock1.Close()
+	if checkErr(err) {
+		return
+	}
+	err = sock2.Close()
+	if checkErr(err) {
+		return
+	}
+
+	err = ctx1.Term()
+	if checkErr(err) {
+		return
+	}
+	err = ctx2.Term()
+	if checkErr(err) {
+		return
+	}
+
+	// close(chQuit) doesn't work because the reactor removes closed channels, instead of acting on them
+	chQuit <- true
+	chQuit <- true
+	wg.Wait()
+
+	fmt.Println("Done")
+	// Output:
+	// <nil> [tcp://127.0.0.1:1234 tcp://127.0.0.1:1234]
+	// <nil> [tcp://127.0.0.1:1235 tcp://127.0.0.1:1235]
+	// <nil> [tcp://127.0.0.1:1234 tcp://127.0.0.1:1234]
+	// <nil> [tcp://127.0.0.1:1235 tcp://127.0.0.1:1235]
+	// quit
+	// quit
+	// Done
+}
 
 func Example_test_abstract_ipc() {
 	sb, err := zmq.NewSocket(zmq.PAIR)
@@ -129,8 +291,6 @@ func Example_test_conflate() {
 
 func Example_test_connect_resolve() {
 
-	_, minor, _ := zmq.Version()
-
 	sock, err := zmq.NewSocket(zmq.PUB)
 	if checkErr(err) {
 		return
@@ -139,21 +299,11 @@ func Example_test_connect_resolve() {
 	err = sock.Connect("tcp://localhost:1234")
 	checkErr(err)
 
-	// ZeroMQ 4.0 and 4.1 behave differently
 	err = sock.Connect("tcp://localhost:invalid")
-	if minor == 0 {
-		fmt.Println(err, "<nil>")
-	} else {
-		fmt.Println("invalid argument", err)
-	}
+	fmt.Println(err)
 
-	// ZeroMQ 4.0 and 4.1 behave differently
 	err = sock.Connect("tcp://in val id:1234")
-	if minor == 0 {
-		fmt.Println(err, "<nil>")
-	} else {
-		fmt.Println("invalid argument", err)
-	}
+	fmt.Println(err)
 
 	err = sock.Connect("invalid://localhost:1234")
 	fmt.Println(err)
@@ -163,8 +313,8 @@ func Example_test_connect_resolve() {
 
 	fmt.Println("Done")
 	// Output:
-	// invalid argument <nil>
-	// invalid argument <nil>
+	// invalid argument
+	// invalid argument
 	// protocol not supported
 	// Done
 }
