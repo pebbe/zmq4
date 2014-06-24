@@ -14,8 +14,8 @@ func Example_multiple_contexts() {
 	chQuit := make(chan interface{})
 	chReactor := make(chan bool)
 
-	addr1 := "tcp://127.0.0.1:1234"
-	addr2 := "tcp://127.0.0.1:1235"
+	addr1 := "tcp://127.0.0.1:9997"
+	addr2 := "tcp://127.0.0.1:9998"
 
 	serv_ctx1, err := zmq.NewContext()
 	if checkErr(err) {
@@ -186,10 +186,10 @@ func Example_multiple_contexts() {
 
 	fmt.Println("Done")
 	// Output:
-	// <nil> [tcp://127.0.0.1:1234 tcp://127.0.0.1:1234]
-	// <nil> [tcp://127.0.0.1:1235 tcp://127.0.0.1:1235]
-	// <nil> [tcp://127.0.0.1:1234 tcp://127.0.0.1:1234]
-	// <nil> [tcp://127.0.0.1:1235 tcp://127.0.0.1:1235]
+	// <nil> [tcp://127.0.0.1:9997 tcp://127.0.0.1:9997]
+	// <nil> [tcp://127.0.0.1:9998 tcp://127.0.0.1:9998]
+	// <nil> [tcp://127.0.0.1:9997 tcp://127.0.0.1:9997]
+	// <nil> [tcp://127.0.0.1:9998 tcp://127.0.0.1:9998]
 	// quit
 	// quit
 	// Done
