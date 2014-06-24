@@ -1,10 +1,3 @@
-// A Go interface to ZeroMQ (zmq, 0mq) version 4.
-//
-// For ZeroMQ version 3, see: http://github.com/pebbe/zmq3
-//
-// For ZeroMQ version 2, see: http://github.com/pebbe/zmq2
-//
-// http://www.zeromq.org/
 package zmq4
 
 /*
@@ -142,7 +135,7 @@ func getOption(ctx *Context, o C.int) (int, error) {
 	return n, nil
 }
 
-// Returns the size of the 0MQ thread pool.
+// Returns the size of the 0MQ thread pool in the default context.
 func GetIoThreads() (int, error) {
 	return getOption(ctx, C.ZMQ_IO_THREADS)
 }
@@ -152,7 +145,7 @@ func (ctx *Context) GetIoThreads() (int, error) {
 	return getOption(ctx, C.ZMQ_IO_THREADS)
 }
 
-// Returns the maximum number of sockets allowed.
+// Returns the maximum number of sockets allowed in the default context.
 func GetMaxSockets() (int, error) {
 	return getOption(ctx, C.ZMQ_MAX_SOCKETS)
 }
@@ -162,7 +155,7 @@ func (ctx *Context) GetMaxSockets() (int, error) {
 	return getOption(ctx, C.ZMQ_MAX_SOCKETS)
 }
 
-// Returns the IPv6 option
+// Returns the IPv6 option in the default context.
 func GetIpv6() (bool, error) {
 	i, e := getOption(ctx, C.ZMQ_IPV6)
 	if i == 0 {
@@ -171,7 +164,7 @@ func GetIpv6() (bool, error) {
 	return true, e
 }
 
-// Returns the IPv6 option
+// Returns the IPv6 option.
 func (ctx *Context) GetIpv6() (bool, error) {
 	i, e := getOption(ctx, C.ZMQ_IPV6)
 	if i == 0 {
@@ -189,10 +182,10 @@ func setOption(ctx *Context, o C.int, n int) error {
 }
 
 /*
-Specifies the size of the 0MQ thread pool to handle I/O operations. If
-your application is using only the inproc transport for messaging you
-may set this to zero, otherwise set it to at least one. This option only
-applies before creating any sockets.
+Specifies the size of the 0MQ thread pool to handle I/O operations in
+the default context. If your application is using only the inproc
+transport for messaging you may set this to zero, otherwise set it to at
+least one. This option only applies before creating any sockets.
 
 Default value   1
 */
@@ -213,7 +206,7 @@ func (ctx *Context) SetIoThreads(n int) error {
 }
 
 /*
-Sets the maximum number of sockets allowed.
+Sets the maximum number of sockets allowed in the default context.
 
 Default value   1024
 */
@@ -231,7 +224,7 @@ func (ctx *Context) SetMaxSockets(n int) error {
 }
 
 /*
-Sets the IPv6 value for all sockets created in the context from this point onwards.
+Sets the IPv6 value for all sockets created in the default context from this point onwards.
 A value of true means IPv6 is enabled, while false means the socket will use only IPv4.
 When IPv6 is enabled, a socket will connect to, or accept connections from, both IPv4 and IPv6 hosts.
 
