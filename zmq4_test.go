@@ -1202,7 +1202,7 @@ func Example_test_security_curve() {
 		return
 	}
 
-	err = server.SetRcvtimeo(150 * time.Millisecond)
+	err = server.SetRcvtimeo(time.Second)
 	if checkErr(err) {
 		return
 	}
@@ -1259,7 +1259,7 @@ func Example_test_security_curve() {
 	if checkErr(err) {
 		return
 	}
-	err = client.SetRcvtimeo(150 * time.Millisecond)
+	err = client.SetRcvtimeo(time.Second)
 	if checkErr(err) {
 		return
 	}
@@ -1294,7 +1294,7 @@ func Example_test_security_curve() {
 	if checkErr(err) {
 		return
 	}
-	err = client.SetRcvtimeo(150 * time.Millisecond)
+	err = client.SetRcvtimeo(time.Second)
 	if checkErr(err) {
 		return
 	}
@@ -1329,7 +1329,7 @@ func Example_test_security_curve() {
 	if checkErr(err) {
 		return
 	}
-	err = client.SetRcvtimeo(150 * time.Millisecond)
+	err = client.SetRcvtimeo(time.Second)
 	if checkErr(err) {
 		return
 	}
@@ -1366,7 +1366,7 @@ func Example_test_security_curve() {
 	if checkErr(err) {
 		return
 	}
-	err = client.SetRcvtimeo(150 * time.Millisecond)
+	err = client.SetRcvtimeo(time.Second)
 	if checkErr(err) {
 		return
 	}
@@ -1493,11 +1493,11 @@ func Example_test_security_null() {
 	if checkErr(err) {
 		return
 	}
-	err = client.SetRcvtimeo(150 * time.Millisecond)
+	err = client.SetRcvtimeo(time.Second)
 	if checkErr(err) {
 		return
 	}
-	err = server.SetRcvtimeo(150 * time.Millisecond)
+	err = server.SetRcvtimeo(time.Second)
 	if checkErr(err) {
 		return
 	}
@@ -1657,11 +1657,11 @@ func Example_test_security_plain() {
 	if checkErr(err) {
 		return
 	}
-	err = client.SetRcvtimeo(150 * time.Millisecond)
+	err = client.SetRcvtimeo(time.Second)
 	if checkErr(err) {
 		return
 	}
-	err = server.SetRcvtimeo(150 * time.Millisecond)
+	err = server.SetRcvtimeo(time.Second)
 	if checkErr(err) {
 		return
 	}
