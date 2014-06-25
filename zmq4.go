@@ -909,8 +909,77 @@ func (m *Msg) GetMeta(property string) (string, error) {
 	ps := C.CString(property)
 	defer C.free(unsafe.Pointer(ps))
 	s, err := C.zmq_msg_gets(&m.msg, ps)
-	if s == nil {
+	if err != nil {
 		return "", errget(err)
 	}
 	return C.GoString(s), nil
+}
+
+type StringError struct {
+	String string
+	Error  error
+}
+
+/*
+Receive a message part with metadata.
+
+For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
+
+This requires ZeroMQ version 4.1.0. Lower versions will return ErrorNotImplemented_4_1.
+
+See: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
+
+SUBJECT TO CHANGE
+*/
+func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (string, error, []StringError) {
+	b, err, p := soc.RecvBytesWithMetadata(flags, properties...)
+	return string(b), err, p
+}
+
+/*
+Receive a message part with metadata.
+
+For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
+
+This requires ZeroMQ version 4.1.0. Lower versions will return ErrorNotImplemented_4_1.
+
+See: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
+
+SUBJECT TO CHANGE
+*/
+func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) ([]byte, error, []StringError) {
+	prop := make([]StringError, len(properties))
+
+	var msg C.zmq_msg_t
+	if i, err := C.zmq_msg_init(&msg); i != 0 {
+		return []byte{}, errget(err), prop
+	}
+	defer C.zmq_msg_close(&msg)
+
+	size, err := C.zmq_msg_recv(&msg, soc.soc, C.int(flags))
+	if size < 0 {
+		return []byte{}, errget(err), prop
+	}
+
+	data := make([]byte, int(size))
+	if size > 0 {
+		C.my_memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&msg), C.size_t(size))
+	}
+
+	_, minor, _ := Version()
+	for i, p := range properties {
+		if minor < 1 {
+			prop[i].Error = ErrorNotImplemented_4_1
+		} else {
+			ps := C.CString(p)
+			s, err := C.zmq_msg_gets(&msg, ps)
+			if err == nil {
+				prop[i].String = C.GoString(s)
+			} else {
+				prop[i].Error = errget(err)
+			}
+			C.free(unsafe.Pointer(ps))
+		}
+	}
+	return data, nil, prop
 }
