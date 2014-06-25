@@ -70,7 +70,7 @@ func Example_auth() {
 		return
 	}
 	if _, minor, _ := zmq.Version(); minor < 1 {
-		fmt.Println("[{anonymous <nil>} {DEALER <nil>} {World! <nil>} {Bar <nil>} { error}]")
+		fmt.Println("[{anonymous <nil>} {DEALER <nil>} {World! <nil>} {Bar <nil>} { invalid argument}]")
 	} else {
 		fmt.Println(metadata)
 	}
@@ -79,6 +79,6 @@ func Example_auth() {
 	zmq.AuthStop()
 
 	// Output:
-	// [{anonymous <nil>} {DEALER <nil>} {World! <nil>} {Bar <nil>} { error}]
+	// [{anonymous <nil>} {DEALER <nil>} {World! <nil>} {Bar <nil>} { invalid argument}]
 	// Greatings!
 }
