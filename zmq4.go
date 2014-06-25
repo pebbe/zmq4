@@ -815,106 +815,6 @@ func NewCurveKeypair() (z85_public_key, z85_secret_key string, err error) {
 	return string(pubkey[:40]), string(seckey[:40]), nil
 }
 
-/*
-A raw message is a message that can be inspected for properties.
-
-You can get a raw message with (*Socket) RecvMsg(Flag).
-
-SUBJECT TO CHANGE
-*/
-type Msg struct {
-	msg  C.zmq_msg_t
-	open bool
-}
-
-/*
-Receive a raw message from a socket
-
-For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
-
-SUBJECT TO CHANGE
-*/
-func (soc *Socket) RecvMsg(flags Flag) (*Msg, error) {
-	msg := &Msg{open: true}
-	if i, err := C.zmq_msg_init(&msg.msg); i != 0 {
-		return nil, errget(err)
-	}
-	size, err := C.zmq_msg_recv(&msg.msg, soc.soc, C.int(flags))
-	if size < 0 {
-		C.zmq_msg_close(&msg.msg)
-		return nil, errget(err)
-	}
-	runtime.SetFinalizer(msg, (*Msg).Close)
-	return msg, nil
-}
-
-/*
-Close the raw message.
-
-If not called explicitly, the message will be closed on garbage collection
-
-SUBJECT TO CHANGE
-*/
-func (m *Msg) Close() error {
-	if m.open {
-		m.open = false
-		if i, err := C.zmq_msg_close(&m.msg); i != 0 {
-			return errget(err)
-		}
-	}
-	return nil
-}
-
-/*
-Get the contents of the raw message a slice of bytes.
-
-SUBJECT TO CHANGE
-*/
-func (m *Msg) GetDataBytes() ([]byte, error) {
-	if !m.open {
-		return []byte{}, ErrorMsgClosed
-	}
-	size := C.zmq_msg_size(&m.msg)
-	data := make([]byte, int(size))
-	C.my_memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&m.msg), C.size_t(size))
-	return data, nil
-}
-
-/*
-Get the contents of the raw message a string.
-
-SUBJECT TO CHANGE
-*/
-func (m *Msg) GetData() (string, error) {
-	b, err := m.GetDataBytes()
-	return string(b), err
-}
-
-/*
-Get a metadata property of the raw message.
-
-This requires ZeroMQ version 4.1.0. Lower versions will return ErrorNotImplemented_4_1.
-
-See: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
-
-SUBJECT TO CHANGE
-*/
-func (m *Msg) GetMeta(property string) (string, error) {
-	if _, minor, _ := Version(); minor < 1 {
-		return "", ErrorNotImplemented_4_1
-	}
-	if !m.open {
-		return "", ErrorMsgClosed
-	}
-	ps := C.CString(property)
-	defer C.free(unsafe.Pointer(ps))
-	s, err := C.zmq_msg_gets(&m.msg, ps)
-	if err != nil {
-		return "", errget(err)
-	}
-	return C.GoString(s), nil
-}
-
 type StringError struct {
 	String string
 	Error  error
@@ -931,9 +831,9 @@ See: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 
 SUBJECT TO CHANGE
 */
-func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (string, error, []StringError) {
-	b, err, p := soc.RecvBytesWithMetadata(flags, properties...)
-	return string(b), err, p
+func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (string, []StringError, error) {
+	b, p, err := soc.RecvBytesWithMetadata(flags, properties...)
+	return string(b), p, err
 }
 
 /*
@@ -947,18 +847,18 @@ See: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 
 SUBJECT TO CHANGE
 */
-func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) ([]byte, error, []StringError) {
+func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) ([]byte, []StringError, error) {
 	prop := make([]StringError, len(properties))
 
 	var msg C.zmq_msg_t
 	if i, err := C.zmq_msg_init(&msg); i != 0 {
-		return []byte{}, errget(err), prop
+		return []byte{}, prop, errget(err)
 	}
 	defer C.zmq_msg_close(&msg)
 
 	size, err := C.zmq_msg_recv(&msg, soc.soc, C.int(flags))
 	if size < 0 {
-		return []byte{}, errget(err), prop
+		return []byte{}, prop, errget(err)
 	}
 
 	data := make([]byte, int(size))
@@ -981,5 +881,5 @@ func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) ([]by
 			C.free(unsafe.Pointer(ps))
 		}
 	}
-	return data, nil, prop
+	return data, prop, nil
 }

@@ -33,7 +33,13 @@ var (
 	auth_users = make(map[string]map[string]string)
 
 	auth_pubkeys = make(map[string]map[string]bool)
+
+	auth_meta_handler = auth_meta_handler_default
 )
+
+func auth_meta_handler_default(version, request_id, domain, address, identity, mechanism string) (user_id string, metadata []byte) {
+	return "", []byte{}
+}
 
 func auth_do_handler() {
 	for {
@@ -59,10 +65,10 @@ func auth_do_handler() {
 			panic("AUTH: version != 1.0")
 		}
 
-		sequence := msg[1]
+		request_id := msg[1]
 		domain := msg[2]
 		address := msg[3]
-		//identity := msg[4]  // TODO: what is this used for?
+		identity := msg[4]
 		mechanism := msg[5]
 
 		username := ""
@@ -125,9 +131,10 @@ func auth_do_handler() {
 			}
 		}
 		if allowed {
-			auth_handler.SendMessage(version, sequence, "200", "OK", "", "")
+			user_id, metadata := auth_meta_handler(version, request_id, domain, address, identity, mechanism)
+			auth_handler.SendMessage(version, request_id, "200", "OK", user_id, metadata)
 		} else {
-			auth_handler.SendMessage(version, sequence, "400", "NO ACCESS", "", "")
+			auth_handler.SendMessage(version, request_id, "400", "NO ACCESS", "", "")
 		}
 	}
 
@@ -327,6 +334,10 @@ func AuthSetVerbose(verbose bool) {
 	auth_verbose = verbose
 }
 
+func AuthSetMetaHandler(handler func(version, request_id, domain, address, identity, mechanism string) (user_id string, metadata []byte)) {
+	auth_meta_handler = handler
+}
+
 //. Additional functions for configuring server or client socket with a single command
 
 // Set NULL server role.
@@ -378,4 +389,40 @@ func (client *Socket) ClientAuthCurve(server_public_key, client_public_key, clie
 		client.SetCurveSecretkey(client_secret_key)
 	}
 	return err
+}
+
+// SUBJECT TO CHANGE
+func AuthMetaBlob(name, value string) ([]byte, error) {
+	l1 := len(name)
+	if len(name) > 255 {
+		return []byte{}, errors.New("Name too long")
+	}
+	l2 := len(value)
+	b := make([]byte, l1+l2+5)
+	b[0] = byte(l1)
+	b[l1+1] = byte(l2 >> 24 & 255)
+	b[l1+2] = byte(l2 >> 16 & 255)
+	b[l1+3] = byte(l2 >> 8 & 255)
+	b[l1+4] = byte(l2 & 255)
+	copy(b[1:], []byte(name))
+	copy(b[5+l1:], []byte(value))
+	return b, nil
+}
+
+// SUBJECT TO CHANGE
+func AuthMetaBlobs(pair ...[2]string) ([]byte, error) {
+	size := 0
+	for _, p := range pair {
+		l := len(p[0])
+		if l > 255 {
+			return []byte{}, errors.New("Name too long")
+		}
+		size += 5 + l + len(p[1])
+	}
+	b := make([]byte, 0, size)
+	for _, p := range pair {
+		b1, _ := AuthMetaBlob(p[0], p[1])
+		b = append(b, b1...)
+	}
+	return b, nil
 }
