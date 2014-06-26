@@ -20,18 +20,22 @@ func ExampleAuthStart() {
 	zmq.AuthSetVerbose(false)
 
 	//  Start authentication engine
-	zmq.AuthStart()
+	err := zmq.AuthStart()
+	if checkErr(err) {
+		return
+	}
 	defer zmq.AuthStop()
 
-	zmq.AuthAllow("127.0.0.1")
+	zmq.AuthSetMetaHandler(
+		func(version, request_id, domain, address, identity, mechanism string) (metadata map[string]string) {
+			return map[string]string{
+				"User-Id": "anonymous",
+				"Hello":   "World!",
+				"Foo":     "Bar",
+			}
+		})
 
-	zmq.AuthSetMetaHandler(func(version, request_id, domain, address, identity, mechanism string) (metadata map[string]string) {
-		return map[string]string{
-			"User-Id": "anonymous",
-			"Hello":   "World!",
-			"Foo":     "Bar",
-		}
-	})
+	zmq.AuthAllow("127.0.0.1")
 
 	//  We need two certificates, one for the client and one for
 	//  the server. The client must know the server's public key
@@ -90,8 +94,6 @@ func ExampleAuthStart() {
 	} else {
 		fmt.Println(metadata)
 	}
-
-	zmq.AuthStop()
 
 	// Output:
 	// [Greatings Earthlings!]
