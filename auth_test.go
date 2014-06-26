@@ -25,12 +25,12 @@ func ExampleAuthStart() {
 
 	zmq.AuthAllow("127.0.0.1")
 
-	zmq.AuthSetMetaHandler(func(version, request_id, domain, address, identity, mechanism string) (user_id string, metadata []byte) {
-		b, _ := zmq.AuthMetaBlobs(
-			[2]string{"Hello", "World!"},
-			[2]string{"Foo", "Bar"},
-		)
-		return "anonymous", b
+	zmq.AuthSetMetaHandler(func(version, request_id, domain, address, identity, mechanism string) (metadata map[string]string) {
+		return map[string]string{
+			"User-Id": "anonymous",
+			"Hello":   "World!",
+			"Foo":     "Bar",
+		}
 	})
 
 	//  We need two certificates, one for the client and one for
