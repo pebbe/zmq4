@@ -39,9 +39,9 @@ import (
 )
 
 var (
-	defaultCtx              *Context
+	defaultCtx *Context
+
 	ErrorNotImplemented_4_1 = errors.New("Not implemented, requires 0MQ version 4.1")
-	ErrorMsgClosed          = errors.New("Message is closed")
 )
 
 func init() {
@@ -815,6 +815,7 @@ func NewCurveKeypair() (z85_public_key, z85_secret_key string, err error) {
 	return string(pubkey[:40]), string(seckey[:40]), nil
 }
 
+// SUBJECT TO CHANGE
 type StringError struct {
 	String string
 	Error  error
@@ -831,7 +832,7 @@ See: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 
 SUBJECT TO CHANGE
 */
-func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (string, []StringError, error) {
+func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (msg string, values []StringError, err error) {
 	b, p, err := soc.RecvBytesWithMetadata(flags, properties...)
 	return string(b), p, err
 }
@@ -847,23 +848,23 @@ See: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 
 SUBJECT TO CHANGE
 */
-func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) ([]byte, []StringError, error) {
+func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg []byte, values []StringError, err error) {
 	prop := make([]StringError, len(properties))
 
-	var msg C.zmq_msg_t
-	if i, err := C.zmq_msg_init(&msg); i != 0 {
+	var m C.zmq_msg_t
+	if i, err := C.zmq_msg_init(&m); i != 0 {
 		return []byte{}, prop, errget(err)
 	}
-	defer C.zmq_msg_close(&msg)
+	defer C.zmq_msg_close(&m)
 
-	size, err := C.zmq_msg_recv(&msg, soc.soc, C.int(flags))
+	size, err := C.zmq_msg_recv(&m, soc.soc, C.int(flags))
 	if size < 0 {
 		return []byte{}, prop, errget(err)
 	}
 
 	data := make([]byte, int(size))
 	if size > 0 {
-		C.my_memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&msg), C.size_t(size))
+		C.my_memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&m), C.size_t(size))
 	}
 
 	_, minor, _ := Version()
@@ -872,7 +873,7 @@ func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) ([]by
 			prop[i].Error = ErrorNotImplemented_4_1
 		} else {
 			ps := C.CString(p)
-			s, err := C.zmq_msg_gets(&msg, ps)
+			s, err := C.zmq_msg_gets(&m, ps)
 			if err == nil {
 				prop[i].String = C.GoString(s)
 			} else {

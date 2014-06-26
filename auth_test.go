@@ -4,12 +4,20 @@ import (
 	zmq "github.com/pebbe/zmq4"
 
 	"fmt"
-	"time"
+	"log"
 )
 
-func Example_auth() {
+func ExampleAuthStart() {
 
-	time.Sleep(100 * time.Millisecond)
+	checkErr := func(err error) bool {
+		if err == nil {
+			return false
+		}
+		log.Println(err)
+		return true
+	}
+
+	zmq.AuthSetVerbose(false)
 
 	//  Start authentication engine
 	zmq.AuthStart()
@@ -47,7 +55,10 @@ func Example_auth() {
 	}
 	defer server.Close()
 	server.ServerAuthCurve("global", server_secret)
-	server.Bind("tcp://*:9000")
+	err = server.Bind("tcp://*:9000")
+	if checkErr(err) {
+		return
+	}
 
 	//  Create and connect client socket
 	client, err := zmq.NewSocket(zmq.DEALER)
@@ -56,29 +67,33 @@ func Example_auth() {
 	}
 	defer client.Close()
 	client.ClientAuthCurve(server_public, client_public, client_secret)
-	client.Connect("tcp://127.0.0.1:9000")
-
-	//  Send a single message from client to server
-	_, err = client.Send("Greatings!", 0)
+	err = client.Connect("tcp://127.0.0.1:9000")
 	if checkErr(err) {
 		return
 	}
 
-	// Receive message on the server
-	message, metadata, err := server.RecvWithMetadata(0, "User-Id", "Socket-Type", "Hello", "Foo", "Fuz")
+	//  Send a message from client to server
+	_, err = client.SendMessage("Greatings", "Earthlings!")
 	if checkErr(err) {
 		return
 	}
+
+	// Receive message and metadata on the server
+	message, metadata, err := server.RecvMessageWithMetadata(0, "User-Id", "Socket-Type", "Hello", "Foo", "Fuz")
+	if checkErr(err) {
+		return
+	}
+	fmt.Println(message)
 	if _, minor, _ := zmq.Version(); minor < 1 {
+		// Metadata requires at least ZeroMQ version 4.1
 		fmt.Println("[{anonymous <nil>} {DEALER <nil>} {World! <nil>} {Bar <nil>} { invalid argument}]")
 	} else {
 		fmt.Println(metadata)
 	}
-	fmt.Println(message)
 
 	zmq.AuthStop()
 
 	// Output:
+	// [Greatings Earthlings!]
 	// [{anonymous <nil>} {DEALER <nil>} {World! <nil>} {Bar <nil>} { invalid argument}]
-	// Greatings!
 }

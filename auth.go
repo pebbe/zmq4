@@ -334,6 +334,7 @@ func AuthSetVerbose(verbose bool) {
 	auth_verbose = verbose
 }
 
+// SUBJECT TO CHANGE
 func AuthSetMetaHandler(handler func(version, request_id, domain, address, identity, mechanism string) (user_id string, metadata []byte)) {
 	auth_meta_handler = handler
 }

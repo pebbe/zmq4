@@ -121,3 +121,40 @@ func (soc *Socket) RecvMessageBytes(flags Flag) (msg [][]byte, err error) {
 	}
 	return
 }
+
+/*
+SUBJECT TO CHANGE
+*/
+func (soc *Socket) RecvMessageWithMetadata(flags Flag, properties ...string) (msg []string, values []StringError, err error) {
+	b, p, err := soc.RecvMessageBytesWithMetadata(flags, properties...)
+	m := make([]string, len(b))
+	for i, bt := range b {
+		m[i] = string(bt)
+	}
+	return m, p, err
+}
+
+/*
+SUBJECT TO CHANGE
+*/
+func (soc *Socket) RecvMessageBytesWithMetadata(flags Flag, properties ...string) (msg [][]byte, values []StringError, err error) {
+	bb := make([][]byte, 0)
+	b, p, err := soc.RecvBytesWithMetadata(flags, properties...)
+	if err != nil {
+		return bb, p, err
+	}
+	for {
+		bb = append(bb, b)
+
+		var more bool
+		more, err = soc.GetRcvmore()
+		if err != nil || !more {
+			break
+		}
+		b, err = soc.RecvBytes(flags)
+		if err != nil {
+			break
+		}
+	}
+	return bb, p, err
+}
