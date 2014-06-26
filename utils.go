@@ -125,7 +125,7 @@ func (soc *Socket) RecvMessageBytes(flags Flag) (msg [][]byte, err error) {
 /*
 SUBJECT TO CHANGE
 */
-func (soc *Socket) RecvMessageWithMetadata(flags Flag, properties ...string) (msg []string, values []StringError, err error) {
+func (soc *Socket) RecvMessageWithMetadata(flags Flag, properties ...string) (msg []string, metadata map[string]string, err error) {
 	b, p, err := soc.RecvMessageBytesWithMetadata(flags, properties...)
 	m := make([]string, len(b))
 	for i, bt := range b {
@@ -137,7 +137,7 @@ func (soc *Socket) RecvMessageWithMetadata(flags Flag, properties ...string) (ms
 /*
 SUBJECT TO CHANGE
 */
-func (soc *Socket) RecvMessageBytesWithMetadata(flags Flag, properties ...string) (msg [][]byte, values []StringError, err error) {
+func (soc *Socket) RecvMessageBytesWithMetadata(flags Flag, properties ...string) (msg [][]byte, metadata map[string]string, err error) {
 	bb := make([][]byte, 0)
 	b, p, err := soc.RecvBytesWithMetadata(flags, properties...)
 	if err != nil {

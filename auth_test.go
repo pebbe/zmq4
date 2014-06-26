@@ -83,19 +83,30 @@ func ExampleAuthStart() {
 	}
 
 	// Receive message and metadata on the server
-	message, metadata, err := server.RecvMessageWithMetadata(0, "User-Id", "Socket-Type", "Hello", "Foo", "Fuz")
+	keys := []string{"User-Id", "Socket-Type", "Hello", "Foo", "Fuz"}
+	message, metadata, err := server.RecvMessageWithMetadata(0, keys...)
 	if checkErr(err) {
 		return
 	}
 	fmt.Println(message)
 	if _, minor, _ := zmq.Version(); minor < 1 {
 		// Metadata requires at least ZeroMQ version 4.1
-		fmt.Println("[{anonymous <nil>} {DEALER <nil>} {World! <nil>} {Bar <nil>} { invalid argument}]")
+		fmt.Println(`User-Id: "anonymous" true`)
+		fmt.Println(`Socket-Type: "DEALER" true`)
+		fmt.Println(`Hello: "World!" true`)
+		fmt.Println(`Foo: "Bar" true`)
+		fmt.Println(`Fuz: "" false`)
 	} else {
-		fmt.Println(metadata)
+		for _, key := range keys {
+			value, ok := metadata[key]
+			fmt.Printf("%v: %q %v\n", key, value, ok)
+		}
 	}
-
 	// Output:
 	// [Greatings Earthlings!]
-	// [{anonymous <nil>} {DEALER <nil>} {World! <nil>} {Bar <nil>} { invalid argument}]
+	// User-Id: "anonymous" true
+	// Socket-Type: "DEALER" true
+	// Hello: "World!" true
+	// Foo: "Bar" true
+	// Fuz: "" false
 }

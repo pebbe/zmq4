@@ -815,12 +815,6 @@ func NewCurveKeypair() (z85_public_key, z85_secret_key string, err error) {
 	return string(pubkey[:40]), string(seckey[:40]), nil
 }
 
-// SUBJECT TO CHANGE
-type StringError struct {
-	String string
-	Error  error
-}
-
 /*
 Receive a message part with metadata.
 
@@ -832,7 +826,7 @@ See: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 
 SUBJECT TO CHANGE
 */
-func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (msg string, values []StringError, err error) {
+func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (msg string, metadata map[string]string, err error) {
 	b, p, err := soc.RecvBytesWithMetadata(flags, properties...)
 	return string(b), p, err
 }
@@ -848,18 +842,18 @@ See: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 
 SUBJECT TO CHANGE
 */
-func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg []byte, values []StringError, err error) {
-	prop := make([]StringError, len(properties))
+func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg []byte, metadata map[string]string, err error) {
+	metadata = make(map[string]string)
 
 	var m C.zmq_msg_t
 	if i, err := C.zmq_msg_init(&m); i != 0 {
-		return []byte{}, prop, errget(err)
+		return []byte{}, metadata, errget(err)
 	}
 	defer C.zmq_msg_close(&m)
 
 	size, err := C.zmq_msg_recv(&m, soc.soc, C.int(flags))
 	if size < 0 {
-		return []byte{}, prop, errget(err)
+		return []byte{}, metadata, errget(err)
 	}
 
 	data := make([]byte, int(size))
@@ -867,20 +861,15 @@ func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg 
 		C.my_memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&m), C.size_t(size))
 	}
 
-	_, minor, _ := Version()
-	for i, p := range properties {
-		if minor < 1 {
-			prop[i].Error = ErrorNotImplemented_4_1
-		} else {
+	if _, minor, _ := Version(); minor > 0 {
+		for _, p := range properties {
 			ps := C.CString(p)
 			s, err := C.zmq_msg_gets(&m, ps)
 			if err == nil {
-				prop[i].String = C.GoString(s)
-			} else {
-				prop[i].Error = errget(err)
+				metadata[p] = C.GoString(s)
 			}
 			C.free(unsafe.Pointer(ps))
 		}
 	}
-	return data, prop, nil
+	return data, metadata, nil
 }
