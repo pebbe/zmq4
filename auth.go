@@ -161,10 +161,9 @@ func auth_do_handler() {
 			}
 			metadata := make([]byte, 0)
 			for key, value := range m {
-				if len(key) > 255 {
-					continue
+				if len(key) < 256 {
+					metadata = append(metadata, auth_meta_blob(key, value)...)
 				}
-				metadata = append(metadata, auth_meta_blob(key, value)...)
 			}
 			auth_handler.SendMessage(version, request_id, "200", "OK", user_id, metadata)
 		} else {
