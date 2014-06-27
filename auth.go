@@ -5,8 +5,10 @@ This file implements functionality very similar to that of the xauth module in c
 Notable differences in here:
 
  - domains are supported
+ - domains are used in AuthAllow and AuthDeny too
  - usernames/passwords are read from memory, not from file
  - public keys are read from memory, not from file
+ - an address can be a single IP address, or an IP address and mask in CIDR notation
  - additional functions for configuring server or client socket with a single command
 
 */
@@ -397,8 +399,12 @@ func auth_allow_for_domain(domain string, addresses ...string) {
 	for _, address := range addresses {
 		if _, ipnet, err := net.ParseCIDR(address); err == nil {
 			auth_allow_net[domain] = append(auth_allow_net[domain], ipnet)
-		} else {
+		} else if net.ParseIP(address) != nil {
 			auth_allow[domain][address] = true
+		} else {
+			if auth_verbose {
+				fmt.Printf("AUTH: Allow for domain %q: %q is not a valid address or network\n", domain, address)
+			}
 		}
 	}
 }
@@ -434,8 +440,12 @@ func auth_deny_for_domain(domain string, addresses ...string) {
 	for _, address := range addresses {
 		if _, ipnet, err := net.ParseCIDR(address); err == nil {
 			auth_deny_net[domain] = append(auth_deny_net[domain], ipnet)
-		} else {
+		} else if net.ParseIP(address) != nil {
 			auth_deny[domain][address] = true
+		} else {
+			if auth_verbose {
+				fmt.Printf("AUTH: Deny for domain %q: %q is not a valid address or network\n", domain, address)
+			}
 		}
 	}
 }
