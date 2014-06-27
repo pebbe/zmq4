@@ -35,7 +35,7 @@ func ExampleAuthStart() {
 			}
 		})
 
-	zmq.AuthAllow("127.0.0.1")
+	zmq.AuthAllow("global", "127.0.0.1")
 
 	//  We need two certificates, one for the client and one for
 	//  the server. The client must know the server's public key

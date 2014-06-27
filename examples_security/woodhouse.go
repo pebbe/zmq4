@@ -18,7 +18,7 @@ func main() {
 	//  Start authentication engine
 	zmq.AuthSetVerbose(true)
 	zmq.AuthStart()
-	zmq.AuthAllow("127.0.0.1")
+	zmq.AuthAllow("global", "127.0.0.1")
 
 	//  Tell the authenticator how to handle PLAIN requests
 	zmq.AuthPlainAdd("global", "admin", "secret")

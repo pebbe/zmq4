@@ -16,6 +16,7 @@ package zmq4
 import (
 	"errors"
 	"fmt"
+	"net"
 )
 
 const CURVE_ALLOW_ANY = "*"
@@ -27,8 +28,10 @@ var (
 	auth_init    = false
 	auth_verbose = false
 
-	auth_allow = make(map[string]bool)
-	auth_deny  = make(map[string]bool)
+	auth_allow     = make(map[string]map[string]bool)
+	auth_deny      = make(map[string]map[string]bool)
+	auth_allow_net = make(map[string][]*net.IPNet)
+	auth_deny_net  = make(map[string][]*net.IPNet)
 
 	auth_users = make(map[string]map[string]string)
 
@@ -61,6 +64,84 @@ func auth_meta_blob(name, value string) []byte {
 	copy(b[1:], []byte(name))
 	copy(b[5+l1:], []byte(value))
 	return b
+}
+
+func auth_isIP(addr string) bool {
+	if net.ParseIP(addr) != nil {
+		return true
+	}
+	if _, _, err := net.ParseCIDR(addr); err == nil {
+		return true
+	}
+	return false
+}
+
+func auth_is_allowed(domain, address string) bool {
+	for _, d := range []string{domain, "*"} {
+		if a, ok := auth_allow[d]; ok {
+			if a[address] {
+				return true
+			}
+		}
+	}
+	addr := net.ParseIP(address)
+	if addr != nil {
+		for _, d := range []string{domain, "*"} {
+			if a, ok := auth_allow_net[d]; ok {
+				for _, m := range a {
+					if m.Contains(addr) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+func auth_is_denied(domain, address string) bool {
+	for _, d := range []string{domain, "*"} {
+		if a, ok := auth_deny[d]; ok {
+			if a[address] {
+				return true
+			}
+		}
+	}
+	addr := net.ParseIP(address)
+	if addr != nil {
+		for _, d := range []string{domain, "*"} {
+			if a, ok := auth_deny_net[d]; ok {
+				for _, m := range a {
+					if m.Contains(addr) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+func auth_allow_has(domain string) bool {
+	for _, d := range []string{domain, "*"} {
+		if a, ok := auth_allow[d]; ok {
+			if len(a) > 0 || len(auth_allow_net[d]) > 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func auth_deny_has(domain string) bool {
+	for _, d := range []string{domain, "*"} {
+		if a, ok := auth_deny[d]; ok {
+			if len(a) > 0 || len(auth_deny_net[d]) > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func auth_do_handler() {
@@ -110,28 +191,28 @@ func auth_do_handler() {
 		allowed := false
 		denied := false
 
-		if len(auth_allow) > 0 {
-			if auth_allow[address] {
+		if auth_allow_has(domain) {
+			if auth_is_allowed(domain, address) {
 				allowed = true
 				if auth_verbose {
-					fmt.Printf("AUTH: PASSED (whitelist) address=%q\n", address)
+					fmt.Printf("AUTH: PASSED (whitelist) domain=%q address=%q\n", domain, address)
 				}
 			} else {
 				denied = true
 				if auth_verbose {
-					fmt.Printf("AUTH: DENIED (not in whitelist) address=%q\n", address)
+					fmt.Printf("AUTH: DENIED (not in whitelist) domain=%q address=%q\n", domain, address)
 				}
 			}
-		} else if len(auth_deny) > 0 {
-			if auth_deny[address] {
+		} else if auth_deny_has(domain) {
+			if auth_is_denied(domain, address) {
 				denied = true
 				if auth_verbose {
-					fmt.Printf("AUTH: DENIED (blacklist) address=%q\n", address)
+					fmt.Printf("AUTH: DENIED (blacklist) domain=%q address=%q\n", domain, address)
 				}
 			} else {
 				allowed = true
 				if auth_verbose {
-					fmt.Printf("AUTH: PASSED (not in blacklist) address=%q\n", address)
+					fmt.Printf("AUTH: PASSED (not in blacklist) domain=%q address=%q\n", domain, address)
 				}
 			}
 		}
@@ -281,7 +362,9 @@ func AuthStop() {
 
 }
 
-// Allow (whitelist) some IP addresses.
+// Allow (whitelist) some addresses for a domain.
+//
+// An address can be a single IP address, or an IP address and mask in CIDR notation.
 //
 // For NULL, all clients from these addresses will be accepted.
 //
@@ -289,22 +372,71 @@ func AuthStop() {
 //
 // You can call this method multiple times to whitelist multiple IP addresses.
 //
-// If you whitelist a single address, any non-whitelisted addresses are treated as blacklisted.
-func AuthAllow(addresses ...string) {
-	for _, address := range addresses {
-		auth_allow[address] = true
+// If you whitelist a single address for a domain, any non-whitelisted addresses
+// for that domain are treated as blacklisted.
+//
+// Use domain "*" for all domains.
+//
+// For backward compatibility: if domain can be parsed as an IP address, it will be
+// interpreted as another address, and it and all remaining addresses will be added
+// to all domains.
+func AuthAllow(domain string, addresses ...string) {
+	if auth_isIP(domain) {
+		auth_allow_for_domain("*", domain)
+		auth_allow_for_domain("*", addresses...)
+	} else {
+		auth_allow_for_domain(domain, addresses...)
 	}
 }
 
-// Deny (blacklist) some IP addresses.
+func auth_allow_for_domain(domain string, addresses ...string) {
+	if _, ok := auth_allow[domain]; !ok {
+		auth_allow[domain] = make(map[string]bool)
+		auth_allow_net[domain] = make([]*net.IPNet, 0)
+	}
+	for _, address := range addresses {
+		if _, ipnet, err := net.ParseCIDR(address); err == nil {
+			auth_allow_net[domain] = append(auth_allow_net[domain], ipnet)
+		} else {
+			auth_allow[domain][address] = true
+		}
+	}
+}
+
+// Deny (blacklist) some addresses for a domain.
+//
+// An address can be a single IP address, or an IP address and mask in CIDR notation.
 //
 // For all security mechanisms, this rejects the connection without any further authentication.
 //
-// Use either a whitelist, or a blacklist, not both. If you define both a whitelist
-// and a blacklist, only the whitelist takes effect.
-func AuthDeny(addresses ...string) {
+// Use either a whitelist for a domain, or a blacklist for a domain, not both.
+// If you define both a whitelist and a blacklist for a domain, only the whitelist takes effect.
+//
+// Use domain "*" for all domains.
+//
+// For backward compatibility: if domain can be parsed as an IP address, it will be
+// interpreted as another address, and it and all remaining addresses will be added
+// to all domains.
+func AuthDeny(domain string, addresses ...string) {
+	if auth_isIP(domain) {
+		auth_deny_for_domain("*", domain)
+		auth_deny_for_domain("*", addresses...)
+	} else {
+		auth_deny_for_domain(domain, addresses...)
+	}
+}
+
+func auth_deny_for_domain(domain string, addresses ...string) {
+	if _, ok := auth_deny[domain]; !ok {
+		auth_deny[domain] = make(map[string]bool)
+		auth_deny_net[domain] = make([]*net.IPNet, 0)
+	}
 	for _, address := range addresses {
-		auth_deny[address] = true
+		if _, ipnet, err := net.ParseCIDR(address); err == nil {
+			auth_deny_net[domain] = append(auth_deny_net[domain], ipnet)
+		} else {
+			auth_deny[domain][address] = true
+		}
 	}
 }
 
