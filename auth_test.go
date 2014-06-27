@@ -35,7 +35,7 @@ func ExampleAuthStart() {
 			}
 		})
 
-	zmq.AuthAllow("global", "127.0.0.1")
+	zmq.AuthAllow("domain1", "127.0.0.1")
 
 	//  We need two certificates, one for the client and one for
 	//  the server. The client must know the server's public key
@@ -50,7 +50,7 @@ func ExampleAuthStart() {
 	}
 
 	//  Tell authenticator to use this public client key
-	zmq.AuthCurveAdd("global", client_public)
+	zmq.AuthCurveAdd("domain1", client_public)
 
 	//  Create and bind server socket
 	server, err := zmq.NewSocket(zmq.DEALER)
@@ -58,7 +58,7 @@ func ExampleAuthStart() {
 		return
 	}
 	defer server.Close()
-	server.ServerAuthCurve("global", server_secret)
+	server.ServerAuthCurve("domain1", server_secret)
 	err = server.Bind("tcp://*:9000")
 	if checkErr(err) {
 		return

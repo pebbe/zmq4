@@ -25,12 +25,12 @@ func main() {
 	zmq.AuthStart()
 
 	//  Whitelist our address; any other address will be rejected
-	zmq.AuthAllow("global", "127.0.0.1")
+	zmq.AuthAllow("domain1", "127.0.0.1")
 
 	//  Create and bind server socket
 	server, err := zmq.NewSocket(zmq.PUSH)
 	checkErr(err)
-	server.ServerAuthNull("global")
+	server.ServerAuthNull("domain1")
 	server.Bind("tcp://*:9000")
 
 	//  Create and connect client socket

@@ -18,14 +18,14 @@ func main() {
 	//  Start authentication engine
 	zmq.AuthSetVerbose(true)
 	zmq.AuthStart()
-	zmq.AuthAllow("global", "127.0.0.1")
+	zmq.AuthAllow("domain1", "127.0.0.1")
 
 	//  Tell the authenticator how to handle PLAIN requests
-	zmq.AuthPlainAdd("global", "admin", "secret")
+	zmq.AuthPlainAdd("domain1", "admin", "secret")
 
 	//  Create and bind server socket
 	server, _ := zmq.NewSocket(zmq.PUSH)
-	server.ServerAuthPlain("global")
+	server.ServerAuthPlain("domain1")
 	server.Bind("tcp://*:9000")
 
 	//  Create and connect client socket

@@ -19,10 +19,10 @@ func main() {
 	//  Start authentication engine
 	zmq.AuthSetVerbose(true)
 	zmq.AuthStart()
-	zmq.AuthAllow("global", "127.0.0.1")
+	zmq.AuthAllow("domain1", "127.0.0.1")
 
 	//  Tell the authenticator to allow any CURVE requests for this domain
-	zmq.AuthCurveAdd("global", zmq.CURVE_ALLOW_ANY)
+	zmq.AuthCurveAdd("domain1", zmq.CURVE_ALLOW_ANY)
 
 	//  We need two certificates, one for the client and one for
 	//  the server. The client must know the server's public key
@@ -34,7 +34,7 @@ func main() {
 
 	//  Create and bind server socket
 	server, _ := zmq.NewSocket(zmq.PUSH)
-	server.ServerAuthCurve("global", server_secret)
+	server.ServerAuthCurve("domain1", server_secret)
 	server.Bind("tcp://*:9000")
 
 	//  Create and connect client socket
