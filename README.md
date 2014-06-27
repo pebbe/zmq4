@@ -29,28 +29,29 @@ in the functions `AuthAllow` and `AuthDeny`.
 Old:
 
     func AuthAllow(addresses ...string)
-	func AuthDeny(addresses ...string)
+    func AuthDeny(addresses ...string)
 
 New:
 
     func AuthAllow(domain string, addresses ...string)
-	func AuthDeny(domain string, addresses ...string)
-	
+    func AuthDeny(domain string, addresses ...string)
+
 If `domain` can be parsed as an IP address, it will be interpreted as
 such, and it and all remaining addresses are added to all domains.
 
 So this should still work as before:
 
     zmq.AuthAllow("127.0.0.1", "123.123.123.123")
-	
+
 But this won't compile:
 
     a := []string{"127.0.0.1", "123.123.123.123"}
-	zmq.AuthAllow(a...)
-	
+    zmq.AuthAllow(a...)
+
 And needs to be rewritten as:
 
-	zmq.AuthAllow("*", a...)
+    a := []string{"127.0.0.1", "123.123.123.123"}
+    zmq.AuthAllow("*", a...)
 
 Furthermore, an address can now be a single IP address, as well as an IP
 address and mask in CIDR notation, e.g. "123.123.123.0/24".
