@@ -40,8 +40,6 @@ import (
 
 var (
 	defaultCtx *Context
-
-	ErrorNotImplemented_4_1 = errors.New("Not implemented, requires 0MQ version 4.1")
 )
 
 func init() {
@@ -818,13 +816,16 @@ func NewCurveKeypair() (z85_public_key, z85_secret_key string, err error) {
 /*
 Receive a message part with metadata.
 
+Metadata is added to messages that go through the 0MQ security mechanism.
+Standard metadata properties are: Identity, Socket-Type, User-Id.
+
+This requires ZeroMQ version 4.1.0. Lower versions will return the message part without metadata.
+
+The returned metadata map contains only those properties that exist on the message.
+
 For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
 
-This requires ZeroMQ version 4.1.0. Lower versions will return ErrorNotImplemented_4_1.
-
-See: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
-
-SUBJECT TO CHANGE
+For a description of metadata, see: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 */
 func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (msg string, metadata map[string]string, err error) {
 	b, p, err := soc.RecvBytesWithMetadata(flags, properties...)
@@ -834,13 +835,16 @@ func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (msg strin
 /*
 Receive a message part with metadata.
 
+Metadata is added to messages that go through the 0MQ security mechanism.
+Standard metadata properties are: Identity, Socket-Type, User-Id.
+
+This requires ZeroMQ version 4.1.0. Lower versions will return the message part without metadata.
+
+The returned metadata map contains only those properties that exist on the message.
+
 For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
 
-This requires ZeroMQ version 4.1.0. Lower versions will return ErrorNotImplemented_4_1.
-
-See: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
-
-SUBJECT TO CHANGE
+For a description of metadata, see: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 */
 func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg []byte, metadata map[string]string, err error) {
 	metadata = make(map[string]string)

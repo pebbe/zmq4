@@ -26,12 +26,13 @@ func ExampleAuthStart() {
 	}
 	defer zmq.AuthStop()
 
-	zmq.AuthSetMetaHandler(
-		func(version, request_id, domain, address, identity, mechanism string) (metadata map[string]string) {
+	zmq.AuthSetMetadataHandler(
+		func(version, request_id, domain, address, identity, mechanism string, credentials ...string) (metadata map[string]string) {
 			return map[string]string{
-				"User-Id": "anonymous",
-				"Hello":   "World!",
-				"Foo":     "Bar",
+				"Identity": identity,
+				"User-Id":  "anonymous",
+				"Hello":    "World!",
+				"Foo":      "Bar",
 			}
 		})
 
@@ -58,6 +59,7 @@ func ExampleAuthStart() {
 		return
 	}
 	defer server.Close()
+	server.SetIdentity("Server1")
 	server.ServerAuthCurve("domain1", server_secret)
 	err = server.Bind("tcp://*:9000")
 	if checkErr(err) {
@@ -70,6 +72,7 @@ func ExampleAuthStart() {
 		return
 	}
 	defer client.Close()
+	server.SetIdentity("Client1")
 	client.ClientAuthCurve(server_public, client_public, client_secret)
 	err = client.Connect("tcp://127.0.0.1:9000")
 	if checkErr(err) {
@@ -83,7 +86,7 @@ func ExampleAuthStart() {
 	}
 
 	// Receive message and metadata on the server
-	keys := []string{"User-Id", "Socket-Type", "Hello", "Foo", "Fuz"}
+	keys := []string{"Identity", "User-Id", "Socket-Type", "Hello", "Foo", "Fuz"}
 	message, metadata, err := server.RecvMessageWithMetadata(0, keys...)
 	if checkErr(err) {
 		return
@@ -91,6 +94,7 @@ func ExampleAuthStart() {
 	fmt.Println(message)
 	if _, minor, _ := zmq.Version(); minor < 1 {
 		// Metadata requires at least ZeroMQ version 4.1
+		fmt.Println(`Identity: "Server1" true`)
 		fmt.Println(`User-Id: "anonymous" true`)
 		fmt.Println(`Socket-Type: "DEALER" true`)
 		fmt.Println(`Hello: "World!" true`)
@@ -104,6 +108,7 @@ func ExampleAuthStart() {
 	}
 	// Output:
 	// [Greatings Earthlings!]
+	// Identity: "Server1" true
 	// User-Id: "anonymous" true
 	// Socket-Type: "DEALER" true
 	// Hello: "World!" true

@@ -42,30 +42,8 @@ var (
 	auth_meta_handler = auth_meta_handler_default
 )
 
-func auth_meta_handler_default(version, request_id, domain, address, identity, mechanism string) (metadata map[string]string) {
+func auth_meta_handler_default(version, request_id, domain, address, identity, mechanism string, credentials ...string) (metadata map[string]string) {
 	return map[string]string{}
-}
-
-// SUBJECT TO CHANGE
-func AuthMetaBlob(name, value string) (blob []byte, err error) {
-	if len(name) > 255 {
-		return []byte{}, errors.New("Name too long")
-	}
-	return auth_meta_blob(name, value), nil
-}
-
-func auth_meta_blob(name, value string) []byte {
-	l1 := len(name)
-	l2 := len(value)
-	b := make([]byte, l1+l2+5)
-	b[0] = byte(l1)
-	b[l1+1] = byte(l2 >> 24 & 255)
-	b[l1+2] = byte(l2 >> 16 & 255)
-	b[l1+3] = byte(l2 >> 8 & 255)
-	b[l1+4] = byte(l2 & 255)
-	copy(b[1:], []byte(name))
-	copy(b[5+l1:], []byte(value))
-	return b
 }
 
 func auth_isIP(addr string) bool {
@@ -124,7 +102,7 @@ func auth_is_denied(domain, address string) bool {
 	return false
 }
 
-func auth_allow_has(domain string) bool {
+func auth_has_allow(domain string) bool {
 	for _, d := range []string{domain, "*"} {
 		if a, ok := auth_allow[d]; ok {
 			if len(a) > 0 || len(auth_allow_net[d]) > 0 {
@@ -135,7 +113,7 @@ func auth_allow_has(domain string) bool {
 	return false
 }
 
-func auth_deny_has(domain string) bool {
+func auth_has_deny(domain string) bool {
 	for _, d := range []string{domain, "*"} {
 		if a, ok := auth_deny[d]; ok {
 			if len(a) > 0 || len(auth_deny_net[d]) > 0 {
@@ -175,6 +153,7 @@ func auth_do_handler() {
 		address := msg[3]
 		identity := msg[4]
 		mechanism := msg[5]
+		credentials := msg[6:]
 
 		username := ""
 		password := ""
@@ -193,7 +172,7 @@ func auth_do_handler() {
 		allowed := false
 		denied := false
 
-		if auth_allow_has(domain) {
+		if auth_has_allow(domain) {
 			if auth_is_allowed(domain, address) {
 				allowed = true
 				if auth_verbose {
@@ -205,7 +184,7 @@ func auth_do_handler() {
 					fmt.Printf("AUTH: DENIED (not in whitelist) domain=%q address=%q\n", domain, address)
 				}
 			}
-		} else if auth_deny_has(domain) {
+		} else if auth_has_deny(domain) {
 			if auth_is_denied(domain, address) {
 				denied = true
 				if auth_verbose {
@@ -236,7 +215,7 @@ func auth_do_handler() {
 			}
 		}
 		if allowed {
-			m := auth_meta_handler(version, request_id, domain, address, identity, mechanism)
+			m := auth_meta_handler(version, request_id, domain, address, identity, mechanism, credentials...)
 			user_id := ""
 			if uid, ok := m["User-Id"]; ok {
 				user_id = uid
@@ -509,9 +488,54 @@ func AuthSetVerbose(verbose bool) {
 	auth_verbose = verbose
 }
 
-// SUBJECT TO CHANGE
-func AuthSetMetaHandler(handler func(version, request_id, domain, address, identity, mechanism string) (metadata map[string]string)) {
+/*
+This function sets the metadata handler that is called by the ZAP
+handler to retrieve key/value properties that should be set on reply
+messages in case of a status code "200" (succes).
+
+Default properties are `Socket-Type`, which is already set, and
+`Identity` and `User-Id` that are empty by default. The last two can be
+set, and more properties can be added.
+
+The `User-Id` property is used for the `user id` frame of the reply
+message. All other properties are stored in the `metadata` frame of the
+reply message.
+
+The default handler returns an empty map.
+
+For the meaning of the handler arguments, and other details, see:
+http://rfc.zeromq.org/spec:27#toc10
+*/
+func AuthSetMetadataHandler(
+	handler func(
+		version, request_id, domain, address, identity, mechanism string, credentials ...string) (metadata map[string]string)) {
 	auth_meta_handler = handler
+}
+
+/*
+This encodes a key/value pair into the format used by a ZAP handler.
+
+Returns an error if key is more then 255 characters long.
+*/
+func AuthMetaBlob(key, value string) (blob []byte, err error) {
+	if len(key) > 255 {
+		return []byte{}, errors.New("Key too long")
+	}
+	return auth_meta_blob(key, value), nil
+}
+
+func auth_meta_blob(name, value string) []byte {
+	l1 := len(name)
+	l2 := len(value)
+	b := make([]byte, l1+l2+5)
+	b[0] = byte(l1)
+	b[l1+1] = byte(l2 >> 24 & 255)
+	b[l1+2] = byte(l2 >> 16 & 255)
+	b[l1+3] = byte(l2 >> 8 & 255)
+	b[l1+4] = byte(l2 & 255)
+	copy(b[1:], []byte(name))
+	copy(b[5+l1:], []byte(value))
+	return b
 }
 
 //. Additional functions for configuring server or client socket with a single command

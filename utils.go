@@ -123,7 +123,13 @@ func (soc *Socket) RecvMessageBytes(flags Flag) (msg [][]byte, err error) {
 }
 
 /*
-SUBJECT TO CHANGE
+Receive parts as message from socket, including metadata.
+
+Metadata is picked from the first message part.
+
+For details about metadata, see RecvWithMetadata().
+
+Returns last non-nil error code.
 */
 func (soc *Socket) RecvMessageWithMetadata(flags Flag, properties ...string) (msg []string, metadata map[string]string, err error) {
 	b, p, err := soc.RecvMessageBytesWithMetadata(flags, properties...)
@@ -135,7 +141,13 @@ func (soc *Socket) RecvMessageWithMetadata(flags Flag, properties ...string) (ms
 }
 
 /*
-SUBJECT TO CHANGE
+Receive parts as message from socket, including metadata.
+
+Metadata is picked from the first message part.
+
+For details about metadata, see RecvBytesWithMetadata().
+
+Returns last non-nil error code.
 */
 func (soc *Socket) RecvMessageBytesWithMetadata(flags Flag, properties ...string) (msg [][]byte, metadata map[string]string, err error) {
 	bb := make([][]byte, 0)
