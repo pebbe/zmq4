@@ -5,10 +5,21 @@ package zmq4
 #cgo windows CFLAGS: -I/usr/local/include
 #cgo windows LDFLAGS: -L/usr/local/lib -lzmq
 #include <zmq.h>
-#include "zmq4.h"
 #include <zmq_utils.h>
 #include <stdlib.h>
 #include <string.h>
+
+#if ZMQ_VERSION_MINOR > 0
+typedef struct {
+    uint16_t event;  // id of the event as bitfield
+    int32_t  value ; // value is either error code, fd or reconnect interval
+} zmq_event_t;
+#else
+const char *zmq_msg_gets (zmq_msg_t *msg, const char *property) {
+    return NULL;
+}
+#endif
+
 void get_event40(zmq_msg_t *msg, int *ev, int *val) {
     zmq_event_t event;
     const char* data = (char*)zmq_msg_data(msg);
