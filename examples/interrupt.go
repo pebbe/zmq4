@@ -33,9 +33,14 @@ LOOP:
 		client.Send("HELLO", 0)
 		reply, err := client.Recv(0)
 		if err != nil {
-			// signal was caught by 0MQ
-			log.Println("Client Recv:", err)
-			break
+			if zmq.IsInterrupted(err) {
+				// signal was caught by 0MQ
+				log.Println("Client Recv:", err)
+				break
+			} else {
+				// some error occured
+				log.Panicln(err)
+			}
 		}
 
 		fmt.Println("Client:", reply)
