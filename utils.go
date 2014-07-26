@@ -2,36 +2,7 @@ package zmq4
 
 import (
 	"fmt"
-	"syscall"
 )
-
-/*
-Returns true if err is not nil, and it's the result of an interrupted signal call.
-
-Example usage:
-
-    for {
-        client.Send("HELLO", 0)
-        reply, err := client.Recv(0)
-        if err != nil {
-            if zmq.IsInterrupted(err) {
-                break
-            } else {
-                log.Fatal(err)
-            }
-        }
-        fmt.Println(reply)
-    }
-
-See also: examples/interrupt.go
-*/
-func IsInterrupted(err error) bool {
-	errno, ok := err.(syscall.Errno)
-	if ok && errno == syscall.EINTR {
-		return true
-	}
-	return false
-}
 
 /*
 Send multi-part message on socket.
