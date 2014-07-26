@@ -14,8 +14,9 @@ import (
 // The number is either a standard system error, or an error defined by the C library of ZeroMQ.
 type Errno uintptr
 
-// Error conditions defined by the C library of ZeroMQ.
 const (
+	// Error conditions defined by the C library of ZeroMQ.
+
 	// On Windows platform some of the standard POSIX errnos are not defined.
 	EADDRINUSE      = Errno(C.EADDRINUSE)
 	EADDRNOTAVAIL   = Errno(C.EADDRNOTAVAIL)
