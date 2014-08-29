@@ -615,6 +615,52 @@ func (soc *Socket) RecvBytes(flags Flag) ([]byte, error) {
 }
 
 /*
+Receive a multi-part message part from a socket.
+
+For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
+*/
+func (soc *Socket) RecvMultipart(flags Flag) (parts []string, err error) {
+	parts = make([]string, 0)
+	more := true
+	var data string
+	for more {
+		data, err = soc.Recv(flags)
+		if err != nil {
+			return
+		}
+		parts = append(parts, data)
+		more, err = soc.GetRcvmore()
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+/*
+Receive a multi-part message part from a socket.
+
+For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
+*/
+func (soc *Socket) RecvBytesMultipart(flags Flag) (parts [][]byte, err error) {
+	parts = make([][]byte, 0)
+	more := true
+	var data []byte
+	for more {
+		data, err = soc.RecvBytes(flags)
+		if err != nil {
+			return
+		}
+		parts = append(parts, data)
+		more, err = soc.GetRcvmore()
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+/*
 Send a message part on a socket.
 
 For a description of flags, see: http://api.zeromq.org/4-0:zmq-send#toc2
@@ -638,6 +684,50 @@ func (soc *Socket) SendBytes(data []byte, flags Flag) (int, error) {
 		return int(size), errget(err)
 	}
 	return int(size), nil
+}
+
+/*
+Send a multi-part message part on a socket.
+
+For a description of flags, see: http://api.zeromq.org/4-0:zmq-send#toc2
+*/
+func (soc *Socket) SendMultipart(parts []string, flags Flag) (bytes int, err error) {
+	var bytesSent int
+	for i := 0; i < len(parts)-1; i++ {
+		bytesSent, err = soc.Send(parts[i], SNDMORE|flags)
+		if err != nil {
+			return
+		}
+		bytes += bytesSent
+	}
+	bytesSent, err = soc.Send(parts[(len(parts)-1)], flags)
+	if err != nil {
+		return
+	}
+	bytes += bytesSent
+	return
+}
+
+/*
+Send a multi-part message part on a socket.
+
+For a description of flags, see: http://api.zeromq.org/4-0:zmq-send#toc2
+*/
+func (soc *Socket) SendBytesMultipart(parts [][]byte, flags Flag) (bytes int, err error) {
+	var bytesSent int
+	for i := 0; i < len(parts)-1; i++ {
+		bytesSent, err = soc.SendBytes(parts[i], SNDMORE|flags)
+		if err != nil {
+			return
+		}
+		bytes += bytesSent
+	}
+	bytesSent, err = soc.SendBytes(parts[(len(parts)-1)], flags)
+	if err != nil {
+		return
+	}
+	bytes += bytesSent
+	return
 }
 
 /*
