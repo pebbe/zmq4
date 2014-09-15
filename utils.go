@@ -15,6 +15,17 @@ to `string' with `fmt.Sprintf("%v", part)'.
 Returns total bytes sent.
 */
 func (soc *Socket) SendMessage(parts ...interface{}) (total int, err error) {
+	return soc.sendMessage(0, parts...)
+}
+
+/*
+Like SendMessage(), but adding the DONTWAIT flag.
+*/
+func (soc *Socket) SendMessageDontwait(parts ...interface{}) (total int, err error) {
+	return soc.sendMessage(DONTWAIT, parts...)
+}
+
+func (soc *Socket) sendMessage(dontwait Flag, parts ...interface{}) (total int, err error) {
 	// TODO: make this faster
 
 	// flatten first, just in case the last part may be an empty []string or [][]byte
@@ -38,10 +49,10 @@ func (soc *Socket) SendMessage(parts ...interface{}) (total int, err error) {
 	if n == 0 {
 		return
 	}
-	opt := SNDMORE
+	opt := SNDMORE | dontwait
 	for i, p := range pp {
 		if i == n-1 {
-			opt = 0
+			opt = dontwait
 		}
 		switch t := p.(type) {
 		case string:
