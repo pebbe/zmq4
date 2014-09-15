@@ -61,7 +61,7 @@ func (errno Errno) Error() string {
 }
 
 /*
-Covert error to Errno.
+Convert error to Errno.
 
 Example usage:
 
