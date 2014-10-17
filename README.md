@@ -19,6 +19,7 @@ Keywords: zmq, zeromq, 0mq, networks, distributed computing, message passing, fa
 ## Docs
 
  * [package help](http://godoc.org/github.com/pebbe/zmq4)
+ * [wiki](https://github.com/pebbe/zmq4/wiki)
 
 ## API change
 

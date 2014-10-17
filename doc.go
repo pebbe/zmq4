@@ -7,6 +7,8 @@ For ZeroMQ version 2, see: http://github.com/pebbe/zmq2
 
 http://www.zeromq.org/
 
+See also the wiki: https://github.com/pebbe/zmq4/wiki
+
 A note on the use of a context:
 
 This package provides a default context. This is what will be used by
