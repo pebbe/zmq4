@@ -14,7 +14,7 @@ Keywords: zmq, zeromq, 0mq, networks, distributed computing, message passing, fa
 
 ### See also
 
- * [goczmq](github.com/zeromq/goczmq) - A Go interface to CZMQ
+ * [goczmq](https://github.com/zeromq/goczmq) - A Go interface to CZMQ
 
 ## Install
 
