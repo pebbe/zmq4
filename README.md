@@ -12,6 +12,10 @@ Including all examples of [ØMQ - The Guide](http://zguide.zeromq.org/page:all).
 
 Keywords: zmq, zeromq, 0mq, networks, distributed computing, message passing, fanout, pubsub, pipeline, request-reply
 
+### See also
+
+ * [goczmq](github.com/zeromq/goczmq) - A Go interface to CZMQ
+
 ## Install
 
     go get github.com/pebbe/zmq4
