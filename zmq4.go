@@ -704,6 +704,13 @@ Example:
     }
 */
 func (soc *Socket) Monitor(addr string, events Event) error {
+	if addr == "" {
+		if i, err := C.zmq_socket_monitor(soc.soc, nil, C.int(events)); i != 0 {
+			return errget(err)
+		}
+		return nil
+	}
+
 	s := C.CString(addr)
 	defer C.free(unsafe.Pointer(s))
 	if i, err := C.zmq_socket_monitor(soc.soc, s, C.int(events)); i != 0 {
