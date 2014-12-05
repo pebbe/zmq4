@@ -201,7 +201,13 @@ func Example_test_abstract_ipc() {
 		return
 	}
 
-	err = sb.Bind("ipc://@/tmp/tester")
+	addr := "ipc://@/tmp/tester"
+	addr2 := "ipc:///tmp/tester"
+	if runtime.GOOS != "linux" {
+		addr, addr2 = addr2, addr
+	}
+
+	err = sb.Bind(addr)
 	if checkErr(err) {
 		return
 	}
@@ -210,13 +216,17 @@ func Example_test_abstract_ipc() {
 	if checkErr(err) {
 		return
 	}
-	fmt.Printf("%q\n", endpoint)
+	if runtime.GOOS == "linux" {
+		fmt.Printf("%q -- %q\n", endpoint, addr2)
+	} else {
+		fmt.Printf("%q -- %q\n", addr2, endpoint)
+	}
 
 	sc, err := zmq.NewSocket(zmq.PAIR)
 	if checkErr(err) {
 		return
 	}
-	err = sc.Connect("ipc://@/tmp/tester")
+	err = sc.Connect(addr)
 	if checkErr(err) {
 		return
 	}
@@ -235,7 +245,7 @@ func Example_test_abstract_ipc() {
 
 	fmt.Println("Done")
 	// Output:
-	// "ipc://@/tmp/tester"
+	// "ipc://@/tmp/tester" -- "ipc:///tmp/tester"
 	// Done
 }
 
