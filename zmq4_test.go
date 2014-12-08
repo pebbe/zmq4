@@ -202,6 +202,7 @@ func Example_test_abstract_ipc() {
 	// This is Linux only
 	if runtime.GOOS != "linux" {
 		fmt.Printf("%q\n", addr)
+		fmt.Println("Done")
 		return
 	}
 
@@ -1463,17 +1464,17 @@ func Example_test_security_null() {
 
 	//  We first test client/server with no ZAP domain
 	//  Libzmq does not call our ZAP handler, the connect must succeed
-	err = server.Bind("tcp://127.0.0.1:9000")
+	err = server.Bind("tcp://127.0.0.1:9683")
 	if checkErr(err) {
 		return
 	}
-	err = client.Connect("tcp://127.0.0.1:9000")
+	err = client.Connect("tcp://127.0.0.1:9683")
 	if checkErr(err) {
 		return
 	}
 	bounce(server, client)
-	server.Unbind("tcp://127.0.0.1:9000")
-	client.Disconnect("tcp://127.0.0.1:9000")
+	server.Unbind("tcp://127.0.0.1:9683")
+	client.Disconnect("tcp://127.0.0.1:9683")
 
 	//  Now define a ZAP domain for the server; this enables
 	//  authentication. We're using the wrong domain so this test
@@ -1482,11 +1483,11 @@ func Example_test_security_null() {
 	if checkErr(err) {
 		return
 	}
-	err = server.Bind("tcp://127.0.0.1:9001")
+	err = server.Bind("tcp://127.0.0.1:9687")
 	if checkErr(err) {
 		return
 	}
-	err = client.Connect("tcp://127.0.0.1:9001")
+	err = client.Connect("tcp://127.0.0.1:9687")
 	if checkErr(err) {
 		return
 	}
@@ -1499,25 +1500,25 @@ func Example_test_security_null() {
 		return
 	}
 	bounce(server, client)
-	server.Unbind("tcp://127.0.0.1:9001")
-	client.Disconnect("tcp://127.0.0.1:9001")
+	server.Unbind("tcp://127.0.0.1:9687")
+	client.Disconnect("tcp://127.0.0.1:9687")
 
 	//  Now use the right domain, the test must pass
 	err = server.SetZapDomain("TEST")
 	if checkErr(err) {
 		return
 	}
-	err = server.Bind("tcp://127.0.0.1:9002")
+	err = server.Bind("tcp://127.0.0.1:9688")
 	if checkErr(err) {
 		return
 	}
-	err = client.Connect("tcp://127.0.0.1:9002")
+	err = client.Connect("tcp://127.0.0.1:9688")
 	if checkErr(err) {
 		return
 	}
 	bounce(server, client)
-	server.Unbind("tcp://127.0.0.1:9002")
-	client.Disconnect("tcp://127.0.0.1:9002")
+	server.Unbind("tcp://127.0.0.1:9688")
+	client.Disconnect("tcp://127.0.0.1:9688")
 
 	err = client.Close()
 	checkErr(err)
