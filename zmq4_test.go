@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+func Example_version() {
+	major, _, _ := zmq.Version()
+	fmt.Println("Version:", major)
+	// Output:
+	// Version: 4
+}
+
 func Example_multiple_contexts() {
 	chQuit := make(chan interface{})
 	chReactor := make(chan bool)
