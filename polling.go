@@ -93,7 +93,7 @@ func (p *Poller) poll(timeout time.Duration, all bool) ([]Polled, error) {
 
 	for _, soc := range p.socks {
 		if !soc.opened {
-			return lst, errSocketClosed
+			return lst, ErrorSocketClosed
 		}
 	}
 

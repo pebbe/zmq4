@@ -15,7 +15,7 @@ import (
 
 func (soc *Socket) setString(opt C.int, s string) error {
 	if !soc.opened {
-		return errSocketClosed
+		return ErrorSocketClosed
 	}
 	cs := C.CString(s)
 	defer C.free(unsafe.Pointer(cs))
@@ -27,7 +27,7 @@ func (soc *Socket) setString(opt C.int, s string) error {
 
 func (soc *Socket) setNullString(opt C.int) error {
 	if !soc.opened {
-		return errSocketClosed
+		return ErrorSocketClosed
 	}
 	if i, err := C.zmq_setsockopt(soc.soc, opt, nil, 0); i != 0 {
 		return errget(err)
@@ -37,7 +37,7 @@ func (soc *Socket) setNullString(opt C.int) error {
 
 func (soc *Socket) setInt(opt C.int, value int) error {
 	if !soc.opened {
-		return errSocketClosed
+		return ErrorSocketClosed
 	}
 	val := C.int(value)
 	if i, err := C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val))); i != 0 {
@@ -48,7 +48,7 @@ func (soc *Socket) setInt(opt C.int, value int) error {
 
 func (soc *Socket) setInt64(opt C.int, value int64) error {
 	if !soc.opened {
-		return errSocketClosed
+		return ErrorSocketClosed
 	}
 	val := C.int64_t(value)
 	if i, err := C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val))); i != 0 {
@@ -59,7 +59,7 @@ func (soc *Socket) setInt64(opt C.int, value int64) error {
 
 func (soc *Socket) setUInt64(opt C.int, value uint64) error {
 	if !soc.opened {
-		return errSocketClosed
+		return ErrorSocketClosed
 	}
 	val := C.uint64_t(value)
 	if i, err := C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val))); i != 0 {
@@ -403,12 +403,12 @@ func (soc *Socket) SetConflate(value bool) error {
 
 // ZMQ_ROUTER_HANDOVER: handle duplicate client identities on ROUTER sockets
 //
-// Returns error "Not implemented" with ZeroMQ version < 4.1
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
 //
 // See: http://api.zeromq.org/4-1:zmq-setsockopt#toc35
 func (soc *Socket) SetRouterHandover(value bool) error {
 	if minor < 1 {
-		return errNotImplemented
+		return ErrorNotImplemented41
 	}
 	val := 0
 	if value {
@@ -419,24 +419,24 @@ func (soc *Socket) SetRouterHandover(value bool) error {
 
 // ZMQ_TOS: Set the Type-of-Service on socket
 //
-// Returns error "Not implemented" with ZeroMQ version < 4.1
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
 //
 // See: http://api.zeromq.org/4-1:zmq-setsockopt#toc46
 func (soc *Socket) SetTos(value int) error {
 	if minor < 1 {
-		return errNotImplemented
+		return ErrorNotImplemented41
 	}
 	return soc.setInt(C.ZMQ_TOS, value)
 }
 
 // ZMQ_CONNECT_RID: Assign the next outbound connection id
 //
-// Returns error "Not implemented" with ZeroMQ version < 4.1
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
 //
 // See: http://api.zeromq.org/4-1:zmq-setsockopt#toc5
 func (soc *Socket) SetConnectRid(value string) error {
 	if minor < 1 {
-		return errNotImplemented
+		return ErrorNotImplemented41
 	}
 	if value == "" {
 		return soc.setNullString(C.ZMQ_CONNECT_RID)
@@ -446,12 +446,12 @@ func (soc *Socket) SetConnectRid(value string) error {
 
 // ZMQ_HANDSHAKE_IVL: Set maximum handshake interval
 //
-// Returns error "Not implemented" with ZeroMQ version < 4.1
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
 //
 // See: http://api.zeromq.org/4-1:zmq-setsockopt#toc15
 func (soc *Socket) SetHandshakeIvl(value time.Duration) error {
 	if minor < 1 {
-		return errNotImplemented
+		return ErrorNotImplemented41
 	}
 	val := int(value / time.Millisecond)
 	return soc.setInt(C.ZMQ_HANDSHAKE_IVL, val)
