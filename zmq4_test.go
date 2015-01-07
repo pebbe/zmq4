@@ -1029,7 +1029,41 @@ func Example_test_pair_inproc() {
 	// Done
 }
 
+*/
+
 func Example_test_pair_ipc() {
+
+	sb, err := zmq.NewSocket(zmq.PAIR)
+	if checkErr(err) {
+		return
+	}
+
+	err = sb.Bind("ipc:///tmp/tester")
+	if checkErr(err) {
+		return
+	}
+
+	sc, err := zmq.NewSocket(zmq.PAIR)
+	if checkErr(err) {
+		return
+	}
+
+	err = sc.Connect("ipc:///tmp/tester")
+	if checkErr(err) {
+		return
+	}
+
+	bounce(sb, sc)
+
+	err = sc.Close()
+	if checkErr(err) {
+		return
+	}
+
+	err = sb.Close()
+	if checkErr(err) {
+		return
+	}
 
 	fmt.Println("Done")
 	// Output:
@@ -1038,10 +1072,44 @@ func Example_test_pair_ipc() {
 
 func Example_test_pair_tcp() {
 
+	sb, err := zmq.NewSocket(zmq.PAIR)
+	if checkErr(err) {
+		return
+	}
+
+	err = sb.Bind("tcp://127.0.0.1:9736")
+	if checkErr(err) {
+		return
+	}
+
+	sc, err := zmq.NewSocket(zmq.PAIR)
+	if checkErr(err) {
+		return
+	}
+
+	err = sc.Connect("tcp://127.0.0.1:9736")
+	if checkErr(err) {
+		return
+	}
+
+	bounce(sb, sc)
+
+	err = sc.Close()
+	if checkErr(err) {
+		return
+	}
+
+	err = sb.Close()
+	if checkErr(err) {
+		return
+	}
+
 	fmt.Println("Done")
 	// Output:
 	// Done
 }
+
+/*
 
 func Example_test_probe_router() {
 
