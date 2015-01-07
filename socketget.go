@@ -13,6 +13,9 @@ import (
 )
 
 func (soc *Socket) getString(opt C.int, bufsize int) (string, error) {
+	if !soc.opened {
+		return "", errSocketClosed
+	}
 	value := make([]byte, bufsize)
 	size := C.size_t(bufsize)
 	if i, err := C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value[0]), &size); i != 0 {
@@ -22,6 +25,9 @@ func (soc *Socket) getString(opt C.int, bufsize int) (string, error) {
 }
 
 func (soc *Socket) getStringRaw(opt C.int, bufsize int) (string, error) {
+	if !soc.opened {
+		return "", errSocketClosed
+	}
 	value := make([]byte, bufsize)
 	size := C.size_t(bufsize)
 	if i, err := C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value[0]), &size); i != 0 {
@@ -31,6 +37,9 @@ func (soc *Socket) getStringRaw(opt C.int, bufsize int) (string, error) {
 }
 
 func (soc *Socket) getInt(opt C.int) (int, error) {
+	if !soc.opened {
+		return 0, errSocketClosed
+	}
 	value := C.int(0)
 	size := C.size_t(unsafe.Sizeof(value))
 	if i, err := C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size); i != 0 {
@@ -40,6 +49,9 @@ func (soc *Socket) getInt(opt C.int) (int, error) {
 }
 
 func (soc *Socket) getInt64(opt C.int) (int64, error) {
+	if !soc.opened {
+		return 0, errSocketClosed
+	}
 	value := C.int64_t(0)
 	size := C.size_t(unsafe.Sizeof(value))
 	if i, err := C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size); i != 0 {
@@ -49,6 +61,9 @@ func (soc *Socket) getInt64(opt C.int) (int64, error) {
 }
 
 func (soc *Socket) getUInt64(opt C.int) (uint64, error) {
+	if !soc.opened {
+		return 0, errSocketClosed
+	}
 	value := C.uint64_t(0)
 	size := C.size_t(unsafe.Sizeof(value))
 	if i, err := C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size); i != 0 {
@@ -234,7 +249,7 @@ func (soc *Socket) GetImmediate() (bool, error) {
 //
 // See: http://api.zeromq.org/4-0:zmq-getsockopt#toc25
 func (soc *Socket) GetEvents() (State, error) {
-	v, err :=  soc.getInt(C.ZMQ_EVENTS)
+	v, err := soc.getInt(C.ZMQ_EVENTS)
 	return State(v), err
 }
 
@@ -293,8 +308,8 @@ func (soc *Socket) GetPlainServer() (int, error) {
 // See: http://api.zeromq.org/4-0:zmq-getsockopt#toc33
 func (soc *Socket) GetPlainUsername() (string, error) {
 	s, err := soc.getString(C.ZMQ_PLAIN_USERNAME, 1024)
-	if n := len(s); n > 0 && s[n - 1] == 0 {
-		s = s[:n - 1]
+	if n := len(s); n > 0 && s[n-1] == 0 {
+		s = s[:n-1]
 	}
 	return s, err
 }
@@ -304,8 +319,8 @@ func (soc *Socket) GetPlainUsername() (string, error) {
 // See: http://api.zeromq.org/4-0:zmq-getsockopt#toc34
 func (soc *Socket) GetPlainPassword() (string, error) {
 	s, err := soc.getString(C.ZMQ_PLAIN_PASSWORD, 1024)
-	if n := len(s); n > 0 && s[n - 1] == 0 {
-		s = s[:n - 1]
+	if n := len(s); n > 0 && s[n-1] == 0 {
+		s = s[:n-1]
 	}
 	return s, err
 }

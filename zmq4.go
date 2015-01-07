@@ -18,6 +18,9 @@ typedef struct {
 const char *zmq_msg_gets (zmq_msg_t *msg, const char *property) {
     return NULL;
 }
+int zmq_has (const char *capability) {
+    return 0;
+}
 #endif
 
 void get_event40(zmq_msg_t *msg, int *ev, int *val) {
@@ -50,6 +53,13 @@ import (
 
 var (
 	defaultCtx *Context
+
+	major, minor, patch int
+
+	errContextClosed  = errors.New("Context is closed")
+	errSocketClosed   = errors.New("Socket is closed")
+	errMoreExpected   = errors.New("More expected")
+	errNotImplemented = errors.New("Not implemented")
 )
 
 func init() {
@@ -60,6 +70,7 @@ func init() {
 	if defaultCtx.ctx == nil {
 		panic("Init of ZeroMQ context failed: " + errget(err).Error())
 	}
+	major, minor, patch = Version()
 }
 
 //. Util
@@ -133,6 +144,9 @@ func (ctx *Context) Term() error {
 }
 
 func getOption(ctx *Context, o C.int) (int, error) {
+	if !ctx.opened {
+		return 0, errContextClosed
+	}
 	nc, err := C.zmq_ctx_get(ctx.ctx, o)
 	n := int(nc)
 	if n < 0 {
@@ -176,6 +190,9 @@ func (ctx *Context) GetIpv6() (bool, error) {
 }
 
 func setOption(ctx *Context, o C.int, n int) error {
+	if !ctx.opened {
+		return errContextClosed
+	}
 	i, err := C.zmq_ctx_set(ctx.ctx, o, C.int(n))
 	if int(i) != 0 {
 		return errget(err)
@@ -466,7 +483,13 @@ type Socket struct {
 Socket as string.
 */
 func (soc Socket) String() string {
-	t, _ := soc.GetType()
+	if !soc.opened {
+		return "Socket(CLOSED)"
+	}
+	t, err := soc.GetType()
+	if err != nil {
+		return fmt.Sprintf("Socket(%v)", err)
+	}
 	i, err := soc.GetIdentity()
 	if err == nil && i != "" {
 		return fmt.Sprintf("Socket(%v,%q)", t, i)
@@ -498,6 +521,9 @@ For a description of socket types, see: http://api.zeromq.org/4-0:zmq-socket#toc
 */
 func (ctx *Context) NewSocket(t Type) (soc *Socket, err error) {
 	soc = &Socket{}
+	if !ctx.opened {
+		return soc, errContextClosed
+	}
 	s, e := C.zmq_socket(ctx.ctx, C.int(t))
 	if s == nil {
 		err = errget(e)
@@ -530,6 +556,9 @@ Accept incoming connections on a socket.
 For a description of endpoint, see: http://api.zeromq.org/4-0:zmq-bind#toc2
 */
 func (soc *Socket) Bind(endpoint string) error {
+	if !soc.opened {
+		return errSocketClosed
+	}
 	s := C.CString(endpoint)
 	defer C.free(unsafe.Pointer(s))
 	if i, err := C.zmq_bind(soc.soc, s); int(i) != 0 {
@@ -544,6 +573,9 @@ Stop accepting connections on a socket.
 For a description of endpoint, see: http://api.zeromq.org/4-0:zmq-bind#toc2
 */
 func (soc *Socket) Unbind(endpoint string) error {
+	if !soc.opened {
+		return errSocketClosed
+	}
 	s := C.CString(endpoint)
 	defer C.free(unsafe.Pointer(s))
 	if i, err := C.zmq_unbind(soc.soc, s); int(i) != 0 {
@@ -558,6 +590,9 @@ Create outgoing connection from socket.
 For a description of endpoint, see: http://api.zeromq.org/4-0:zmq-connect#toc2
 */
 func (soc *Socket) Connect(endpoint string) error {
+	if !soc.opened {
+		return errSocketClosed
+	}
 	s := C.CString(endpoint)
 	defer C.free(unsafe.Pointer(s))
 	if i, err := C.zmq_connect(soc.soc, s); int(i) != 0 {
@@ -572,6 +607,9 @@ Disconnect a socket.
 For a description of endpoint, see: http://api.zeromq.org/4-0:zmq-connect#toc2
 */
 func (soc *Socket) Disconnect(endpoint string) error {
+	if !soc.opened {
+		return errSocketClosed
+	}
 	s := C.CString(endpoint)
 	defer C.free(unsafe.Pointer(s))
 	if i, err := C.zmq_disconnect(soc.soc, s); int(i) != 0 {
@@ -596,6 +634,9 @@ Receive a message part from a socket.
 For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
 */
 func (soc *Socket) RecvBytes(flags Flag) ([]byte, error) {
+	if !soc.opened {
+		return []byte{}, errSocketClosed
+	}
 	var msg C.zmq_msg_t
 	if i, err := C.zmq_msg_init(&msg); i != 0 {
 		return []byte{}, errget(err)
@@ -629,6 +670,9 @@ Send a message part on a socket.
 For a description of flags, see: http://api.zeromq.org/4-0:zmq-send#toc2
 */
 func (soc *Socket) SendBytes(data []byte, flags Flag) (int, error) {
+	if !soc.opened {
+		return 0, errSocketClosed
+	}
 	d := data
 	if len(data) == 0 {
 		d = []byte{0}
@@ -708,6 +752,9 @@ Example:
     }
 */
 func (soc *Socket) Monitor(addr string, events Event) error {
+	if !soc.opened {
+		return errSocketClosed
+	}
 	if addr == "" {
 		if i, err := C.zmq_socket_monitor(soc.soc, nil, C.int(events)); i != 0 {
 			return errget(err)
@@ -733,7 +780,9 @@ For a description of event_type, see: http://api.zeromq.org/4-0:zmq-socket-monit
 For an example, see: func (*Socket) Monitor
 */
 func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value int, err error) {
-
+	if !soc.opened {
+		return EVENT_ALL, "", 0, errSocketClosed
+	}
 	var msg C.zmq_msg_t
 	if i, e := C.zmq_msg_init(&msg); i != 0 {
 		err = errget(e)
@@ -748,7 +797,7 @@ func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value i
 	et := C.int(0)
 	val := C.int(0)
 
-	if _, minor, _ := Version(); minor == 0 {
+	if minor == 0 {
 		C.get_event40(&msg, &et, &val)
 	} else {
 		C.get_event41(&msg, &et, &val)
@@ -759,7 +808,7 @@ func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value i
 		return
 	}
 	if !more {
-		err = errors.New("More expected")
+		err = errMoreExpected
 		return
 	}
 	addr, e = soc.Recv(flags)
@@ -780,6 +829,9 @@ Start built-in ØMQ proxy
 See: http://api.zeromq.org/4-0:zmq-proxy#toc2
 */
 func Proxy(frontend, backend, capture *Socket) error {
+	if !(frontend.opened && backend.opened && (capture == nil || capture.opened)) {
+		return errSocketClosed
+	}
 	var capt unsafe.Pointer
 	if capture != nil {
 		capt = capture.soc
@@ -875,6 +927,10 @@ For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
 For a description of metadata, see: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 */
 func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg []byte, metadata map[string]string, err error) {
+	if !soc.opened {
+		return []byte{}, map[string]string{}, errSocketClosed
+	}
+
 	metadata = make(map[string]string)
 
 	var m C.zmq_msg_t
@@ -893,7 +949,7 @@ func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg 
 		C.my_memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&m), C.size_t(size))
 	}
 
-	if _, minor, _ := Version(); minor > 0 {
+	if minor > 0 {
 		for _, p := range properties {
 			ps := C.CString(p)
 			s, err := C.zmq_msg_gets(&m, ps)
@@ -904,4 +960,55 @@ func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg 
 		}
 	}
 	return data, metadata, nil
+}
+
+func hasCap(s string) (value bool) {
+	if minor < 1 {
+		return false
+	}
+	cs := C.CString(s)
+	defer C.free(unsafe.Pointer(cs))
+	return C.zmq_has(cs) != 0
+}
+
+// Returns false for ZeroMQ version < 4.1.0
+//
+// Else: returns true if the library supports the ipc:// protocol
+func HasIpc() bool {
+	return hasCap("ipc")
+}
+
+// Returns false for ZeroMQ version < 4.1.0
+//
+// Else: returns true if the library supports the pgm:// protocol
+func HasPgm() bool {
+	return hasCap("pgm")
+}
+
+// Returns false for ZeroMQ version < 4.1.0
+//
+// Else: returns true if the library supports the tipc:// protocol
+func HasTipc() bool {
+	return hasCap("tipc")
+}
+
+// Returns false for ZeroMQ version < 4.1.0
+//
+// Else: returns true if the library supports the norm:// protocol
+func HasNorm() bool {
+	return hasCap("norm")
+}
+
+// Returns false for ZeroMQ version < 4.1.0
+//
+// Else: returns true if the library supports the CURVE security mechanism
+func HasCurve() bool {
+	return hasCap("curve")
+}
+
+// Returns false for ZeroMQ version < 4.1.0
+//
+// Else: returns true if the library supports the GSSAPI security mechanism
+func HasGssapi() bool {
+	return hasCap("gssapi")
 }

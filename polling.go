@@ -90,6 +90,13 @@ func (p *Poller) PollAll(timeout time.Duration) ([]Polled, error) {
 
 func (p *Poller) poll(timeout time.Duration, all bool) ([]Polled, error) {
 	lst := make([]Polled, 0, p.size)
+
+	for _, soc := range p.socks {
+		if !soc.opened {
+			return lst, errSocketClosed
+		}
+	}
+
 	t := timeout
 	if t > 0 {
 		t = t / time.Millisecond

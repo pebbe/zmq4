@@ -1,0 +1,8 @@
+#if ZMQ_VERSION_MINOR < 1
+#define ZMQ_CONNECT_RID -1
+#define ZMQ_HANDSHAKE_IVL -1
+#define ZMQ_ROUTER_HANDOVER -1
+#define ZMQ_TOS -1
+#define ZMQ_IDENTITY_FD -1
+#define ZMQ_XPUB_NODROP -1
+#endif
