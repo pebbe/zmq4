@@ -473,7 +473,7 @@ func (soc *Socket) SetConnectRid(value string) error {
 // Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
 //
 // See: http://api.zeromq.org/4-1:zmq-setsockopt#toc13
-func (soc *Socket) GssapiServer(value bool) error {
+func (soc *Socket) SetGssapiServer(value bool) error {
 	if minor < 1 {
 		return ErrorNotImplemented41
 	}
@@ -489,7 +489,7 @@ func (soc *Socket) GssapiServer(value bool) error {
 // Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
 //
 // See: http://api.zeromq.org/4-1:zmq-setsockopt#toc12
-func (soc *Socket) GssapiPrincipal(value string) error {
+func (soc *Socket) SetGssapiPrincipal(value string) error {
 	if minor < 1 {
 		return ErrorNotImplemented41
 	}
@@ -501,7 +501,7 @@ func (soc *Socket) GssapiPrincipal(value string) error {
 // Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
 //
 // See: http://api.zeromq.org/4-1:zmq-setsockopt#toc14
-func (soc *Socket) GssapiServicePrincipal(value string) error {
+func (soc *Socket) SetGssapiServicePrincipal(value string) error {
 	if minor < 1 {
 		return ErrorNotImplemented41
 	}
@@ -513,7 +513,7 @@ func (soc *Socket) GssapiServicePrincipal(value string) error {
 // Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
 //
 // See: http://api.zeromq.org/4-1:zmq-setsockopt#toc11
-func (soc *Socket) GssapiPlaintext(value bool) error {
+func (soc *Socket) SetGssapiPlaintext(value bool) error {
 	if minor < 1 {
 		return ErrorNotImplemented41
 	}
