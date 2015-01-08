@@ -251,6 +251,8 @@ func (soc *Socket) SetRouterMandatory(value int) error {
 
 // ZMQ_ROUTER_RAW: switch ROUTER socket to raw mode
 //
+// This option is deprecated, please use ZMQ_STREAM sockets instead.
+//
 // See: http://api.zeromq.org/4-0:zmq-setsockopt#toc25
 func (soc *Socket) SetRouterRaw(value int) error {
 	return soc.setInt(C.ZMQ_ROUTER_RAW, value)
@@ -400,6 +402,28 @@ func (soc *Socket) SetConflate(value bool) error {
 // New in ZeroMQ 4.1.0
 //
 ////////////////////////////////////////////////////////////////
+//
+// + : yes
+// - : no, can't
+// D : deprecated
+// o : getsockopt only
+//                                implemented  documented test
+// ZMQ_ROUTER_HANDOVER                +            +
+// ZMQ_TOS                            +            +
+// ZMQ_IPC_FILTER_PID                 D
+// ZMQ_IPC_FILTER_UID                 D
+// ZMQ_IPC_FILTER_GID                 D
+// ZMQ_CONNECT_RID                    +            +
+// ZMQ_GSSAPI_SERVER                  +            +
+// ZMQ_GSSAPI_PRINCIPAL               +            +
+// ZMQ_GSSAPI_SERVICE_PRINCIPAL       +            +
+// ZMQ_GSSAPI_PLAINTEXT               +            +
+// ZMQ_HANDSHAKE_IVL                  +            +
+// ZMQ_IDENTITY_FD                    o
+// ZMQ_SOCKS_PROXY                    +
+// ZMQ_XPUB_NODROP                    +
+//
+////////////////////////////////////////////////////////////////
 
 // ZMQ_ROUTER_HANDOVER: handle duplicate client identities on ROUTER sockets
 //
@@ -444,6 +468,62 @@ func (soc *Socket) SetConnectRid(value string) error {
 	return soc.setString(C.ZMQ_CONNECT_RID, value)
 }
 
+// ZMQ_GSSAPI_SERVER: Set GSSAPI server role
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+// See: http://api.zeromq.org/4-1:zmq-setsockopt#toc13
+func (soc *Socket) GssapiServer(value bool) error {
+	if minor < 1 {
+		return ErrorNotImplemented41
+	}
+	val := 0
+	if value {
+		val = 1
+	}
+	return soc.setInt(C.ZMQ_GSSAPI_SERVER, val)
+}
+
+// ZMQ_GSSAPI_PRINCIPAL: Set name of GSSAPI principal
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+// See: http://api.zeromq.org/4-1:zmq-setsockopt#toc12
+func (soc *Socket) GssapiPrincipal(value string) error {
+	if minor < 1 {
+		return ErrorNotImplemented41
+	}
+	return soc.setString(C.ZMQ_GSSAPI_PRINCIPAL, value)
+}
+
+// ZMQ_GSSAPI_SERVICE_PRINCIPAL: Set name of GSSAPI service principal
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+// See: http://api.zeromq.org/4-1:zmq-setsockopt#toc14
+func (soc *Socket) GssapiServicePrincipal(value string) error {
+	if minor < 1 {
+		return ErrorNotImplemented41
+	}
+	return soc.setString(C.ZMQ_GSSAPI_SERVICE_PRINCIPAL, value)
+}
+
+// ZMQ_GSSAPI_PLAINTEXT: Disable GSSAPI encryption
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+// See: http://api.zeromq.org/4-1:zmq-setsockopt#toc11
+func (soc *Socket) GssapiPlaintext(value bool) error {
+	if minor < 1 {
+		return ErrorNotImplemented41
+	}
+	val := 0
+	if value {
+		val = 1
+	}
+	return soc.setInt(C.ZMQ_GSSAPI_PLAINTEXT, val)
+}
+
 // ZMQ_HANDSHAKE_IVL: Set maximum handshake interval
 //
 // Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
@@ -455,4 +535,33 @@ func (soc *Socket) SetHandshakeIvl(value time.Duration) error {
 	}
 	val := int(value / time.Millisecond)
 	return soc.setInt(C.ZMQ_HANDSHAKE_IVL, val)
+}
+
+// ZMQ_IDENTITY_FD: GET ONLY
+
+// ZMQ_SOCKS_PROXY: NOT DOCUMENTED
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+func (soc *Socket) SetSocksProxy(value string) error {
+	if minor < 1 {
+		return ErrorNotImplemented41
+	}
+	if value == "" {
+		return soc.setNullString(C.ZMQ_SOCKS_PROXY)
+	}
+	return soc.setString(C.ZMQ_SOCKS_PROXY, value)
+}
+
+// ZMQ_XPUB_NODROP: NOT DOCUMENTED
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+func (soc *Socket) SetXpubNodrop(value bool) error {
+	if minor < 1 {
+		return ErrorNotImplemented41
+	}
+	val := 0
+	if value {
+		val = 1
+	}
+	return soc.setInt(C.ZMQ_XPUB_NODROP, val)
 }

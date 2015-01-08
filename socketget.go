@@ -373,3 +373,31 @@ func (soc *Socket) GetCurveServerkeyZ85() (string, error) {
 func (soc *Socket) GetZapDomain() (string, error) {
 	return soc.getString(C.ZMQ_ZAP_DOMAIN, 1024)
 }
+
+////////////////////////////////////////////////////////////////
+//
+// New in ZeroMQ 4.1.0
+//
+////////////////////////////////////////////////////////////////
+//
+// + : yes
+// - : no, can't
+// D : deprecated
+// o : setsockopt only
+//                                implemented  documented test
+// ZMQ_ROUTER_HANDOVER
+// ZMQ_TOS
+// ZMQ_IPC_FILTER_PID                 D
+// ZMQ_IPC_FILTER_UID                 D
+// ZMQ_IPC_FILTER_GID                 D
+// ZMQ_CONNECT_RID
+// ZMQ_GSSAPI_SERVER
+// ZMQ_GSSAPI_PRINCIPAL
+// ZMQ_GSSAPI_SERVICE_PRINCIPAL
+// ZMQ_GSSAPI_PLAINTEXT
+// ZMQ_HANDSHAKE_IVL
+// ZMQ_IDENTITY_FD
+// ZMQ_SOCKS_PROXY
+// ZMQ_XPUB_NODROP
+//
+////////////////////////////////////////////////////////////////
