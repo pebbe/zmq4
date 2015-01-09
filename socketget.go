@@ -425,7 +425,7 @@ func (soc *Socket) GetGssapiServer() (bool, error) {
 	if minor < 1 {
 		return false, ErrorNotImplemented41
 	}
-	v, err := getInt(C.ZMQ_GSSAPI_SERVER)
+	v, err := soc.getInt(C.ZMQ_GSSAPI_SERVER)
 	return v != 0, err
 }
 
@@ -438,7 +438,7 @@ func (soc *Socket) GetGssapiPrincipal() (string, error) {
 	if minor < 1 {
 		return "", ErrorNotImplemented41
 	}
-	return getString(C.ZMQ_GSSAPI_PRINCIPAL)
+	return soc.getString(C.ZMQ_GSSAPI_PRINCIPAL, 1024)
 }
 
 // ZMQ_GSSAPI_SERVICE_PRINCIPAL: Retrieve the name of the GSSAPI service principal
@@ -450,7 +450,7 @@ func (soc *Socket) GetGssapiServicePrincipal() (string, error) {
 	if minor < 1 {
 		return "", ErrorNotImplemented41
 	}
-	return getString(C.ZMQ_GSSAPI_SERVICE_PRINCIPAL)
+	return soc.getString(C.ZMQ_GSSAPI_SERVICE_PRINCIPAL, 1024)
 }
 
 // ZMQ_GSSAPI_PLAINTEXT: Retrieve GSSAPI plaintext or encrypted status
@@ -462,7 +462,7 @@ func (soc *Socket) GetGssapiPlaintext() (bool, error) {
 	if minor < 1 {
 		return false, ErrorNotImplemented41
 	}
-	v, err := getInt(C.ZMQ_GSSAPI_PLAINTEXT)
+	v, err := soc.getInt(C.ZMQ_GSSAPI_PLAINTEXT)
 	return v != 0, err
 }
 
@@ -492,7 +492,7 @@ func (soc *Socket) GetSocksProxy() (string, error) {
 	if minor < 1 {
 		return "", ErrorNotImplemented41
 	}
-	return getString(C.ZMQ_SOCKS_PROXY)
+	return soc.getString(C.ZMQ_SOCKS_PROXY, 1024)
 }
 
 // ZMQ_XPUB_NODROP: SET ONLY? (not documented)
