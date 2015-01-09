@@ -385,19 +385,114 @@ func (soc *Socket) GetZapDomain() (string, error) {
 // D : deprecated
 // o : setsockopt only
 //                                implemented  documented test
-// ZMQ_ROUTER_HANDOVER
-// ZMQ_TOS
+// ZMQ_ROUTER_HANDOVER                o
+// ZMQ_TOS                            +           +
 // ZMQ_IPC_FILTER_PID                 D
 // ZMQ_IPC_FILTER_UID                 D
 // ZMQ_IPC_FILTER_GID                 D
-// ZMQ_CONNECT_RID
-// ZMQ_GSSAPI_SERVER
-// ZMQ_GSSAPI_PRINCIPAL
-// ZMQ_GSSAPI_SERVICE_PRINCIPAL
-// ZMQ_GSSAPI_PLAINTEXT
-// ZMQ_HANDSHAKE_IVL
-// ZMQ_IDENTITY_FD
-// ZMQ_SOCKS_PROXY
-// ZMQ_XPUB_NODROP
+// ZMQ_CONNECT_RID                    o
+// ZMQ_GSSAPI_SERVER                  +           +
+// ZMQ_GSSAPI_PRINCIPAL               +           +
+// ZMQ_GSSAPI_SERVICE_PRINCIPAL       +           +
+// ZMQ_GSSAPI_PLAINTEXT               +           +
+// ZMQ_HANDSHAKE_IVL                  +           +
+// ZMQ_IDENTITY_FD                    -
+// ZMQ_SOCKS_PROXY                    +
+// ZMQ_XPUB_NODROP                    o?
 //
 ////////////////////////////////////////////////////////////////
+
+// ZMQ_TOS: Retrieve the Type-of-Service socket override status
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+// See: http://api.zeromq.org/4-1:zmq-getsockopt#toc42
+func (soc *Socket) GetTos() (int, error) {
+	if minor < 1 {
+		return 0, ErrorNotImplemented41
+	}
+	return soc.getInt(C.ZMQ_TOS)
+}
+
+// ZMQ_CONNECT_RID: SET ONLY
+
+// ZMQ_GSSAPI_SERVER: Retrieve current GSSAPI server role
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+// See: http://api.zeromq.org/4-1:zmq-getsockopt#toc12
+func (soc *Socket) GetGssapiServer() (bool, error) {
+	if minor < 1 {
+		return false, ErrorNotImplemented41
+	}
+	v, err := getInt(C.ZMQ_GSSAPI_SERVER)
+	return v != 0, err
+}
+
+// ZMQ_GSSAPI_PRINCIPAL: Retrieve the name of the GSSAPI principal
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+// See: http://api.zeromq.org/4-1:zmq-getsockopt#toc11
+func (soc *Socket) GetGssapiPrincipal() (string, error) {
+	if minor < 1 {
+		return "", ErrorNotImplemented41
+	}
+	return getString(C.ZMQ_GSSAPI_PRINCIPAL)
+}
+
+// ZMQ_GSSAPI_SERVICE_PRINCIPAL: Retrieve the name of the GSSAPI service principal
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+// See: http://api.zeromq.org/4-1:zmq-getsockopt#toc13
+func (soc *Socket) GetGssapiServicePrincipal() (string, error) {
+	if minor < 1 {
+		return "", ErrorNotImplemented41
+	}
+	return getString(C.ZMQ_GSSAPI_SERVICE_PRINCIPAL)
+}
+
+// ZMQ_GSSAPI_PLAINTEXT: Retrieve GSSAPI plaintext or encrypted status
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+// See: http://api.zeromq.org/4-1:zmq-getsockopt#toc10
+func (soc *Socket) GetGssapiPlaintext() (bool, error) {
+	if minor < 1 {
+		return false, ErrorNotImplemented41
+	}
+	v, err := getInt(C.ZMQ_GSSAPI_PLAINTEXT)
+	return v != 0, err
+}
+
+// ZMQ_HANDSHAKE_IVL: Retrieve maximum handshake interval
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+// See: http://api.zeromq.org/4-1:zmq-getsockopt#toc14
+func (soc *Socket) GetHandshakeIvlt() (time.Duration, error) {
+	v, err := soc.getInt(C.ZMQ_HANDSHAKE_IVL)
+	return time.Duration(v) * time.Millisecond, err
+}
+
+// ZMQ_IDENTITY_FD: Retrieve FD associated with given identity
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+// See: http://api.zeromq.org/4-1:zmq-getsockopt#toc45
+//
+// NOT IMPLEMENTED BECAUSE OF UNCERTAIN STATUS IN PRE-RELEASE
+
+// ZMQ_SOCKS_PROXY: NOT DOCUMENTED
+//
+// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+func (soc *Socket) GetSocksProxy() (string, error) {
+	if minor < 1 {
+		return "", ErrorNotImplemented41
+	}
+	return getString(C.ZMQ_SOCKS_PROXY)
+}
+
+// ZMQ_XPUB_NODROP: SET ONLY? (not documented)

@@ -316,6 +316,9 @@ func (soc *Socket) SetTcpKeepaliveIntvl(value int) error {
 
 // ZMQ_TCP_ACCEPT_FILTER: Assign filters to allow new TCP connections
 //
+// This option is deprecated, please use authentication via
+// the ZAP API and IP address whitelisting / blacklisting.
+//
 // See: http://api.zeromq.org/4-0:zmq-setsockopt#toc34
 func (soc *Socket) SetTcpAcceptFilter(filter string) error {
 	if len(filter) == 0 {
