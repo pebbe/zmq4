@@ -3,6 +3,7 @@ package zmq4
 /*
 #include <zmq.h>
 #include <stdint.h>
+#include "zmq4.h"
 */
 import "C"
 
