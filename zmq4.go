@@ -913,6 +913,8 @@ func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (msg strin
 }
 
 /*
+TODO: Rewrite (API change): Receive with properties and metadata.
+
 Receive a message part with metadata.
 
 Metadata is added to messages that go through the 0MQ security mechanism.

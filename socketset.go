@@ -407,9 +407,7 @@ func (soc *Socket) SetConflate(value bool) error {
 ////////////////////////////////////////////////////////////////
 //
 // + : yes
-// - : no, can't
 // D : deprecated
-// o : getsockopt only
 //                                implemented  documented test
 // ZMQ_ROUTER_HANDOVER                +            +
 // ZMQ_TOS                            +            +
@@ -422,7 +420,6 @@ func (soc *Socket) SetConflate(value bool) error {
 // ZMQ_GSSAPI_SERVICE_PRINCIPAL       +            +
 // ZMQ_GSSAPI_PLAINTEXT               +            +
 // ZMQ_HANDSHAKE_IVL                  +            +
-// ZMQ_IDENTITY_FD                    o
 // ZMQ_SOCKS_PROXY                    +
 // ZMQ_XPUB_NODROP                    +
 //
@@ -539,8 +536,6 @@ func (soc *Socket) SetHandshakeIvl(value time.Duration) error {
 	val := int(value / time.Millisecond)
 	return soc.setInt(C.ZMQ_HANDSHAKE_IVL, val)
 }
-
-// ZMQ_IDENTITY_FD: GET ONLY
 
 // ZMQ_SOCKS_PROXY: NOT DOCUMENTED
 //

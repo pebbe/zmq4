@@ -382,7 +382,6 @@ func (soc *Socket) GetZapDomain() (string, error) {
 ////////////////////////////////////////////////////////////////
 //
 // + : yes
-// - : no, can't
 // D : deprecated
 // o : setsockopt only
 //                                implemented  documented test
@@ -397,7 +396,6 @@ func (soc *Socket) GetZapDomain() (string, error) {
 // ZMQ_GSSAPI_SERVICE_PRINCIPAL       +           +
 // ZMQ_GSSAPI_PLAINTEXT               +           +
 // ZMQ_HANDSHAKE_IVL                  +           +
-// ZMQ_IDENTITY_FD                    -
 // ZMQ_SOCKS_PROXY                    +
 // ZMQ_XPUB_NODROP                    o?
 //
@@ -476,14 +474,6 @@ func (soc *Socket) GetHandshakeIvlt() (time.Duration, error) {
 	v, err := soc.getInt(C.ZMQ_HANDSHAKE_IVL)
 	return time.Duration(v) * time.Millisecond, err
 }
-
-// ZMQ_IDENTITY_FD: Retrieve FD associated with given identity
-//
-// Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
-//
-// See: http://api.zeromq.org/4-1:zmq-getsockopt#toc45
-//
-// NOT IMPLEMENTED BECAUSE OF UNCERTAIN STATUS IN PRE-RELEASE
 
 // ZMQ_SOCKS_PROXY: NOT DOCUMENTED
 //
