@@ -3,8 +3,13 @@ package zmq4
 /*
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#include <Winsock2.h>
+#include <Ws2tcpip.h>
+#else
 #include <sys/socket.h>
 #include <netdb.h>
+#endif
 
 char *my_get_peer_addr(int srcFd) {
     struct sockaddr_storage
