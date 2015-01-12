@@ -8,6 +8,7 @@ package zmq4
 #include <zmq_utils.h>
 #include <stdlib.h>
 #include <string.h>
+#include "zmq4.h"
 
 #if ZMQ_VERSION_MINOR > 0
 typedef struct {
@@ -448,9 +449,10 @@ type Mechanism int
 const (
 	// Constants for (*Socket)GetMechanism()
 	// See: http://api.zeromq.org/4-0:zmq-getsockopt#toc31
-	NULL  = Mechanism(C.ZMQ_NULL)
-	PLAIN = Mechanism(C.ZMQ_PLAIN)
-	CURVE = Mechanism(C.ZMQ_CURVE)
+	NULL   = Mechanism(C.ZMQ_NULL)
+	PLAIN  = Mechanism(C.ZMQ_PLAIN)
+	CURVE  = Mechanism(C.ZMQ_CURVE)
+	GSSAPI = Mechanism(C.ZMQ_GSSAPI)
 )
 
 /*
@@ -464,6 +466,28 @@ func (m Mechanism) String() string {
 		return "PLAIN"
 	case CURVE:
 		return "CURVE"
+	case GSSAPI:
+		return "GSSAPI"
+	}
+	return "<INVALID>"
+}
+
+// Specifies messages properties, used by (*Socket)RecvWithProperties()
+type Property int
+
+const (
+	// Constants for (*Socket)RecvWithProperties()
+	// See: http://api.zeromq.org/4-1:zmq-msg-get#toc2
+	SRCFD = Property(C.ZMQ_SRCFD)
+)
+
+/*
+Property as strings.
+*/
+func (p Property) String() string {
+	switch p {
+	case SRCFD:
+		return "SRCFD"
 	}
 	return "<INVALID>"
 }
@@ -907,43 +931,46 @@ For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
 
 For a description of metadata, see: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 */
-func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (msg string, metadata map[string]string, err error) {
-	b, p, err := soc.RecvBytesWithMetadata(flags, properties...)
-	return string(b), p, err
+func (soc *Socket) RecvWithProperties(flags Flag, properties []Property, metadata []string) (msg string, props []int, meta map[string]string, err error) {
+	b, p, m, err := soc.RecvBytesWithProperties(flags, properties, metadata)
+	return string(b), p, m, err
 }
 
 /*
-TODO: Rewrite (API change): Receive with properties and metadata.
+Receive a message part with properties and/or metadata.
 
-Receive a message part with metadata.
+Properties are: SRCFD
 
 Metadata is added to messages that go through the 0MQ security mechanism.
 Standard metadata properties are: Identity, Socket-Type, User-Id.
 
-This requires ZeroMQ version 4.1.0. Lower versions will return the message part without metadata.
+This requires ZeroMQ version 4.1.0. Lower versions will return the message part without properties or metadata.
 
 The returned metadata map contains only those properties that exist on the message.
 
 For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
 
+For a description of properties, see: http://api.zeromq.org/4-1:zmq-msg-get#toc2
+
 For a description of metadata, see: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 */
-func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg []byte, metadata map[string]string, err error) {
-	if !soc.opened {
-		return []byte{}, map[string]string{}, ErrorSocketClosed
-	}
+func (soc *Socket) RecvBytesWithProperties(flags Flag, properties []Property, metadata []string) (msg []byte, props []int, meta map[string]string, err error) {
+	proplst := make([]int, len(properties))
+	metamap := make(map[string]string)
 
-	metadata = make(map[string]string)
+	if !soc.opened {
+		return []byte{}, proplst, metamap, ErrorSocketClosed
+	}
 
 	var m C.zmq_msg_t
 	if i, err := C.zmq_msg_init(&m); i != 0 {
-		return []byte{}, metadata, errget(err)
+		return []byte{}, proplst, metamap, errget(err)
 	}
 	defer C.zmq_msg_close(&m)
 
 	size, err := C.zmq_msg_recv(&m, soc.soc, C.int(flags))
 	if size < 0 {
-		return []byte{}, metadata, errget(err)
+		return []byte{}, proplst, metamap, errget(err)
 	}
 
 	data := make([]byte, int(size))
@@ -952,16 +979,23 @@ func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg 
 	}
 
 	if minor > 0 {
-		for _, p := range properties {
-			ps := C.CString(p)
-			s, err := C.zmq_msg_gets(&m, ps)
-			if err == nil {
-				metadata[p] = C.GoString(s)
+		for idx, p := range properties {
+			i, err := C.zmq_msg_get(&m, C.int(p))
+			if i < 0 {
+				return data, proplst, metamap, errget(err)
 			}
-			C.free(unsafe.Pointer(ps))
+			proplst[idx] = int(i)
+		}
+		for _, md := range metadata {
+			ms := C.CString(md)
+			s, err := C.zmq_msg_gets(&m, ms)
+			if err == nil {
+				metamap[md] = C.GoString(s)
+			}
+			C.free(unsafe.Pointer(ms))
 		}
 	}
-	return data, metadata, nil
+	return data, proplst, metamap, nil
 }
 
 func hasCap(s string) (value bool) {
