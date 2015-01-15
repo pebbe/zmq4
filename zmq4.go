@@ -8,6 +8,7 @@ package zmq4
 #include <zmq_utils.h>
 #include <stdlib.h>
 #include <string.h>
+#include "zmq4.h"
 
 #if ZMQ_VERSION_MINOR > 0
 typedef struct {
@@ -448,9 +449,10 @@ type Mechanism int
 const (
 	// Constants for (*Socket)GetMechanism()
 	// See: http://api.zeromq.org/4-0:zmq-getsockopt#toc31
-	NULL  = Mechanism(C.ZMQ_NULL)
-	PLAIN = Mechanism(C.ZMQ_PLAIN)
-	CURVE = Mechanism(C.ZMQ_CURVE)
+	NULL   = Mechanism(C.ZMQ_NULL)
+	PLAIN  = Mechanism(C.ZMQ_PLAIN)
+	CURVE  = Mechanism(C.ZMQ_CURVE)
+	GSSAPI = Mechanism(C.ZMQ_GSSAPI)
 )
 
 /*
@@ -464,6 +466,8 @@ func (m Mechanism) String() string {
 		return "PLAIN"
 	case CURVE:
 		return "CURVE"
+	case GSSAPI:
+		return "GSSAPI"
 	}
 	return "<INVALID>"
 }
