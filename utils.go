@@ -134,37 +134,37 @@ func (soc *Socket) RecvMessageBytes(flags Flag) (msg [][]byte, err error) {
 }
 
 /*
-Receive parts as message from socket, including properties and/or metadata.
+Receive parts as message from socket, including metadata.
 
-Properties and metadata are picked from the first message part.
+Metadata is picked from the first message part.
 
-For details about properties and metadata, see RecvWithProperties().
+For details about metadata, see RecvWithMetadata().
 
 Returns last non-nil error code.
 */
-func (soc *Socket) RecvMessageWithProperties(flags Flag, properties []Property, metadata []string) (msg []string, props []int, meta map[string]string, err error) {
-	b, p, md, err := soc.RecvMessageBytesWithProperties(flags, properties, metadata)
+func (soc *Socket) RecvMessageWithMetadata(flags Flag, properties ...string) (msg []string, metadata map[string]string, err error) {
+	b, p, err := soc.RecvMessageBytesWithMetadata(flags, properties...)
 	m := make([]string, len(b))
 	for i, bt := range b {
 		m[i] = string(bt)
 	}
-	return m, p, md, err
+	return m, p, err
 }
 
 /*
-Receive parts as message from socket, including properties and/or metadata.
+Receive parts as message from socket, including metadata.
 
-Properties and metadata are picked from the first message part.
+Metadata is picked from the first message part.
 
-For details about properties and metadata, see RecvBytesWithProperties().
+For details about metadata, see RecvBytesWithMetadata().
 
 Returns last non-nil error code.
 */
-func (soc *Socket) RecvMessageBytesWithProperties(flags Flag, properties []Property, metadata []string) (msg [][]byte, props []int, meta map[string]string, err error) {
+func (soc *Socket) RecvMessageBytesWithMetadata(flags Flag, properties ...string) (msg [][]byte, metadata map[string]string, err error) {
 	bb := make([][]byte, 0)
-	b, p, m, err := soc.RecvBytesWithProperties(flags, properties, metadata)
+	b, p, err := soc.RecvBytesWithMetadata(flags, properties...)
 	if err != nil {
-		return bb, p, m, err
+		return bb, p, err
 	}
 	for {
 		bb = append(bb, b)
@@ -179,5 +179,5 @@ func (soc *Socket) RecvMessageBytesWithProperties(flags Flag, properties []Prope
 			break
 		}
 	}
-	return bb, p, m, err
+	return bb, p, err
 }

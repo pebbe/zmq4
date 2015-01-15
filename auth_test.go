@@ -87,7 +87,7 @@ func ExampleAuthStart() {
 
 	// Receive message and metadata on the server
 	keys := []string{"Identity", "User-Id", "Socket-Type", "Hello", "Foo", "Fuz"}
-	message, _, metadata, err := server.RecvMessageWithProperties(0, []zmq.Property{}, keys)
+	message, metadata, err := server.RecvMessageWithMetadata(0, keys...)
 	if checkErr(err) {
 		return
 	}
