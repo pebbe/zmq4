@@ -1,6 +1,8 @@
 
 A Go interface to [ZeroMQ](http://www.zeromq.org/) version 4.
 
+**Warning: API for ZeroMQ 4.1.0 specific features may change until 4.1.0 is officially released**
+
 This requires ZeroMQ version 4.0.1 or above. To use CURVE security,
 ZeroMQ must be installed with [libsodium](https://github.com/jedisct1/libsodium) enabled.
 

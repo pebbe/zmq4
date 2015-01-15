@@ -9,22 +9,66 @@ package zmq4
 #include <stdlib.h>
 #include <string.h>
 #include "zmq4.h"
+#ifdef _WIN32
+#include <Winsock2.h>
+#include <Ws2tcpip.h>
+#else
+#include <sys/socket.h>
+#include <netdb.h>
+#endif
 
 #if ZMQ_VERSION_MINOR > 0
+
 typedef struct {
     uint16_t event;  // id of the event as bitfield
     int32_t  value ; // value is either error code, fd or reconnect interval
 } zmq_event_t;
+
+char *zmq4_get_peer_addr (zmq_msg_t *msg) {
+    struct sockaddr_storage
+        ss;
+    socklen_t
+        addrlen;
+    int
+        srcFd,
+        rc;
+    char
+        host [NI_MAXHOST];
+
+    srcFd = zmq_msg_get(msg, ZMQ_SRCFD);
+    if (srcFd < 0)
+        return NULL;
+
+    // get the remote endpoint
+    addrlen = sizeof ss;
+    rc = getpeername (srcFd, (struct sockaddr*) &ss, &addrlen);
+    if (rc != 0)
+        return NULL;
+
+    rc = getnameinfo ((struct sockaddr*) &ss, addrlen, host, sizeof host, NULL, 0, NI_NUMERICHOST);
+    if (rc != 0)
+        return NULL;
+
+    return strdup(host);
+}
+
 #else
+
 const char *zmq_msg_gets (zmq_msg_t *msg, const char *property) {
     return NULL;
 }
+
 int zmq_has (const char *capability) {
     return 0;
 }
+
+char *zmq4_get_peer_addr (zmq_msg_t *msg) {
+    return NULL;
+}
+
 #endif
 
-void get_event40(zmq_msg_t *msg, int *ev, int *val) {
+void zmq4_get_event40(zmq_msg_t *msg, int *ev, int *val) {
     zmq_event_t event;
     const char* data = (char*)zmq_msg_data(msg);
     memcpy(&(event.event), data, sizeof(event.event));
@@ -32,14 +76,14 @@ void get_event40(zmq_msg_t *msg, int *ev, int *val) {
     *ev = (int)(event.event);
     *val = (int)(event.value);
 }
-void get_event41(zmq_msg_t *msg, int *ev, int *val) {
+void zmq4_get_event41(zmq_msg_t *msg, int *ev, int *val) {
     uint8_t *data = (uint8_t *) zmq_msg_data (msg);
     uint16_t event = *(uint16_t *) (data);
     *ev = (int)event;
     *val = (int)(*(uint32_t *) (data + 2));
 }
-void *my_memcpy(void *dest, const void *src, size_t n) {
-	return memcpy(dest, src, n);
+void *zmq4_memcpy(void *dest, const void *src, size_t n) {
+    return memcpy(dest, src, n);
 }
 */
 import "C"
@@ -655,7 +699,7 @@ func (soc *Socket) RecvBytes(flags Flag) ([]byte, error) {
 		return []byte{}, nil
 	}
 	data := make([]byte, int(size))
-	C.my_memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&msg), C.size_t(size))
+	C.zmq4_memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&msg), C.size_t(size))
 	return data, nil
 }
 
@@ -802,9 +846,9 @@ func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value i
 	val := C.int(0)
 
 	if minor == 0 {
-		C.get_event40(&msg, &et, &val)
+		C.zmq4_get_event40(&msg, &et, &val)
 	} else {
-		C.get_event41(&msg, &et, &val)
+		C.zmq4_get_event41(&msg, &et, &val)
 	}
 	more, e := soc.GetRcvmore()
 	if e != nil {
@@ -903,6 +947,9 @@ Receive a message part with metadata.
 Metadata is added to messages that go through the 0MQ security mechanism.
 Standard metadata properties are: Identity, Socket-Type, User-Id.
 
+The special property "Remote-Endpoint" returns the IP address of the remote endpoint.
+Currently only implemented for TCP sockets.
+
 This requires ZeroMQ version 4.1.0. Lower versions will return the message part without metadata.
 
 The returned metadata map contains only those properties that exist on the message.
@@ -917,12 +964,13 @@ func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (msg strin
 }
 
 /*
-TODO: Rewrite (API change): Receive with properties and metadata.
-
 Receive a message part with metadata.
 
 Metadata is added to messages that go through the 0MQ security mechanism.
 Standard metadata properties are: Identity, Socket-Type, User-Id.
+
+The special property "Remote-Endpoint" returns the IP address of the remote endpoint.
+Currently only implemented for TCP sockets.
 
 This requires ZeroMQ version 4.1.0. Lower versions will return the message part without metadata.
 
@@ -952,17 +1000,25 @@ func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg 
 
 	data := make([]byte, int(size))
 	if size > 0 {
-		C.my_memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&m), C.size_t(size))
+		C.zmq4_memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&m), C.size_t(size))
 	}
 
 	if minor > 0 {
 		for _, p := range properties {
-			ps := C.CString(p)
-			s, err := C.zmq_msg_gets(&m, ps)
-			if err == nil {
-				metadata[p] = C.GoString(s)
+			if p == "Remote-Endpoint" {
+				s := C.zmq4_get_peer_addr(&m)
+				if s != nil {
+					metadata[p] = C.GoString(s)
+					C.free(unsafe.Pointer(s))
+				}
+			} else {
+				ps := C.CString(p)
+				s, err := C.zmq_msg_gets(&m, ps)
+				if err == nil {
+					metadata[p] = C.GoString(s)
+				}
+				C.free(unsafe.Pointer(ps))
 			}
-			C.free(unsafe.Pointer(ps))
 		}
 	}
 	return data, metadata, nil
