@@ -11,7 +11,6 @@
 #define ZMQ_IPC_FILTER_UID -1
 #define ZMQ_ROUTER_HANDOVER -1
 #define ZMQ_SOCKS_PROXY -1
-#define ZMQ_SRCFD -1
 #define ZMQ_TOS -1
 #define ZMQ_XPUB_NODROP -1
 #endif

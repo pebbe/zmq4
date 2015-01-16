@@ -58,7 +58,7 @@ func Example_test_remote_endpoint() {
 		fmt.Println(tmp, "!=", msg)
 	}
 
-	fmt.Println(props["Remote-Endpoint"])
+	fmt.Println(props["Peer-Address"])
 
 	err = rep.Close()
 	if checkErr(err) {

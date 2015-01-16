@@ -9,13 +9,6 @@ package zmq4
 #include <stdlib.h>
 #include <string.h>
 #include "zmq4.h"
-#ifdef _WIN32
-#include <Winsock2.h>
-#include <Ws2tcpip.h>
-#else
-#include <sys/socket.h>
-#include <netdb.h>
-#endif
 
 #if ZMQ_VERSION_MINOR > 0
 
@@ -23,34 +16,6 @@ typedef struct {
     uint16_t event;  // id of the event as bitfield
     int32_t  value ; // value is either error code, fd or reconnect interval
 } zmq_event_t;
-
-char *zmq4_get_peer_addr (zmq_msg_t *msg) {
-    struct sockaddr_storage
-        ss;
-    socklen_t
-        addrlen;
-    int
-        srcFd,
-        rc;
-    char
-        host [NI_MAXHOST];
-
-    srcFd = zmq_msg_get(msg, ZMQ_SRCFD);
-    if (srcFd < 0)
-        return NULL;
-
-    // get the remote endpoint
-    addrlen = sizeof ss;
-    rc = getpeername (srcFd, (struct sockaddr*) &ss, &addrlen);
-    if (rc != 0)
-        return NULL;
-
-    rc = getnameinfo ((struct sockaddr*) &ss, addrlen, host, sizeof host, NULL, 0, NI_NUMERICHOST);
-    if (rc != 0)
-        return NULL;
-
-    return strdup(host);
-}
 
 #else
 
@@ -60,10 +25,6 @@ const char *zmq_msg_gets (zmq_msg_t *msg, const char *property) {
 
 int zmq_has (const char *capability) {
     return 0;
-}
-
-char *zmq4_get_peer_addr (zmq_msg_t *msg) {
-    return NULL;
 }
 
 #endif
@@ -944,12 +905,6 @@ func NewCurveKeypair() (z85_public_key, z85_secret_key string, err error) {
 /*
 Receive a message part with metadata.
 
-Metadata is added to messages that go through the 0MQ security mechanism.
-Standard metadata properties are: Identity, Socket-Type, User-Id.
-
-The special property "Remote-Endpoint" returns the IP address of the remote endpoint.
-Currently only implemented for TCP sockets.
-
 This requires ZeroMQ version 4.1.0. Lower versions will return the message part without metadata.
 
 The returned metadata map contains only those properties that exist on the message.
@@ -965,12 +920,6 @@ func (soc *Socket) RecvWithMetadata(flags Flag, properties ...string) (msg strin
 
 /*
 Receive a message part with metadata.
-
-Metadata is added to messages that go through the 0MQ security mechanism.
-Standard metadata properties are: Identity, Socket-Type, User-Id.
-
-The special property "Remote-Endpoint" returns the IP address of the remote endpoint.
-Currently only implemented for TCP sockets.
 
 This requires ZeroMQ version 4.1.0. Lower versions will return the message part without metadata.
 
@@ -1005,20 +954,12 @@ func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg 
 
 	if minor > 0 {
 		for _, p := range properties {
-			if p == "Remote-Endpoint" {
-				s := C.zmq4_get_peer_addr(&m)
-				if s != nil {
-					metadata[p] = C.GoString(s)
-					C.free(unsafe.Pointer(s))
-				}
-			} else {
-				ps := C.CString(p)
-				s, err := C.zmq_msg_gets(&m, ps)
-				if err == nil {
-					metadata[p] = C.GoString(s)
-				}
-				C.free(unsafe.Pointer(ps))
+			ps := C.CString(p)
+			s, err := C.zmq_msg_gets(&m, ps)
+			if err == nil {
+				metadata[p] = C.GoString(s)
 			}
+			C.free(unsafe.Pointer(ps))
 		}
 	}
 	return data, metadata, nil
