@@ -10,6 +10,11 @@ package zmq4
 #include <string.h>
 #include "zmq4.h"
 
+int
+    zmq4_major = ZMQ_VERSION_MAJOR,
+    zmq4_minor = ZMQ_VERSION_MINOR,
+    zmq4_patch = ZMQ_VERSION_PATCH;
+
 #if ZMQ_VERSION_MINOR > 0
 // Version >= 4.1.x
 
@@ -89,6 +94,16 @@ func init() {
 		panic("Init of ZeroMQ context failed: " + errget(err).Error())
 	}
 	major, minor, patch = Version()
+	if major != 4 {
+		panic("Using zmq4 with ZeroMQ major version " + fmt.Sprint(major))
+	}
+	if major != int(C.zmq4_major) || minor != int(C.zmq4_minor) || patch != int(C.zmq4_patch) {
+		panic(
+			fmt.Sprintf(
+				"zmq4 was installed with ZeroMQ version %d.%d.%d, but the application links with version %d.%d.%d",
+				int(C.zmq4_major), int(C.zmq4_minor), int(C.zmq4_patch),
+				major, minor, patch))
+	}
 }
 
 //. Util
