@@ -11,13 +11,15 @@ package zmq4
 #include "zmq4.h"
 
 #if ZMQ_VERSION_MINOR > 0
+// Version >= 4.1.x
 
 typedef struct {
     uint16_t event;  // id of the event as bitfield
-    int32_t  value ; // value is either error code, fd or reconnect interval
+    int32_t  value;  // value is either error code, fd or reconnect interval
 } zmq_event_t;
 
 #else
+// Version == 4.0.x
 
 const char *zmq_msg_gets (zmq_msg_t *msg, const char *property) {
     return NULL;
@@ -26,6 +28,15 @@ const char *zmq_msg_gets (zmq_msg_t *msg, const char *property) {
 int zmq_has (const char *capability) {
     return 0;
 }
+
+#if ZMQ_VERSION_PATCH < 5
+// Version < 4.0.5
+
+int zmq_proxy_steerable (const void *frontend, const void *backend, const void *capture, const void *control) {
+    return -1;
+}
+
+#endif
 
 #endif
 
@@ -62,10 +73,11 @@ var (
 
 	major, minor, patch int
 
-	ErrorContextClosed    = errors.New("Context is closed")
-	ErrorSocketClosed     = errors.New("Socket is closed")
-	ErrorMoreExpected     = errors.New("More expected")
-	ErrorNotImplemented41 = errors.New("Not implemented, requires 0MQ version 4.1")
+	ErrorContextClosed     = errors.New("Context is closed")
+	ErrorSocketClosed      = errors.New("Socket is closed")
+	ErrorMoreExpected      = errors.New("More expected")
+	ErrorNotImplemented405 = errors.New("Not implemented, requires 0MQ version 4.0.5")
+	ErrorNotImplemented41  = errors.New("Not implemented, requires 0MQ version 4.1")
 )
 
 func init() {
@@ -847,6 +859,34 @@ func Proxy(frontend, backend, capture *Socket) error {
 	}
 	_, err := C.zmq_proxy(frontend.soc, backend.soc, capt)
 	return errget(err)
+}
+
+/*
+Start built-in ØMQ proxy with PAUSE/RESUME/TERMINATE control flow
+
+Returns ErrorNotImplemented405 with ZeroMQ version < 4.0.5
+
+See: http://api.zeromq.org/4-0:zmq-proxy-steerable#toc2
+*/
+func ProxySteerable(frontend, backend, capture, control *Socket) error {
+	if minor == 0 && patch < 5 {
+		return ErrorNotImplemented405
+	}
+	if !(frontend.opened && backend.opened && (capture == nil || capture.opened) && (control == nil || control.opened)) {
+		return ErrorSocketClosed
+	}
+	var capt, ctrl unsafe.Pointer
+	if capture != nil {
+		capt = capture.soc
+	}
+	if control != nil {
+		ctrl = control.soc
+	}
+	i, err := C.zmq_proxy_steerable(frontend.soc, backend.soc, capt, ctrl)
+	if i < 0 {
+		return errget(err)
+	}
+	return nil
 }
 
 //. CURVE
