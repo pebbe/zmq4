@@ -47,8 +47,8 @@ func Example_test_remote_endpoint() {
 		return
 	}
 
-	// get message with remote endpoint
-	msg, props, err := rep.RecvWithMetadata(0, "Remote-Endpoint")
+	// get message with peer address (remote endpoint)
+	msg, props, err := rep.RecvWithMetadata(0, "Peer-Address")
 	if checkErr(err) {
 		rep.Close()
 		req.Close()
