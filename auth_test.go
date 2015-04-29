@@ -80,7 +80,7 @@ func ExampleAuthStart() {
 	}
 
 	//  Send a message from client to server
-	_, err = client.SendMessage("Greatings", "Earthlings!")
+	_, err = client.SendMessage("Greetings", "Earthlings!")
 	if checkErr(err) {
 		return
 	}
@@ -107,7 +107,7 @@ func ExampleAuthStart() {
 		}
 	}
 	// Output:
-	// [Greatings Earthlings!]
+	// [Greetings Earthlings!]
 	// Identity: "Server1" true
 	// User-Id: "anonymous" true
 	// Socket-Type: "DEALER" true
