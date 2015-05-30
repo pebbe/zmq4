@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func Example_version() {
+func Example_test_version() {
 	major, _, _ := zmq.Version()
 	fmt.Println("Version:", major)
 	// Output:
