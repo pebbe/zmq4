@@ -154,7 +154,7 @@ func NewContext() (ctx *Context, err error) {
 /*
 Terminates the default context.
 
-For linger behavior, see: http://api.zeromq.org/4-0:zmq-ctx-term
+For linger behavior, see: http://api.zeromq.org/4-1:zmq-ctx-term
 */
 func Term() error {
 	return defaultCtx.Term()
@@ -163,7 +163,7 @@ func Term() error {
 /*
 Terminates the context.
 
-For linger behavior, see: http://api.zeromq.org/4-0:zmq-ctx-term
+For linger behavior, see: http://api.zeromq.org/4-1:zmq-ctx-term
 */
 func (ctx *Context) Term() error {
 	if ctx.opened {
@@ -308,7 +308,7 @@ type Type int
 
 const (
 	// Constants for NewSocket()
-	// See: http://api.zeromq.org/4-0:zmq-socket#toc3
+	// See: http://api.zeromq.org/4-1:zmq-socket#toc3
 	REQ    = Type(C.ZMQ_REQ)
 	REP    = Type(C.ZMQ_REP)
 	DEALER = Type(C.ZMQ_DEALER)
@@ -361,8 +361,8 @@ type Flag int
 
 const (
 	// Flags for (*Socket)Send(), (*Socket)Recv()
-	// For Send, see: http://api.zeromq.org/4-0:zmq-send#toc2
-	// For Recv, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
+	// For Send, see: http://api.zeromq.org/4-1:zmq-send#toc2
+	// For Recv, see: http://api.zeromq.org/4-1:zmq-msg-recv#toc2
 	DONTWAIT = Flag(C.ZMQ_DONTWAIT)
 	SNDMORE  = Flag(C.ZMQ_SNDMORE)
 )
@@ -389,7 +389,7 @@ type Event int
 
 const (
 	// Flags for (*Socket)Monitor() and (*Socket)RecvEvent()
-	// See: http://api.zeromq.org/4-0:zmq-socket-monitor#toc3
+	// See: http://api.zeromq.org/4-1:zmq-socket-monitor#toc3
 	EVENT_ALL             = Event(C.ZMQ_EVENT_ALL)
 	EVENT_CONNECTED       = Event(C.ZMQ_EVENT_CONNECTED)
 	EVENT_CONNECT_DELAYED = Event(C.ZMQ_EVENT_CONNECT_DELAYED)
@@ -453,7 +453,7 @@ type State int
 
 const (
 	// Flags for (*Socket)GetEvents()
-	// See: http://api.zeromq.org/4-0:zmq-getsockopt#toc25
+	// See: http://api.zeromq.org/4-1:zmq-getsockopt#toc8
 	POLLIN  = State(C.ZMQ_POLLIN)
 	POLLOUT = State(C.ZMQ_POLLOUT)
 )
@@ -480,7 +480,7 @@ type Mechanism int
 
 const (
 	// Constants for (*Socket)GetMechanism()
-	// See: http://api.zeromq.org/4-0:zmq-getsockopt#toc31
+	// See: http://api.zeromq.org/4-1:zmq-getsockopt#toc22
 	NULL   = Mechanism(C.ZMQ_NULL)
 	PLAIN  = Mechanism(C.ZMQ_PLAIN)
 	CURVE  = Mechanism(C.ZMQ_CURVE)
@@ -540,7 +540,7 @@ WARNING:
 The Socket is not thread safe. This means that you cannot access the same Socket
 from different goroutines without using something like a mutex.
 
-For a description of socket types, see: http://api.zeromq.org/4-0:zmq-socket#toc3
+For a description of socket types, see: http://api.zeromq.org/4-1:zmq-socket#toc3
 */
 func NewSocket(t Type) (soc *Socket, err error) {
 	return defaultCtx.NewSocket(t)
@@ -553,7 +553,7 @@ WARNING:
 The Socket is not thread safe. This means that you cannot access the same Socket
 from different goroutines without using something like a mutex.
 
-For a description of socket types, see: http://api.zeromq.org/4-0:zmq-socket#toc3
+For a description of socket types, see: http://api.zeromq.org/4-1:zmq-socket#toc3
 */
 func (ctx *Context) NewSocket(t Type) (soc *Socket, err error) {
 	soc = &Socket{}
@@ -589,7 +589,7 @@ func (soc *Socket) Close() error {
 /*
 Accept incoming connections on a socket.
 
-For a description of endpoint, see: http://api.zeromq.org/4-0:zmq-bind#toc2
+For a description of endpoint, see: http://api.zeromq.org/4-1:zmq-bind#toc2
 */
 func (soc *Socket) Bind(endpoint string) error {
 	if !soc.opened {
@@ -606,7 +606,7 @@ func (soc *Socket) Bind(endpoint string) error {
 /*
 Stop accepting connections on a socket.
 
-For a description of endpoint, see: http://api.zeromq.org/4-0:zmq-bind#toc2
+For a description of endpoint, see: http://api.zeromq.org/4-1:zmq-bind#toc2
 */
 func (soc *Socket) Unbind(endpoint string) error {
 	if !soc.opened {
@@ -623,7 +623,7 @@ func (soc *Socket) Unbind(endpoint string) error {
 /*
 Create outgoing connection from socket.
 
-For a description of endpoint, see: http://api.zeromq.org/4-0:zmq-connect#toc2
+For a description of endpoint, see: http://api.zeromq.org/4-1:zmq-connect#toc2
 */
 func (soc *Socket) Connect(endpoint string) error {
 	if !soc.opened {
@@ -640,7 +640,7 @@ func (soc *Socket) Connect(endpoint string) error {
 /*
 Disconnect a socket.
 
-For a description of endpoint, see: http://api.zeromq.org/4-0:zmq-connect#toc2
+For a description of endpoint, see: http://api.zeromq.org/4-1:zmq-connect#toc2
 */
 func (soc *Socket) Disconnect(endpoint string) error {
 	if !soc.opened {
@@ -657,7 +657,7 @@ func (soc *Socket) Disconnect(endpoint string) error {
 /*
 Receive a message part from a socket.
 
-For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
+For a description of flags, see: http://api.zeromq.org/4-1:zmq-msg-recv#toc2
 */
 func (soc *Socket) Recv(flags Flag) (string, error) {
 	b, err := soc.RecvBytes(flags)
@@ -667,7 +667,7 @@ func (soc *Socket) Recv(flags Flag) (string, error) {
 /*
 Receive a message part from a socket.
 
-For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
+For a description of flags, see: http://api.zeromq.org/4-1:zmq-msg-recv#toc2
 */
 func (soc *Socket) RecvBytes(flags Flag) ([]byte, error) {
 	if !soc.opened {
@@ -694,7 +694,7 @@ func (soc *Socket) RecvBytes(flags Flag) ([]byte, error) {
 /*
 Send a message part on a socket.
 
-For a description of flags, see: http://api.zeromq.org/4-0:zmq-send#toc2
+For a description of flags, see: http://api.zeromq.org/4-1:zmq-send#toc2
 */
 func (soc *Socket) Send(data string, flags Flag) (int, error) {
 	return soc.SendBytes([]byte(data), flags)
@@ -703,7 +703,7 @@ func (soc *Socket) Send(data string, flags Flag) (int, error) {
 /*
 Send a message part on a socket.
 
-For a description of flags, see: http://api.zeromq.org/4-0:zmq-send#toc2
+For a description of flags, see: http://api.zeromq.org/4-1:zmq-send#toc2
 */
 func (soc *Socket) SendBytes(data []byte, flags Flag) (int, error) {
 	if !soc.opened {
@@ -723,7 +723,7 @@ func (soc *Socket) SendBytes(data []byte, flags Flag) (int, error) {
 /*
 Register a monitoring callback.
 
-See: http://api.zeromq.org/4-0:zmq-socket-monitor#toc2
+See: http://api.zeromq.org/4-1:zmq-socket-monitor#toc2
 
 WARNING: Closing a context with a monitoring callback will lead to random crashes.
 This is a bug in the ZeroMQ library.
@@ -809,9 +809,9 @@ func (soc *Socket) Monitor(addr string, events Event) error {
 /*
 Receive a message part from a socket interpreted as an event.
 
-For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
+For a description of flags, see: http://api.zeromq.org/4-1:zmq-msg-recv#toc2
 
-For a description of event_type, see: http://api.zeromq.org/4-0:zmq-socket-monitor#toc3
+For a description of event_type, see: http://api.zeromq.org/4-1:zmq-socket-monitor#toc3
 
 For an example, see: func (*Socket) Monitor
 */
@@ -862,7 +862,7 @@ func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value i
 /*
 Start built-in ØMQ proxy
 
-See: http://api.zeromq.org/4-0:zmq-proxy#toc2
+See: http://api.zeromq.org/4-1:zmq-proxy#toc2
 */
 func Proxy(frontend, backend, capture *Socket) error {
 	if !(frontend.opened && backend.opened && (capture == nil || capture.opened)) {
@@ -881,7 +881,7 @@ Start built-in ØMQ proxy with PAUSE/RESUME/TERMINATE control flow
 
 Returns ErrorNotImplemented405 with ZeroMQ version < 4.0.5
 
-See: http://api.zeromq.org/4-0:zmq-proxy-steerable#toc2
+See: http://api.zeromq.org/4-1:zmq-proxy-steerable#toc2
 */
 func ProxySteerable(frontend, backend, capture, control *Socket) error {
 	if minor == 0 && patch < 5 {
@@ -909,7 +909,7 @@ func ProxySteerable(frontend, backend, capture, control *Socket) error {
 /*
 Encode a binary key as Z85 printable text
 
-See: http://api.zeromq.org/4-0:zmq-z85-encode
+See: http://api.zeromq.org/4-1:zmq-z85-encode
 */
 func Z85encode(data string) string {
 	l1 := len(data)
@@ -929,7 +929,7 @@ func Z85encode(data string) string {
 /*
 Decode a binary key from Z85 printable text
 
-See: http://api.zeromq.org/4-0:zmq-z85-decode
+See: http://api.zeromq.org/4-1:zmq-z85-decode
 */
 func Z85decode(s string) string {
 	l1 := len(s)
@@ -947,7 +947,7 @@ func Z85decode(s string) string {
 /*
 Generate a new CURVE keypair
 
-See: http://api.zeromq.org/4-0:zmq-curve-keypair
+See: http://api.zeromq.org/4-1:zmq-curve-keypair#toc2
 */
 func NewCurveKeypair() (z85_public_key, z85_secret_key string, err error) {
 	var pubkey, seckey [41]byte
@@ -964,7 +964,7 @@ This requires ZeroMQ version 4.1.0. Lower versions will return the message part 
 
 The returned metadata map contains only those properties that exist on the message.
 
-For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
+For a description of flags, see: http://api.zeromq.org/4-1:zmq-msg-recv#toc2
 
 For a description of metadata, see: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 */
@@ -980,7 +980,7 @@ This requires ZeroMQ version 4.1.0. Lower versions will return the message part 
 
 The returned metadata map contains only those properties that exist on the message.
 
-For a description of flags, see: http://api.zeromq.org/4-0:zmq-msg-recv#toc2
+For a description of flags, see: http://api.zeromq.org/4-1:zmq-msg-recv#toc2
 
 For a description of metadata, see: http://api.zeromq.org/4-1:zmq-msg-gets#toc3
 */

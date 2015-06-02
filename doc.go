@@ -1,8 +1,6 @@
 /*
 A Go interface to ZeroMQ (zmq, 0mq) version 4.
 
-WARNING: API for ZeroMQ 4.1.0 specific features may change until 4.1.0 is officially released
-
 For ZeroMQ version 3, see: http://github.com/pebbe/zmq3
 
 For ZeroMQ version 2, see: http://github.com/pebbe/zmq2
