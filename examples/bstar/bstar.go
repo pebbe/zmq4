@@ -41,15 +41,15 @@ const (
 //  Structure of our class
 
 type Bstar struct {
-	Reactor     *zmq.Reactor //  Reactor loop
-	statepub    *zmq.Socket  //  State publisher
-	statesub    *zmq.Socket  //  State subscriber
-	state       state_t      //  Current state
-	event       event_t      //  Current event
-	peer_expiry time.Time    //  When peer is considered 'dead'
+	Reactor     *zmq.Reactor            //  Reactor loop
+	statepub    *zmq.Socket             //  State publisher
+	statesub    *zmq.Socket             //  State subscriber
+	state       state_t                 //  Current state
+	event       event_t                 //  Current event
+	peer_expiry time.Time               //  When peer is considered 'dead'
 	voter_fn    func(*zmq.Socket) error //  Voting socket handler
-	active_fn   func() error //  Call when become active
-	passive_fn  func() error //  Call when become passive
+	active_fn   func() error            //  Call when become active
+	passive_fn  func() error            //  Call when become passive
 }
 
 //  The finite-state machine is the same as in the proof-of-concept server.
@@ -238,7 +238,7 @@ func (bstar *Bstar) Voter(endpoint string, socket_type zmq.Type, handler func(*z
 	}
 	bstar.voter_fn = handler
 	bstar.Reactor.AddSocket(socket, zmq.POLLIN,
-		func (e zmq.State) error { return bstar.voter_ready(socket) })
+		func(e zmq.State) error { return bstar.voter_ready(socket) })
 }
 
 //  Register handlers to be called each time there's a state change:

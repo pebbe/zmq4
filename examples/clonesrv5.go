@@ -50,7 +50,7 @@ func main() {
 	reactor.AddChannelTime(time.Tick(1000*time.Millisecond), 1,
 		func(v interface{}) error { return flush_ttl(srv) })
 
-	log.Println(reactor.Run(100 * time.Millisecond)) // precision: .1 seconds 
+	log.Println(reactor.Run(100 * time.Millisecond)) // precision: .1 seconds
 }
 
 //  This is the reactor handler for the snapshot socket; it accepts

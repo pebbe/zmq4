@@ -45,7 +45,7 @@ func main() {
 		s := fmt.Sprintf("%d", workload)
 		sender.Send(s, 0)
 	}
-	fmt.Println("Total expected cost:", time.Duration(total_msec) * time.Millisecond)
+	fmt.Println("Total expected cost:", time.Duration(total_msec)*time.Millisecond)
 	time.Sleep(time.Second) //  Give 0MQ time to deliver
 
 }

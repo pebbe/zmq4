@@ -126,7 +126,7 @@ func set_id(soc *zmq.Socket) {
 	soc.SetIdentity(identity)
 }
 
-func pop(msg []string) (head,  tail []string) {
+func pop(msg []string) (head, tail []string) {
 	if msg[1] == "" {
 		head = msg[:2]
 		tail = msg[2:]

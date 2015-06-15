@@ -1,5 +1,5 @@
 //  File Transfer model #1
-//  
+//
 //  In which the server sends the entire file to the client in
 //  large chunks with no attempt at flow control.
 
