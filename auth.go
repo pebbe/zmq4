@@ -17,7 +17,7 @@ package zmq4
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"net"
 )
 
@@ -130,16 +130,19 @@ func auth_do_handler() {
 		msg, err := auth_handler.RecvMessage(0)
 		if err != nil {
 			if auth_verbose {
-				fmt.Println("AUTH: Terminating")
+				log.Println("AUTH: Quitting:", err)
 			}
 			break
 		}
 
 		if msg[0] == "QUIT" {
 			if auth_verbose {
-				fmt.Println("AUTH: Quiting")
+				log.Println("AUTH: Quitting: received QUIT message")
 			}
-			auth_handler.SendMessage("QUIT")
+			_, err := auth_handler.SendMessage("QUIT")
+			if err != nil && auth_verbose {
+				log.Println("AUTH: Quitting: bouncing QUIT message:", err)
+			}
 			break
 		}
 
@@ -176,24 +179,24 @@ func auth_do_handler() {
 			if auth_is_allowed(domain, address) {
 				allowed = true
 				if auth_verbose {
-					fmt.Printf("AUTH: PASSED (whitelist) domain=%q address=%q\n", domain, address)
+					log.Printf("AUTH: PASSED (whitelist) domain=%q address=%q\n", domain, address)
 				}
 			} else {
 				denied = true
 				if auth_verbose {
-					fmt.Printf("AUTH: DENIED (not in whitelist) domain=%q address=%q\n", domain, address)
+					log.Printf("AUTH: DENIED (not in whitelist) domain=%q address=%q\n", domain, address)
 				}
 			}
 		} else if auth_has_deny(domain) {
 			if auth_is_denied(domain, address) {
 				denied = true
 				if auth_verbose {
-					fmt.Printf("AUTH: DENIED (blacklist) domain=%q address=%q\n", domain, address)
+					log.Printf("AUTH: DENIED (blacklist) domain=%q address=%q\n", domain, address)
 				}
 			} else {
 				allowed = true
 				if auth_verbose {
-					fmt.Printf("AUTH: PASSED (not in blacklist) domain=%q address=%q\n", domain, address)
+					log.Printf("AUTH: PASSED (not in blacklist) domain=%q address=%q\n", domain, address)
 				}
 			}
 		}
@@ -203,7 +206,7 @@ func auth_do_handler() {
 			if mechanism == "NULL" && !allowed {
 				// For NULL, we allow if the address wasn't blacklisted
 				if auth_verbose {
-					fmt.Printf("AUTH: ALLOWED (NULL)\n")
+					log.Printf("AUTH: ALLOWED (NULL)\n")
 				}
 				allowed = true
 			} else if mechanism == "PLAIN" {
@@ -233,7 +236,13 @@ func auth_do_handler() {
 		}
 	}
 
-	auth_handler.Close()
+	err := auth_handler.Close()
+	if err != nil && auth_verbose {
+		log.Println("AUTH: Quitting: Close:", err)
+	}
+	if auth_verbose {
+		log.Println("AUTH: Quit")
+	}
 }
 
 func authenticate_plain(domain, username, password string) bool {
@@ -241,14 +250,14 @@ func authenticate_plain(domain, username, password string) bool {
 		if m, ok := auth_users[dom]; ok {
 			if m[username] == password {
 				if auth_verbose {
-					fmt.Printf("AUTH: ALLOWED (PLAIN) domain=%q username=%q password=%q\n", dom, username, password)
+					log.Printf("AUTH: ALLOWED (PLAIN) domain=%q username=%q password=%q\n", dom, username, password)
 				}
 				return true
 			}
 		}
 	}
 	if auth_verbose {
-		fmt.Printf("AUTH: DENIED (PLAIN) domain=%q username=%q password=%q\n", domain, username, password)
+		log.Printf("AUTH: DENIED (PLAIN) domain=%q username=%q password=%q\n", domain, username, password)
 	}
 	return false
 }
@@ -258,20 +267,20 @@ func authenticate_curve(domain, client_key string) bool {
 		if m, ok := auth_pubkeys[dom]; ok {
 			if m[CURVE_ALLOW_ANY] {
 				if auth_verbose {
-					fmt.Printf("AUTH: ALLOWED (CURVE any client) domain=%q\n", dom)
+					log.Printf("AUTH: ALLOWED (CURVE any client) domain=%q\n", dom)
 				}
 				return true
 			}
 			if m[client_key] {
 				if auth_verbose {
-					fmt.Printf("AUTH: ALLOWED (CURVE) domain=%q client_key=%q\n", dom, client_key)
+					log.Printf("AUTH: ALLOWED (CURVE) domain=%q client_key=%q\n", dom, client_key)
 				}
 				return true
 			}
 		}
 	}
 	if auth_verbose {
-		fmt.Printf("AUTH: DENIED (CURVE) domain=%q client_key=%q\n", domain, client_key)
+		log.Printf("AUTH: DENIED (CURVE) domain=%q client_key=%q\n", domain, client_key)
 	}
 	return false
 }
@@ -283,7 +292,7 @@ func authenticate_curve(domain, client_key string) bool {
 func AuthStart() (err error) {
 	if auth_init {
 		if auth_verbose {
-			fmt.Println("AUTH: Already running")
+			log.Println("AUTH: Already running")
 		}
 		return errors.New("Auth is already running")
 	}
@@ -292,6 +301,7 @@ func AuthStart() (err error) {
 	if err != nil {
 		return
 	}
+	auth_handler.SetLinger(0)
 	err = auth_handler.Bind("inproc://zeromq.zap.01")
 	if err != nil {
 		auth_handler.Close()
@@ -303,6 +313,7 @@ func AuthStart() (err error) {
 		auth_handler.Close()
 		return
 	}
+	auth_quit.SetLinger(0)
 	err = auth_quit.Connect("inproc://zeromq.zap.01")
 	if err != nil {
 		auth_handler.Close()
@@ -313,7 +324,7 @@ func AuthStart() (err error) {
 	go auth_do_handler()
 
 	if auth_verbose {
-		fmt.Println("AUTH: Starting")
+		log.Println("AUTH: Starting")
 	}
 
 	auth_init = true
@@ -325,18 +336,27 @@ func AuthStart() (err error) {
 func AuthStop() {
 	if !auth_init {
 		if auth_verbose {
-			fmt.Println("AUTH: Not running, can't stop")
+			log.Println("AUTH: Not running, can't stop")
 		}
 		return
 	}
 	if auth_verbose {
-		fmt.Println("AUTH: Stopping")
+		log.Println("AUTH: Stopping")
 	}
-	auth_quit.SendMessage("QUIT")
-	auth_quit.RecvMessage(0)
-	auth_quit.Close()
+	_, err := auth_quit.SendMessageDontwait("QUIT")
+	if err != nil && auth_verbose {
+		log.Println("AUTH: Stopping: SendMessageDontwait(\"QUIT\"):", err)
+	}
+	_, err = auth_quit.RecvMessage(0)
+	if err != nil && auth_verbose {
+		log.Println("AUTH: Stopping: RecvMessage:", err)
+	}
+	err = auth_quit.Close()
+	if err != nil && auth_verbose {
+		log.Println("AUTH: Stopping: Close:", err)
+	}
 	if auth_verbose {
-		fmt.Println("AUTH: Stopped")
+		log.Println("AUTH: Stopped")
 	}
 
 	auth_init = false
@@ -382,7 +402,7 @@ func auth_allow_for_domain(domain string, addresses ...string) {
 			auth_allow[domain][address] = true
 		} else {
 			if auth_verbose {
-				fmt.Printf("AUTH: Allow for domain %q: %q is not a valid address or network\n", domain, address)
+				log.Printf("AUTH: Allow for domain %q: %q is not a valid address or network\n", domain, address)
 			}
 		}
 	}
@@ -423,7 +443,7 @@ func auth_deny_for_domain(domain string, addresses ...string) {
 			auth_deny[domain][address] = true
 		} else {
 			if auth_verbose {
-				fmt.Printf("AUTH: Deny for domain %q: %q is not a valid address or network\n", domain, address)
+				log.Printf("AUTH: Deny for domain %q: %q is not a valid address or network\n", domain, address)
 			}
 		}
 	}
