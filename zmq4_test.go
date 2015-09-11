@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+var (
+	errerr = errors.New("error")
+)
+
 func Example_test_version() {
 	major, _, _ := zmq.Version()
 	fmt.Println("Version:", major)
@@ -238,7 +242,7 @@ func Example_test_abstract_ipc() {
 		return
 	}
 
-	bounce(sb, sc)
+	bounce(sb, sc, false)
 
 	err = sc.Close()
 	if checkErr(err) {
@@ -340,22 +344,22 @@ func Example_test_connect_resolve() {
 	checkErr(err)
 
 	err = sock.Connect("tcp://localhost:invalid")
-	fmt.Println(err)
+	fmt.Println(e(err, true))
 
 	err = sock.Connect("tcp://in val id:1234")
-	fmt.Println(err)
+	fmt.Println(e(err, true))
 
 	err = sock.Connect("invalid://localhost:1234")
-	fmt.Println(err)
+	fmt.Println(e(err, true))
 
 	err = sock.Close()
 	checkErr(err)
 
 	fmt.Println("Done")
 	// Output:
-	// invalid argument
-	// invalid argument
-	// protocol not supported
+	// error
+	// error
+	// error
 	// Done
 }
 
@@ -641,7 +645,6 @@ func Example_test_hwm() {
 		for send_count < MAX_SENDS {
 			_, err := connect_socket.Send("", zmq.DONTWAIT)
 			if err != nil {
-				fmt.Println("Send:", err)
 				break
 			}
 			send_count++
@@ -652,7 +655,6 @@ func Example_test_hwm() {
 		for {
 			_, err := bind_socket.Recv(zmq.DONTWAIT)
 			if err != nil {
-				fmt.Println("Recv:", err)
 				break
 			}
 			recv_count++
@@ -754,7 +756,6 @@ func Example_test_hwm() {
 		for send_count < MAX_SENDS {
 			_, err := connect_socket.Send("", zmq.DONTWAIT)
 			if err != nil {
-				fmt.Println("Send:", err)
 				break
 			}
 			send_count++
@@ -765,7 +766,6 @@ func Example_test_hwm() {
 		for {
 			_, err := bind_socket.Recv(zmq.DONTWAIT)
 			if err != nil {
-				fmt.Println("Recv:", err)
 				break
 			}
 			recv_count++
@@ -818,7 +818,6 @@ func Example_test_hwm() {
 		for send_count < MAX_SENDS {
 			_, err := connect_socket.Send("", zmq.DONTWAIT)
 			if err != nil {
-				fmt.Println("Send:", err)
 				break
 			}
 			send_count++
@@ -855,7 +854,6 @@ func Example_test_hwm() {
 		for {
 			_, err := bind_socket.Recv(zmq.DONTWAIT)
 			if err != nil {
-				fmt.Println("Recv:", err)
 				break
 			}
 			recv_count++
@@ -916,48 +914,34 @@ func Example_test_hwm() {
 	fmt.Println("\nDone")
 	// Output:
 	// Default values
-	// Send: resource temporarily unavailable
-	// Recv: resource temporarily unavailable
 	// send_count == recv_count: true
 	// count: 2000
 	//
 	// Infinite send and receive
-	// Recv: resource temporarily unavailable
 	// send_count == recv_count: true
 	// count: 10000
-	// Recv: resource temporarily unavailable
 	// send_count == recv_count: true
 	// count: 10000
 	//
 	// Infinite send buffer
-	// Recv: resource temporarily unavailable
 	// send_count == recv_count: true
 	// count: 10000
-	// Recv: resource temporarily unavailable
 	// send_count == recv_count: true
 	// count: 10000
 	//
 	// Infinite receive buffer
-	// Recv: resource temporarily unavailable
 	// send_count == recv_count: true
 	// count: 10000
-	// Recv: resource temporarily unavailable
 	// send_count == recv_count: true
 	// count: 10000
 	//
 	// Send and recv buffers hwm 1
-	// Send: resource temporarily unavailable
-	// Recv: resource temporarily unavailable
 	// send_count == recv_count: true
 	// count: 2
-	// Send: resource temporarily unavailable
-	// Recv: resource temporarily unavailable
 	// send_count == recv_count: true
 	// count: 2
 	//
 	// Send hwm of 1, send before bind
-	// Send: resource temporarily unavailable
-	// Recv: resource temporarily unavailable
 	// send_count == recv_count: true
 	// count: 1
 	//
@@ -1060,7 +1044,7 @@ func Example_test_pair_ipc() {
 		return
 	}
 
-	bounce(sb, sc)
+	bounce(sb, sc, false)
 
 	err = sc.Close()
 	if checkErr(err) {
@@ -1099,7 +1083,7 @@ func Example_test_pair_tcp() {
 		return
 	}
 
-	bounce(sb, sc)
+	bounce(sb, sc, false)
 
 	err = sc.Close()
 	if checkErr(err) {
@@ -1301,7 +1285,7 @@ func Example_test_security_curve() {
 	if checkErr(err) {
 		return
 	}
-	bounce(server, client)
+	bounce(server, client, false)
 	err = client.Close()
 	if checkErr(err) {
 		return
@@ -1336,7 +1320,7 @@ func Example_test_security_curve() {
 	if checkErr(err) {
 		return
 	}
-	bounce(server, client)
+	bounce(server, client, true)
 	client.SetLinger(0)
 	err = client.Close()
 	if checkErr(err) {
@@ -1371,7 +1355,7 @@ func Example_test_security_curve() {
 	if checkErr(err) {
 		return
 	}
-	bounce(server, client)
+	bounce(server, client, true)
 	client.SetLinger(0)
 	err = client.Close()
 	if checkErr(err) {
@@ -1406,7 +1390,7 @@ func Example_test_security_curve() {
 	if checkErr(err) {
 		return
 	}
-	bounce(server, client)
+	bounce(server, client, true)
 	client.SetLinger(0)
 	err = client.Close()
 	if checkErr(err) {
@@ -1443,7 +1427,7 @@ func Example_test_security_curve() {
 	if checkErr(err) {
 		return
 	}
-	bounce(server, client)
+	bounce(server, client, true)
 	client.SetLinger(0)
 	err = client.Close()
 	if checkErr(err) {
@@ -1456,10 +1440,10 @@ func Example_test_security_curve() {
 
 	fmt.Println("Done")
 	// Output:
-	// resource temporarily unavailable
-	// resource temporarily unavailable
-	// resource temporarily unavailable
-	// resource temporarily unavailable
+	// 5 error
+	// 5 error
+	// 5 error
+	// 5 error
 	// Done
 	// Handler closed
 	// Reactor finished
@@ -1547,7 +1531,7 @@ func Example_test_security_null() {
 	if checkErr(err) {
 		return
 	}
-	bounce(server, client)
+	bounce(server, client, false)
 	server.Unbind("tcp://127.0.0.1:9683")
 	client.Disconnect("tcp://127.0.0.1:9683")
 
@@ -1574,7 +1558,7 @@ func Example_test_security_null() {
 	if checkErr(err) {
 		return
 	}
-	bounce(server, client)
+	bounce(server, client, true)
 	server.Unbind("tcp://127.0.0.1:9687")
 	client.Disconnect("tcp://127.0.0.1:9687")
 
@@ -1591,7 +1575,7 @@ func Example_test_security_null() {
 	if checkErr(err) {
 		return
 	}
-	bounce(server, client)
+	bounce(server, client, false)
 	server.Unbind("tcp://127.0.0.1:9688")
 	client.Disconnect("tcp://127.0.0.1:9688")
 
@@ -1602,7 +1586,7 @@ func Example_test_security_null() {
 
 	fmt.Println("Done")
 	// Output:
-	// resource temporarily unavailable
+	// 5 error
 	// Done
 	// Handler closed
 	// Reactor finished
@@ -1710,7 +1694,7 @@ func Example_test_security_plain() {
 	if checkErr(err) {
 		return
 	}
-	bounce(server, client)
+	bounce(server, client, false)
 	err = client.Close()
 	if checkErr(err) {
 		return
@@ -1738,7 +1722,7 @@ func Example_test_security_plain() {
 	if checkErr(err) {
 		return
 	}
-	bounce(server, client)
+	bounce(server, client, true)
 	client.SetLinger(0)
 	err = client.Close()
 	if checkErr(err) {
@@ -1750,7 +1734,7 @@ func Example_test_security_plain() {
 
 	fmt.Println("Done")
 	// Output:
-	// resource temporarily unavailable
+	// 5 error
 	// Done
 	// Handler closed
 	// Reactor finished
@@ -1838,64 +1822,64 @@ func Example_test_timeo() {
 
 */
 
-func bounce(server, client *zmq.Socket) {
+func bounce(server, client *zmq.Socket, willfail bool) {
 
 	content := "12345678ABCDEFGH12345678abcdefgh"
 
 	//  Send message from client to server
 	rc, err := client.Send(content, zmq.SNDMORE|zmq.DONTWAIT)
-	if checkErr0(err) {
+	if checkErr0(err, 1) {
 		return
 	}
 	if rc != 32 {
-		checkErr0(errors.New("rc != 32"))
+		checkErr0(errors.New("rc != 32"), 2)
 	}
 
 	rc, err = client.Send(content, zmq.DONTWAIT)
-	if checkErr0(err) {
+	if checkErr0(err, 3) {
 		return
 	}
 	if rc != 32 {
-		checkErr0(errors.New("rc != 32"))
+		checkErr0(errors.New("rc != 32"), 4)
 	}
 
 	//  Receive message at server side
 	msg, err := server.Recv(0)
-	if checkErr0(err) {
+	if checkErr0(e(err, willfail), 5) {
 		return
 	}
 
 	//  Check that message is still the same
 	if msg != content {
-		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)))
+		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)), 6)
 	}
 
 	rcvmore, err := server.GetRcvmore()
-	if checkErr0(err) {
+	if checkErr0(err, 7) {
 		return
 	}
 	if !rcvmore {
-		checkErr0(errors.New(fmt.Sprint("rcvmore ==", rcvmore)))
+		checkErr0(errors.New(fmt.Sprint("rcvmore ==", rcvmore)), 8)
 		return
 	}
 
 	//  Receive message at server side
 	msg, err = server.Recv(0)
-	if checkErr0(err) {
+	if checkErr0(err, 9) {
 		return
 	}
 
 	//  Check that message is still the same
 	if msg != content {
-		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)))
+		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)), 10)
 	}
 
 	rcvmore, err = server.GetRcvmore()
-	if checkErr0(err) {
+	if checkErr0(err, 11) {
 		return
 	}
 	if rcvmore {
-		checkErr0(errors.New(fmt.Sprint("rcvmore == ", rcvmore)))
+		checkErr0(errors.New(fmt.Sprint("rcvmore == ", rcvmore)), 12)
 		return
 	}
 
@@ -1903,66 +1887,66 @@ func bounce(server, client *zmq.Socket) {
 
 	//  Send message from server to client
 	rc, err = server.Send(content, zmq.SNDMORE)
-	if checkErr0(err) {
+	if checkErr0(err, 13) {
 		return
 	}
 	if rc != 32 {
-		checkErr0(errors.New("rc != 32"))
+		checkErr0(errors.New("rc != 32"), 14)
 	}
 
 	rc, err = server.Send(content, 0)
-	if checkErr0(err) {
+	if checkErr0(err, 15) {
 		return
 	}
 	if rc != 32 {
-		checkErr0(errors.New("rc != 32"))
+		checkErr0(errors.New("rc != 32"), 16)
 	}
 
 	//  Receive message at client side
 	msg, err = client.Recv(0)
-	if checkErr0(err) {
+	if checkErr0(err, 17) {
 		return
 	}
 
 	//  Check that message is still the same
 	if msg != content {
-		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)))
+		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)), 18)
 	}
 
 	rcvmore, err = client.GetRcvmore()
-	if checkErr0(err) {
+	if checkErr0(err, 19) {
 		return
 	}
 	if !rcvmore {
-		checkErr0(errors.New(fmt.Sprint("rcvmore ==", rcvmore)))
+		checkErr0(errors.New(fmt.Sprint("rcvmore ==", rcvmore)), 20)
 		return
 	}
 
 	//  Receive message at client side
 	msg, err = client.Recv(0)
-	if checkErr0(err) {
+	if checkErr0(err, 21) {
 		return
 	}
 
 	//  Check that message is still the same
 	if msg != content {
-		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)))
+		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)), 22)
 	}
 
 	rcvmore, err = client.GetRcvmore()
-	if checkErr0(err) {
+	if checkErr0(err, 23) {
 		return
 	}
 	if rcvmore {
-		checkErr0(errors.New(fmt.Sprint("rcvmore == ", rcvmore)))
+		checkErr0(errors.New(fmt.Sprint("rcvmore == ", rcvmore)), 24)
 		return
 	}
 
 }
 
-func checkErr0(err error) bool {
+func checkErr0(err error, num int) bool {
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(num, err)
 		return true
 	}
 	return false
@@ -1979,4 +1963,11 @@ func checkErr(err error) bool {
 		return true
 	}
 	return false
+}
+
+func e(err error, willfail bool) error {
+	if err == nil || willfail == false {
+		return err
+	}
+	return errerr
 }
