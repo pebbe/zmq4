@@ -241,7 +241,7 @@ the default context. If your application is using only the inproc
 transport for messaging you may set this to zero, otherwise set it to at
 least one. This option only applies before creating any sockets.
 
-Default value   1
+Default value: 1
 */
 func SetIoThreads(n int) error {
 	return defaultCtx.SetIoThreads(n)
@@ -253,7 +253,7 @@ your application is using only the inproc transport for messaging you
 may set this to zero, otherwise set it to at least one. This option only
 applies before creating any sockets.
 
-Default value   1
+Default value: 1
 */
 func (ctx *Context) SetIoThreads(n int) error {
 	return setOption(ctx, C.ZMQ_IO_THREADS, n)
@@ -269,7 +269,7 @@ http://man7.org/linux/man-pages/man2/sched_setscheduler.2.html
 
 This option only applies before creating any sockets on the context.
 
-Default value   -1
+Default value: -1
 
 Returns ErrorNotImplemented413 with ZeroMQ version < 4.1.3
 
@@ -290,7 +290,7 @@ http://man7.org/linux/man-pages/man2/sched_setscheduler.2.html
 
 This option only applies before creating any sockets on the context.
 
-Default value   -1
+Default value: -1
 
 Returns ErrorNotImplemented413 with ZeroMQ version < 4.1.3
 
@@ -303,7 +303,7 @@ func SetThreadPriority(n int) error {
 /*
 Sets the maximum number of sockets allowed in the default context.
 
-Default value   1024
+Default value: 1024
 */
 func SetMaxSockets(n int) error {
 	return defaultCtx.SetMaxSockets(n)
@@ -312,7 +312,7 @@ func SetMaxSockets(n int) error {
 /*
 Sets the maximum number of sockets allowed.
 
-Default value   1024
+Default value: 1024
 */
 func (ctx *Context) SetMaxSockets(n int) error {
 	return setOption(ctx, C.ZMQ_MAX_SOCKETS, n)
@@ -323,7 +323,7 @@ Sets the IPv6 value for all sockets created in the default context from this poi
 A value of true means IPv6 is enabled, while false means the socket will use only IPv4.
 When IPv6 is enabled, a socket will connect to, or accept connections from, both IPv4 and IPv6 hosts.
 
-Default value   false
+Default value: false
 */
 func SetIpv6(i bool) error {
 	return defaultCtx.SetIpv6(i)
@@ -334,7 +334,7 @@ Sets the IPv6 value for all sockets created in the context from this point onwar
 A value of true means IPv6 is enabled, while false means the socket will use only IPv4.
 When IPv6 is enabled, a socket will connect to, or accept connections from, both IPv4 and IPv6 hosts.
 
-Default value	false
+Default value: false
 */
 func (ctx *Context) SetIpv6(i bool) error {
 	n := 0

@@ -12,7 +12,7 @@ http://man7.org/linux/man-pages/man2/sched_setscheduler.2.html
 
 This option only applies before creating any sockets on the context.
 
-Default value   -1
+Default value: -1
 
 Returns ErrorNotImplemented413 with ZeroMQ version < 4.1.3
 
@@ -33,7 +33,7 @@ http://man7.org/linux/man-pages/man2/sched_setscheduler.2.html
 
 This option only applies before creating any sockets on the context.
 
-Default value   -1
+Default value: -1
 
 Returns ErrorNotImplemented413 with ZeroMQ version < 4.1.3
 
