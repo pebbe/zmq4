@@ -14,3 +14,7 @@
 #define ZMQ_TOS -1
 #define ZMQ_XPUB_NODROP -1
 #endif
+#if ZMQ_VERSION_MINOR < 1 || ( ZMQ_VERSION_MINOR == 1 && ZMQ_VERSION_PATCH < 3 )
+#define ZMQ_THREAD_SCHED_POLICY -1
+#define ZMQ_THREAD_PRIORITY -1
+#endif

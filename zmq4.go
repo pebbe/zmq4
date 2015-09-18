@@ -78,11 +78,13 @@ var (
 
 	major, minor, patch int
 
-	ErrorContextClosed     = errors.New("Context is closed")
-	ErrorSocketClosed      = errors.New("Socket is closed")
-	ErrorMoreExpected      = errors.New("More expected")
-	ErrorNotImplemented405 = errors.New("Not implemented, requires 0MQ version 4.0.5")
-	ErrorNotImplemented41  = errors.New("Not implemented, requires 0MQ version 4.1")
+	ErrorContextClosed         = errors.New("Context is closed")
+	ErrorSocketClosed          = errors.New("Socket is closed")
+	ErrorMoreExpected          = errors.New("More expected")
+	ErrorNotImplemented405     = errors.New("Not implemented, requires 0MQ version 4.0.5")
+	ErrorNotImplemented41      = errors.New("Not implemented, requires 0MQ version 4.1")
+	ErrorNotImplemented413     = errors.New("Not implemented, requires 0MQ version 4.1.3")
+	ErrorNotImplementedWindows = errors.New("Not implemented on Windows")
 )
 
 func init() {
@@ -255,6 +257,47 @@ Default value   1
 */
 func (ctx *Context) SetIoThreads(n int) error {
 	return setOption(ctx, C.ZMQ_IO_THREADS, n)
+}
+
+/*
+Sets the scheduling policy for default context’s thread pool.
+
+This option requires ZeroMQ version 4.1.3, and is not available on Windows.
+
+Supported values for this option can be found in sched.h file, or at
+http://man7.org/linux/man-pages/man2/sched_setscheduler.2.html
+
+This option only applies before creating any sockets on the context.
+
+Default value  -1
+
+Returns ErrorNotImplemented413 with ZeroMQ version < 4.1.3
+
+Returns ErrorNotImplementedWindows on Windows
+*/
+func SetThreadSchedPolicy(n int) error {
+	return defaultCtx.SetThreadSchedPolicy(n)
+}
+
+/*
+Sets scheduling priority for default context’s thread pool.
+
+This option requires ZeroMQ version 4.1.3, and is not available on Windows.
+
+Supported values for this option depend on chosen scheduling policy.
+Details can be found in sched.h file, or at
+http://man7.org/linux/man-pages/man2/sched_setscheduler.2.html
+
+This option only applies before creating any sockets on the context.
+
+Default value  -1
+
+Returns ErrorNotImplemented413 with ZeroMQ version < 4.1.3
+
+Returns ErrorNotImplementedWindows on Windows
+*/
+func SetThreadPriority(n int) error {
+	return defaultCtx.SetThreadPriority(n)
 }
 
 /*
