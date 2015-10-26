@@ -1,5 +1,5 @@
 #if ZMQ_VERSION_MAJOR != 4
-#error You need ZeroMQ version 4 to build this
+#error "You need ZeroMQ version 4 to build this"
 #endif
 #if ZMQ_VERSION_MINOR < 1
 #define ZMQ_CONNECT_RID -1
