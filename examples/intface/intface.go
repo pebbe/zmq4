@@ -5,7 +5,7 @@ package intface
 import (
 	zmq "github.com/pebbe/zmq4"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/pborman/uuid"
 
 	"bytes"
 	"errors"

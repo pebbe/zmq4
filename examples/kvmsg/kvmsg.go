@@ -4,7 +4,7 @@ package kvmsg
 import (
 	zmq "github.com/pebbe/zmq4"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/pborman/uuid"
 
 	"errors"
 	"fmt"

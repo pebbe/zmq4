@@ -8,7 +8,7 @@ package main
 import (
 	"github.com/pebbe/zmq4/examples/mdapi"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/pborman/uuid"
 
 	"fmt"
 	"io/ioutil"

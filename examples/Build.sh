@@ -1,6 +1,6 @@
 #!/bin/sh
 
-go get code.google.com/p/go-uuid/uuid
+go get github.com/pborman/uuid
 
 for i in bstar mdapi flcliapi kvsimple kvmsg clone intface
 do
