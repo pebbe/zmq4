@@ -8,7 +8,7 @@ import (
 
 type reactor_socket struct {
 	e State
-	f func(State) error
+	f func(*Socket, State) error
 }
 
 type reactor_channel struct {
@@ -51,8 +51,8 @@ func NewReactor() *Reactor {
 //
 // You can have only one handler per socket. Adding a second one will remove the first.
 //
-// The handler receives the socket state as an argument: POLLIN, POLLOUT, or both.
-func (r *Reactor) AddSocket(soc *Socket, events State, handler func(State) error) {
+// The handler receives the socket and the socket state as arguments: POLLIN, POLLOUT, or both.
+func (r *Reactor) AddSocket(soc *Socket, events State, handler func(*Socket, State) error) {
 	r.RemoveSocket(soc)
 	r.sockets[soc] = &reactor_socket{e: events, f: handler}
 	r.p.Add(soc, events)
@@ -184,7 +184,7 @@ func (r *Reactor) Run(interval time.Duration) (err error) {
 			if r.verbose {
 				fmt.Printf("Reactor(%p) %v\n", r, item)
 			}
-			err = r.sockets[item.Socket].f(item.Events)
+			err = r.sockets[item.Socket].f(item.Socket, item.Events)
 			if err != nil {
 				return
 			}
