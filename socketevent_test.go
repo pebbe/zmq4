@@ -47,7 +47,7 @@ func Example_socket_event() {
 	time.Sleep(time.Second)
 
 	// Generate an event
-	rep.Bind("tcp://*:9689")
+	err = rep.Bind("tcp://*:9689")
 	if checkErr(err) {
 		rep.Close()
 		return
