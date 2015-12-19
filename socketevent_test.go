@@ -4,63 +4,85 @@ import (
 	zmq "github.com/pebbe/zmq4"
 
 	"fmt"
+	"testing"
 	"time"
 )
 
-func rep_socket_monitor(addr string) {
+func rep_socket_monitor(addr string, chMsg chan<- string) {
+
+	defer close(chMsg)
+
 	s, err := zmq.NewSocket(zmq.PAIR)
-	if checkErr(err) {
+	if err != nil {
+		chMsg <- fmt.Sprint("NewSocket:", err)
 		return
 	}
 	defer s.Close()
+
 	err = s.Connect(addr)
-	if checkErr(err) {
+	if err != nil {
+		chMsg <- fmt.Sprint("s.Connect:", err)
 		return
 	}
+
 	for {
 		a, b, _, err := s.RecvEvent(0)
-		if checkErr(err) {
-			break
+		if err != nil {
+			chMsg <- fmt.Sprint("s.RecvEvent:", err)
+			return
 		}
-		fmt.Println(a, b)
+		chMsg <- fmt.Sprint(a, " ", b)
 		if a == zmq.EVENT_CLOSED {
 			break
 		}
 	}
+	chMsg <- "Done"
 }
 
-func Example_socket_event() {
+func TestSocketEvent(t *testing.T) {
 
 	// REP socket
 	rep, err := zmq.NewSocket(zmq.REP)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 
 	// REP socket monitor, all events
 	err = rep.Monitor("inproc://monitor.rep", zmq.EVENT_ALL)
-	if checkErr(err) {
+	if err != nil {
 		rep.Close()
-		return
+		t.Fatal("rep.Monitor:", err)
 	}
-	go rep_socket_monitor("inproc://monitor.rep")
+	chMsg := make(chan string, 10)
+	go rep_socket_monitor("inproc://monitor.rep", chMsg)
 	time.Sleep(time.Second)
 
 	// Generate an event
 	err = rep.Bind("tcp://*:9689")
-	if checkErr(err) {
+	if err != nil {
 		rep.Close()
-		return
+		t.Fatal("rep.Bind:", err)
 	}
 
 	rep.Close()
 
-	// Allow some time for event detection
-	time.Sleep(time.Second)
-
-	fmt.Println("Done")
-	// Output:
-	// EVENT_LISTENING tcp://0.0.0.0:9689
-	// EVENT_CLOSED tcp://0.0.0.0:9689
-	// Done
+	expect := []string{
+		"EVENT_LISTENING tcp://0.0.0.0:9689",
+		"EVENT_CLOSED tcp://0.0.0.0:9689",
+		"Done",
+	}
+	i := 0
+	for msg := range chMsg {
+		if i < len(expect) {
+			if msg != expect[i] {
+				t.Errorf("Expected message %q, got %q", expect[i], msg)
+			}
+			i++
+		} else {
+			t.Error("Unexpected message: %q", msg)
+		}
+	}
+	for ; i < len(expect); i++ {
+		t.Errorf("Expected message %q, got nothing", expect[i])
+	}
 }

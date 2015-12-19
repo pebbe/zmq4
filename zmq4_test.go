@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"runtime"
 	"strconv"
+	"testing"
 	"time"
 )
 
@@ -14,11 +15,11 @@ var (
 	errerr = errors.New("error")
 )
 
-func Example_test_version() {
+func TestVersion(t *testing.T) {
 	major, _, _ := zmq.Version()
-	fmt.Println("Version:", major)
-	// Output:
-	// Version: 4
+	if major != 4 {
+		t.Errorf("Expected major version 4, got %d", major)
+	}
 }
 
 func Example_multiple_contexts() {
@@ -333,34 +334,32 @@ func Example_test_conflate() {
 	// Done
 }
 
-func Example_test_connect_resolve() {
+func TestConnectResolve(t *testing.T) {
 
 	sock, err := zmq.NewSocket(zmq.PUB)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 
 	err = sock.Connect("tcp://localhost:1234")
-	checkErr(err)
+	if err != nil {
+		t.Error("sock.Connect:", err)
+	}
 
-	err = sock.Connect("tcp://localhost:invalid")
-	fmt.Println(e(err, true))
+	fails := []string{
+		"tcp://localhost:invalid",
+		"tcp://in val id:1234",
+		"invalid://localhost:1234",
+	}
+	for _, fail := range fails {
+		if err = sock.Connect(fail); err == nil {
+			t.Errorf("Connect %s, expected fail, got success", fail)
+		}
+	}
 
-	err = sock.Connect("tcp://in val id:1234")
-	fmt.Println(e(err, true))
-
-	err = sock.Connect("invalid://localhost:1234")
-	fmt.Println(e(err, true))
-
-	err = sock.Close()
-	checkErr(err)
-
-	fmt.Println("Done")
-	// Output:
-	// error
-	// error
-	// error
-	// Done
+	if err = sock.Close(); err != nil {
+		t.Error("sock.Close:", err)
+	}
 }
 
 /*
@@ -375,6 +374,11 @@ func Example_test_ctx_destroy() {
 */
 
 func Example_test_ctx_options() {
+
+	type Result struct {
+		value interface{}
+		err   error
+	}
 
 	i, err := zmq.GetMaxSockets()
 	fmt.Println(i == zmq.MaxSocketsDflt, err)
