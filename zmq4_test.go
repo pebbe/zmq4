@@ -13,6 +13,7 @@ import (
 
 var (
 	errerr = errors.New("error")
+	err32  = errors.New("rc != 32")
 )
 
 func TestVersion(t *testing.T) {
@@ -22,316 +23,369 @@ func TestVersion(t *testing.T) {
 	}
 }
 
-func Example_multiple_contexts() {
+func TestMultipleContexts(t *testing.T) {
+
 	chQuit := make(chan interface{})
-	chReactor := make(chan bool)
+	chErr := make(chan error, 2)
+	needQuit := false
+	var sock1, sock2, serv1, serv2 *zmq.Socket
+	var serv_ctx1, serv_ctx2, ctx1, ctx2 *zmq.Context
+	var err error
+
+	defer func() {
+		if needQuit {
+			chQuit <- true
+			chQuit <- true
+			<-chErr
+			<-chErr
+		}
+		if sock1 != nil {
+			sock1.Close()
+		}
+		if sock2 != nil {
+			sock2.Close()
+		}
+		if serv1 != nil {
+			serv1.Close()
+		}
+		if serv2 != nil {
+			serv2.Close()
+		}
+		if serv_ctx1 != nil {
+			serv_ctx1.Term()
+		}
+		if serv_ctx2 != nil {
+			serv_ctx2.Term()
+		}
+		if ctx1 != nil {
+			ctx1.Term()
+		}
+		if ctx2 != nil {
+			ctx2.Term()
+		}
+	}()
 
 	addr1 := "tcp://127.0.0.1:9997"
 	addr2 := "tcp://127.0.0.1:9998"
 
-	serv_ctx1, err := zmq.NewContext()
-	if checkErr(err) {
-		return
+	serv_ctx1, err = zmq.NewContext()
+	if err != nil {
+		t.Fatal("NewContext:", err)
 	}
-	serv1, err := serv_ctx1.NewSocket(zmq.REP)
-	if checkErr(err) {
-		return
+	serv1, err = serv_ctx1.NewSocket(zmq.REP)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = serv1.Bind(addr1)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("Bind:", err)
 	}
-	defer func() {
-		serv1.Close()
-		serv_ctx1.Term()
-	}()
 
-	serv_ctx2, err := zmq.NewContext()
-	if checkErr(err) {
-		return
+	serv_ctx2, err = zmq.NewContext()
+	if err != nil {
+		t.Fatal("NewContext:", err)
 	}
-	serv2, err := serv_ctx2.NewSocket(zmq.REP)
-	if checkErr(err) {
-		return
+	serv2, err = serv_ctx2.NewSocket(zmq.REP)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = serv2.Bind(addr2)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("Bind:", err)
 	}
-	defer func() {
-		serv2.Close()
-		serv_ctx2.Term()
-	}()
 
 	new_service := func(sock *zmq.Socket, addr string) {
 		socket_handler := func(state zmq.State) error {
 			msg, err := sock.RecvMessage(0)
-			if checkErr(err) {
+			if err != nil {
 				return err
 			}
 			_, err = sock.SendMessage(addr, msg)
-			if checkErr(err) {
-				return err
-			}
-			return nil
+			return err
 		}
 		quit_handler := func(interface{}) error {
 			return errors.New("quit")
 		}
 
-		defer func() {
-			chReactor <- true
-		}()
-
 		reactor := zmq.NewReactor()
 		reactor.AddSocket(sock, zmq.POLLIN, socket_handler)
 		reactor.AddChannel(chQuit, 1, quit_handler)
 		err = reactor.Run(100 * time.Millisecond)
-		fmt.Println(err)
+		chErr <- err
 	}
 
 	go new_service(serv1, addr1)
 	go new_service(serv2, addr2)
+	needQuit = true
 
 	time.Sleep(time.Second)
 
 	// default context
 
-	sock1, err := zmq.NewSocket(zmq.REQ)
-	if checkErr(err) {
-		return
+	sock1, err = zmq.NewSocket(zmq.REQ)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
-	sock2, err := zmq.NewSocket(zmq.REQ)
-	if checkErr(err) {
-		return
+	sock2, err = zmq.NewSocket(zmq.REQ)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = sock1.Connect(addr1)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sock1.Connect:", err)
 	}
 	err = sock2.Connect(addr2)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sock2.Connect:", err)
 	}
 	_, err = sock1.SendMessage(addr1)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sock1.SendMessage:", err)
 	}
 	_, err = sock2.SendMessage(addr2)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sock2.SendMessage:", err)
 	}
 	msg, err := sock1.RecvMessage(0)
-	fmt.Println(err, msg)
+	expected := []string{addr1, addr1}
+	if err != nil || !arrayEqual(msg, expected) {
+		t.Errorf("sock1.RecvMessage: expected %v %v, got %v %v", nil, expected, err, msg)
+	}
 	msg, err = sock2.RecvMessage(0)
-	fmt.Println(err, msg)
+	expected = []string{addr2, addr2}
+	if err != nil || !arrayEqual(msg, expected) {
+		t.Errorf("sock2.RecvMessage: expected %v %v, got %v %v", nil, expected, err, msg)
+	}
 	err = sock1.Close()
-	if checkErr(err) {
-		return
+	sock1 = nil
+	if err != nil {
+		t.Fatal("sock1.Close:", err)
 	}
 	err = sock2.Close()
-	if checkErr(err) {
-		return
+	sock2 = nil
+	if err != nil {
+		t.Fatal("sock2.Close:", err)
 	}
 
 	// non-default contexts
 
-	ctx1, err := zmq.NewContext()
-	if checkErr(err) {
-		return
+	ctx1, err = zmq.NewContext()
+	if err != nil {
+		t.Fatal("NewContext:", err)
 	}
-	ctx2, err := zmq.NewContext()
-	if checkErr(err) {
-		return
+	ctx2, err = zmq.NewContext()
+	if err != nil {
+		t.Fatal("NewContext:", err)
 	}
 	sock1, err = ctx1.NewSocket(zmq.REQ)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("ctx1.NewSocket:", err)
 	}
 	sock2, err = ctx2.NewSocket(zmq.REQ)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("ctx2.NewSocket:", err)
 	}
 	err = sock1.Connect(addr1)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sock1.Connect:", err)
 	}
 	err = sock2.Connect(addr2)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sock2.Connect:", err)
 	}
 	_, err = sock1.SendMessage(addr1)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sock1.SendMessage:", err)
 	}
 	_, err = sock2.SendMessage(addr2)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sock2.SendMessage:", err)
 	}
 	msg, err = sock1.RecvMessage(0)
-	fmt.Println(err, msg)
+	expected = []string{addr1, addr1}
+	if err != nil || !arrayEqual(msg, expected) {
+		t.Errorf("sock1.RecvMessage: expected %v %v, got %v %v", nil, expected, err, msg)
+	}
 	msg, err = sock2.RecvMessage(0)
-	fmt.Println(err, msg)
+	expected = []string{addr2, addr2}
+	if err != nil || !arrayEqual(msg, expected) {
+		t.Errorf("sock2.RecvMessage: expected %v %v, got %v %v", nil, expected, err, msg)
+	}
 	err = sock1.Close()
-	if checkErr(err) {
-		return
+	sock1 = nil
+	if err != nil {
+		t.Fatal("sock1.Close:", err)
 	}
 	err = sock2.Close()
-	if checkErr(err) {
-		return
+	sock2 = nil
+	if err != nil {
+		t.Fatal("sock2.Close:", err)
 	}
 
 	err = ctx1.Term()
-	if checkErr(err) {
-		return
+	ctx1 = nil
+	if err != nil {
+		t.Fatal("ctx1.Term", nil)
 	}
 	err = ctx2.Term()
-	if checkErr(err) {
-		return
+	ctx1 = nil
+	if err != nil {
+		t.Fatal("ctx2.Term", nil)
 	}
 
-	// close(chQuit) doesn't work because the reactor removes closed channels, instead of acting on them
-	chQuit <- true
-	<-chReactor
-	chQuit <- true
-	<-chReactor
-
-	fmt.Println("Done")
-	// Output:
-	// <nil> [tcp://127.0.0.1:9997 tcp://127.0.0.1:9997]
-	// <nil> [tcp://127.0.0.1:9998 tcp://127.0.0.1:9998]
-	// <nil> [tcp://127.0.0.1:9997 tcp://127.0.0.1:9997]
-	// <nil> [tcp://127.0.0.1:9998 tcp://127.0.0.1:9998]
-	// quit
-	// quit
-	// Done
+	needQuit = false
+	for i := 0; i < 2; i++ {
+		// close(chQuit) doesn't work because the reactor removes closed channels, instead of acting on them
+		chQuit <- true
+		err = <-chErr
+		if err.Error() != "quit" {
+			t.Errorf("Expected error value quit, got %v", err)
+		}
+	}
 }
 
-func Example_test_abstract_ipc() {
+func TestAbstractIpc(t *testing.T) {
+
+	var sb, sc *zmq.Socket
+	defer func() {
+		if sb != nil {
+			sb.Close()
+		}
+		if sc != nil {
+			sc.Close()
+		}
+	}()
 
 	addr := "ipc://@/tmp/tester"
 
 	// This is Linux only
 	if runtime.GOOS != "linux" {
-		fmt.Printf("%q\n", addr)
-		fmt.Println("Done")
-		return
+		t.Skip("Only on Linux")
 	}
 
 	sb, err := zmq.NewSocket(zmq.PAIR)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 
 	err = sb.Bind(addr)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sb.Bind:", err)
 	}
 
 	endpoint, err := sb.GetLastEndpoint()
-	if checkErr(err) {
+	expected := "ipc://@/tmp/tester"
+	if endpoint != expected || err != nil {
+		t.Fatalf("sb.GetLastEndpoint: expected 'nil' %q, got '%v' %q", expected, err, endpoint)
 		return
 	}
-	fmt.Printf("%q\n", endpoint)
 
-	sc, err := zmq.NewSocket(zmq.PAIR)
-	if checkErr(err) {
-		return
+	sc, err = zmq.NewSocket(zmq.PAIR)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = sc.Connect(addr)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sc.Bind:", err)
 	}
 
-	bounce(sb, sc, false)
+	resp, err := bouncee(sb, sc)
+	if err != nil {
+		t.Error(resp+":", err)
+	}
 
 	err = sc.Close()
-	if checkErr(err) {
-		return
+	sc = nil
+	if err != nil {
+		t.Fatal("sc.Close:", err)
 	}
 
 	err = sb.Close()
-	if checkErr(err) {
-		return
+	sb = nil
+	if err != nil {
+		t.Fatal("sb.Close:", err)
 	}
-
-	fmt.Println("Done")
-	// Output:
-	// "ipc://@/tmp/tester"
-	// Done
 }
 
-func Example_test_conflate() {
+func TestConflate(t *testing.T) {
+
+	var s_in, s_out *zmq.Socket
+
+	defer func() {
+		if s_in != nil {
+			s_in.Close()
+		}
+		if s_out != nil {
+			s_out.Close()
+		}
+	}()
 
 	bind_to := "tcp://127.0.0.1:5555"
 
 	err := zmq.SetIoThreads(1)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("SetIoThreads(1):", err)
 	}
 
-	s_in, err := zmq.NewSocket(zmq.PULL)
-	if checkErr(err) {
-		return
+	s_in, err = zmq.NewSocket(zmq.PULL)
+	if err != nil {
+		t.Fatal("NewSocket 1:", err)
 	}
 
 	err = s_in.SetConflate(true)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("SetConflate(true):", err)
 	}
 
 	err = s_in.Bind(bind_to)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("s_in.Bind:", err)
 	}
 
-	s_out, err := zmq.NewSocket(zmq.PUSH)
-	if checkErr(err) {
-		return
+	s_out, err = zmq.NewSocket(zmq.PUSH)
+	if err != nil {
+		t.Fatal("NewSocket 2:", err)
 	}
 
 	err = s_out.Connect(bind_to)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("s_out.Connect:", err)
 	}
 
 	message_count := 20
 
 	for j := 0; j < message_count; j++ {
 		_, err = s_out.Send(fmt.Sprint(j), 0)
-		if checkErr(err) {
-			return
+		if err != nil {
+			t.Fatalf("s_out.Send %d: %v", j, err)
 		}
 	}
 
 	time.Sleep(time.Second)
 
 	payload_recved, err := s_in.Recv(0)
-	if checkErr(err) {
-		return
-	}
-	i, err := strconv.Atoi(payload_recved)
-	if checkErr(err) {
-		return
-	}
-	if i != message_count-1 {
-		checkErr(errors.New("payload_recved != message_count - 1"))
-		return
+	if err != nil {
+		t.Error("s_in.Recv:", err)
+	} else {
+		i, err := strconv.Atoi(payload_recved)
+		if err != nil {
+			t.Error("strconv.Atoi:", err)
+		}
+		if i != message_count-1 {
+			t.Error("payload_recved != message_count - 1")
+		}
 	}
 
 	err = s_in.Close()
-	if checkErr(err) {
-		return
+	s_in = nil
+	if err != nil {
+		t.Error("s_in.Close:", err)
 	}
 
 	err = s_out.Close()
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Error("s_out.Close:", err)
 	}
-
-	fmt.Println("Done")
-	// Output:
-	// Done
 }
 
 func TestConnectResolve(t *testing.T) {
@@ -373,7 +427,7 @@ func Example_test_ctx_destroy() {
 
 */
 
-func Example_test_ctx_options() {
+func TestCtxOptions(t *testing.T) {
 
 	type Result struct {
 		value interface{}
@@ -381,33 +435,41 @@ func Example_test_ctx_options() {
 	}
 
 	i, err := zmq.GetMaxSockets()
-	fmt.Println(i == zmq.MaxSocketsDflt, err)
+	if err != nil {
+		t.Error("GetMaxSockets:", err)
+	}
+	if i != zmq.MaxSocketsDflt {
+		t.Errorf("MaxSockets != MaxSocketsDflt: %d != %d", i, zmq.MaxSocketsDflt)
+	}
+
 	i, err = zmq.GetIoThreads()
-	fmt.Println(i == zmq.IoThreadsDflt, err)
+	if err != nil {
+		t.Error("GetIoThreads:", err)
+	}
+	if i != zmq.IoThreadsDflt {
+		t.Errorf("IoThreads != IoThreadsDflt: %d != %d", i, zmq.IoThreadsDflt)
+	}
+
 	b, err := zmq.GetIpv6()
-	fmt.Println(b, err)
+	if b != false || err != nil {
+		t.Errorf("GetIpv6 1: expected false <nil>, got %v %v", b, err)
+	}
 
 	zmq.SetIpv6(true)
 	b, err = zmq.GetIpv6()
-	fmt.Println(b, err)
+	if b != true || err != nil {
+		t.Errorf("GetIpv6 2: expected true <nil>, got %v %v", b, err)
+	}
 
 	router, _ := zmq.NewSocket(zmq.ROUTER)
 	b, err = router.GetIpv6()
-	fmt.Println(b, err)
+	if b != true || err != nil {
+		t.Errorf("GetIpv6 3: expected true <nil>, got %v %v", b, err)
+	}
 
-	fmt.Println(router.Close())
+	router.Close()
 
 	zmq.SetIpv6(false)
-
-	fmt.Println("Done")
-	// Output:
-	// true <nil>
-	// true <nil>
-	// false <nil>
-	// true <nil>
-	// true <nil>
-	// <nil>
-	// Done
 }
 
 func Example_test_disconnect_inproc() {
@@ -1948,6 +2010,124 @@ func bounce(server, client *zmq.Socket, willfail bool) {
 
 }
 
+func bouncee(server, client *zmq.Socket) (msg string, err error) {
+
+	content := "12345678ABCDEFGH12345678abcdefgh"
+
+	//  Send message from client to server
+	rc, err := client.Send(content, zmq.SNDMORE|zmq.DONTWAIT)
+	if err != nil {
+		return "client.Send SNDMORE|DONTWAIT", err
+	}
+	if rc != 32 {
+		return "client.Send SNDMORE|DONTWAIT", err32
+	}
+
+	rc, err = client.Send(content, zmq.DONTWAIT)
+	if err != nil {
+		return "client.Send DONTWAIT", err
+	}
+	if rc != 32 {
+		return "client.Send DONTWAIT", err32
+	}
+
+	//  Receive message at server side
+	msg, err = server.Recv(0)
+	if err != nil {
+		return "server.Recv 1", err
+	}
+
+	//  Check that message is still the same
+	if msg != content {
+		return "server.Recv 1", errors.New(fmt.Sprintf("%q != %q", msg, content))
+	}
+
+	rcvmore, err := server.GetRcvmore()
+	if err != nil {
+		return "server.GetRcvmore 1", err
+	}
+	if !rcvmore {
+		return "server.GetRcvmore 1", errors.New(fmt.Sprint("rcvmore ==", rcvmore))
+	}
+
+	//  Receive message at server side
+	msg, err = server.Recv(0)
+	if err != nil {
+		return "server.Recv 2", err
+	}
+
+	//  Check that message is still the same
+	if msg != content {
+		return "server.Recv 2", errors.New(fmt.Sprintf("%q != %q", msg, content))
+	}
+
+	rcvmore, err = server.GetRcvmore()
+	if err != nil {
+		return "server.GetRcvmore 2", err
+	}
+	if rcvmore {
+		return "server.GetRcvmore 2", errors.New(fmt.Sprint("rcvmore == ", rcvmore))
+	}
+
+	// The same, from server back to client
+
+	//  Send message from server to client
+	rc, err = server.Send(content, zmq.SNDMORE)
+	if err != nil {
+		return "server.Send SNDMORE", err
+	}
+	if rc != 32 {
+		return "server.Send SNDMORE", err32
+	}
+
+	rc, err = server.Send(content, 0)
+	if err != nil {
+		return "server.Send 0", err
+	}
+	if rc != 32 {
+		return "server.Send 0", err32
+	}
+
+	//  Receive message at client side
+	msg, err = client.Recv(0)
+	if err != nil {
+		return "client.Recv 1", err
+	}
+
+	//  Check that message is still the same
+	if msg != content {
+		return "client.Recv 1", errors.New(fmt.Sprintf("%q != %q", msg, content))
+	}
+
+	rcvmore, err = client.GetRcvmore()
+	if err != nil {
+		return "client.GetRcvmore 1", err
+	}
+	if !rcvmore {
+		return "client.GetRcvmore 1", errors.New(fmt.Sprint("rcvmore ==", rcvmore))
+	}
+
+	//  Receive message at client side
+	msg, err = client.Recv(0)
+	if err != nil {
+		return "client.Recv 2", err
+	}
+
+	//  Check that message is still the same
+	if msg != content {
+		return "client.Recv 2", errors.New(fmt.Sprintf("%q != %q", msg, content))
+	}
+
+	rcvmore, err = client.GetRcvmore()
+	if err != nil {
+		return "client.GetRcvmore 2", err
+	}
+	if rcvmore {
+		return "client.GetRcvmore 2", errors.New(fmt.Sprint("rcvmore == ", rcvmore))
+	}
+	return "OK", nil
+}
+
 func checkErr0(err error, num int) bool {
 	if err != nil {
 		fmt.Println(num, err)
@@ -1974,4 +2154,16 @@ func e(err error, willfail bool) error {
 		return err
 	}
 	return errerr
+}
+
+func arrayEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
