@@ -59,7 +59,10 @@ func TestAuthStart(t *testing.T) {
 	if err != nil {
 		t.Fatal("NewSocket:", err)
 	}
-	defer server.Close()
+	defer func() {
+		server.SetLinger(0)
+		server.Close()
+	}()
 	server.SetIdentity("Server1")
 	server.ServerAuthCurve("domain1", server_secret)
 	err = server.Bind("tcp://*:9000")
@@ -72,7 +75,10 @@ func TestAuthStart(t *testing.T) {
 	if err != nil {
 		t.Fatal("NewSocket:", err)
 	}
-	defer client.Close()
+	defer func() {
+		client.SetLinger(0)
+		client.Close()
+	}()
 	server.SetIdentity("Client1")
 	client.ClientAuthCurve(server_public, client_public, client_secret)
 	err = client.Connect("tcp://127.0.0.1:9000")

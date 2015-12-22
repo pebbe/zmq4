@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	errerr = errors.New("error")
+	errerr = errors.New("error") // TODO: REMOVE
 	err32  = errors.New("rc != 32")
 )
 
@@ -39,29 +39,16 @@ func TestMultipleContexts(t *testing.T) {
 			<-chErr
 			<-chErr
 		}
-		if sock1 != nil {
-			sock1.Close()
+		for _, s := range []*zmq.Socket{sock1, sock2, serv1, serv2} {
+			if s != nil {
+				s.SetLinger(0)
+				s.Close()
+			}
 		}
-		if sock2 != nil {
-			sock2.Close()
-		}
-		if serv1 != nil {
-			serv1.Close()
-		}
-		if serv2 != nil {
-			serv2.Close()
-		}
-		if serv_ctx1 != nil {
-			serv_ctx1.Term()
-		}
-		if serv_ctx2 != nil {
-			serv_ctx2.Term()
-		}
-		if ctx1 != nil {
-			ctx1.Term()
-		}
-		if ctx2 != nil {
-			ctx2.Term()
+		for _, c := range []*zmq.Context{serv_ctx1, serv_ctx2, ctx1, ctx2} {
+			if c != nil {
+				c.Term()
+			}
 		}
 	}()
 
@@ -248,11 +235,11 @@ func TestAbstractIpc(t *testing.T) {
 
 	var sb, sc *zmq.Socket
 	defer func() {
-		if sb != nil {
-			sb.Close()
-		}
-		if sc != nil {
-			sc.Close()
+		for _, s := range []*zmq.Socket{sb, sc} {
+			if s != nil {
+				s.SetLinger(0)
+				s.Close()
+			}
 		}
 	}()
 
@@ -289,9 +276,9 @@ func TestAbstractIpc(t *testing.T) {
 		t.Fatal("sc.Bind:", err)
 	}
 
-	resp, err := bouncee(sb, sc)
+	resp, err := bounce(sb, sc)
 	if err != nil {
-		t.Error(resp+":", err)
+		t.Error(resp, err)
 	}
 
 	err = sc.Close()
@@ -310,13 +297,12 @@ func TestAbstractIpc(t *testing.T) {
 func TestConflate(t *testing.T) {
 
 	var s_in, s_out *zmq.Socket
-
 	defer func() {
-		if s_in != nil {
-			s_in.Close()
-		}
-		if s_out != nil {
-			s_out.Close()
+		for _, s := range []*zmq.Socket{s_in, s_out} {
+			if s != nil {
+				s.SetLinger(0)
+				s.Close()
+			}
 		}
 	}()
 
@@ -383,6 +369,7 @@ func TestConflate(t *testing.T) {
 	}
 
 	err = s_out.Close()
+	s_out = nil
 	if err != nil {
 		t.Error("s_out.Close:", err)
 	}
@@ -394,6 +381,12 @@ func TestConnectResolve(t *testing.T) {
 	if err != nil {
 		t.Fatal("NewSocket:", err)
 	}
+	defer func() {
+		if sock != nil {
+			sock.SetLinger(0)
+			sock.Close()
+		}
+	}()
 
 	err = sock.Connect("tcp://localhost:1234")
 	if err != nil {
@@ -411,21 +404,12 @@ func TestConnectResolve(t *testing.T) {
 		}
 	}
 
-	if err = sock.Close(); err != nil {
+	err = sock.Close()
+	sock = nil
+	if err != nil {
 		t.Error("sock.Close:", err)
 	}
 }
-
-/*
-
-func Example_test_ctx_destroy() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-*/
 
 func TestCtxOptions(t *testing.T) {
 
@@ -456,6 +440,7 @@ func TestCtxOptions(t *testing.T) {
 	}
 
 	zmq.SetIpv6(true)
+	defer zmq.SetIpv6(false)
 	b, err = zmq.GetIpv6()
 	if b != true || err != nil {
 		t.Errorf("GetIpv6 2: expected true <nil>, got %v %v", b, err)
@@ -466,33 +451,40 @@ func TestCtxOptions(t *testing.T) {
 	if b != true || err != nil {
 		t.Errorf("GetIpv6 3: expected true <nil>, got %v %v", b, err)
 	}
-
 	router.Close()
-
-	zmq.SetIpv6(false)
 }
 
-func Example_test_disconnect_inproc() {
+func TestDisconnectInproc(t *testing.T) {
+
+	var pubSocket, subSocket *zmq.Socket
+	defer func() {
+		for _, s := range []*zmq.Socket{pubSocket, subSocket} {
+			if s != nil {
+				s.SetLinger(0)
+				s.Close()
+			}
+		}
+	}()
 
 	publicationsReceived := 0
 	isSubscribed := false
 
 	pubSocket, err := zmq.NewSocket(zmq.XPUB)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket XPUB:", err)
 	}
-	subSocket, err := zmq.NewSocket(zmq.SUB)
-	if checkErr(err) {
-		return
+	subSocket, err = zmq.NewSocket(zmq.SUB)
+	if err != nil {
+		t.Fatal("NewSocket SUB:", err)
 	}
 	err = subSocket.SetSubscribe("foo")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("subSocket.SetSubscribe:", err)
 	}
 
 	err = pubSocket.Bind("inproc://someInProcDescriptor")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("pubSocket.Bind:", err)
 	}
 
 	iteration := 0
@@ -502,7 +494,8 @@ func Example_test_disconnect_inproc() {
 	poller.Add(pubSocket, zmq.POLLIN) // read subscriptions
 	for {
 		sockets, err := poller.Poll(100 * time.Millisecond)
-		if checkErr(err) {
+		if err != nil {
+			t.Error("Poll:", err)
 			break //  Interrupted
 		}
 
@@ -510,22 +503,32 @@ func Example_test_disconnect_inproc() {
 			if socket.Socket == pubSocket {
 				for {
 					buffer, err := pubSocket.Recv(0)
-					if checkErr(err) {
-						return
+					if err != nil {
+						t.Fatal("pubSocket.Recv", err)
 					}
-					fmt.Printf("pubSocket: %q\n", buffer)
+					exp := "\x01foo"
+					if isSubscribed {
+						exp = "\x00foo"
+					}
+					if buffer != exp {
+						t.Errorf("pubSocket.Recv: expected %q, got %q", exp, buffer)
+					}
 
 					if buffer[0] == 0 {
-						fmt.Println("pubSocket, isSubscribed == true:", isSubscribed == true)
+						if isSubscribed != true {
+							t.Errorf("Poller: expected subscribed")
+						}
 						isSubscribed = false
 					} else {
-						fmt.Println("pubSocket, isSubscribed == false:", isSubscribed == false)
+						if isSubscribed != false {
+							t.Errorf("Poller: expected not subscribed")
+						}
 						isSubscribed = true
 					}
 
 					more, err := pubSocket.GetRcvmore()
-					if checkErr(err) {
-						return
+					if err != nil {
+						t.Fatal("pubSocket.GetRcvmore:", err)
 					}
 					if !more {
 						break //  Last message part
@@ -537,15 +540,17 @@ func Example_test_disconnect_inproc() {
 
 		for _, socket := range sockets {
 			if socket.Socket == subSocket {
-				for {
+				for _, exp := range []string{"foo", "this is foo!", "", ""} {
 					msg, err := subSocket.Recv(0)
-					if checkErr(err) {
-						return
+					if err != nil {
+						t.Fatal("subSocket.Recv:", err)
 					}
-					fmt.Printf("subSocket: %q\n", msg)
+					if msg != exp {
+						t.Errorf("subSocket.Recv: expected %q, got %q", exp, msg)
+					}
 					more, err := subSocket.GetRcvmore()
-					if checkErr(err) {
-						return
+					if err != nil {
+						t.Fatal("subSocket.GetRcvmore:", err)
 					}
 					if !more {
 						publicationsReceived++
@@ -559,151 +564,180 @@ func Example_test_disconnect_inproc() {
 
 		if iteration == 1 {
 			err := subSocket.Connect("inproc://someInProcDescriptor")
-			checkErr(err)
+			if err != nil {
+				t.Fatal("subSocket.Connect", err)
+			}
 		}
 		if iteration == 4 {
 			err := subSocket.Disconnect("inproc://someInProcDescriptor")
-			checkErr(err)
+			if err != nil {
+				t.Fatal("subSocket.Disconnect", err)
+			}
 		}
 		if iteration > 4 && len(sockets) == 0 {
 			break
 		}
 
 		_, err = pubSocket.Send("foo", zmq.SNDMORE)
-		checkErr(err)
+		if err != nil {
+			t.Fatal("pubSocket.Send 1", err)
+		}
 		_, err = pubSocket.Send("this is foo!", 0)
-		checkErr(err)
+		if err != nil {
+			t.Fatal("pubSocket.Send 2", err)
+		}
 
 		iteration++
 
 	}
 
-	fmt.Println("publicationsReceived == 3:", publicationsReceived == 3)
-	fmt.Println("!isSubscribed:", !isSubscribed)
+	if publicationsReceived != 3 {
+		t.Error("publicationsReceived != 3 ")
+	}
+	if isSubscribed {
+		t.Error("isSubscribed")
+	}
 
 	err = pubSocket.Close()
-	checkErr(err)
+	pubSocket = nil
+	if err != nil {
+		t.Error("pubSocket.Close:", err)
+	}
 	err = subSocket.Close()
-	checkErr(err)
-
-	fmt.Println("Done")
-	// Output:
-	// pubSocket: "\x01foo"
-	// pubSocket, isSubscribed == false: true
-	// subSocket: "foo"
-	// subSocket: "this is foo!"
-	// subSocket: "foo"
-	// subSocket: "this is foo!"
-	// subSocket: "foo"
-	// subSocket: "this is foo!"
-	// pubSocket: "\x00foo"
-	// pubSocket, isSubscribed == true: true
-	// publicationsReceived == 3: true
-	// !isSubscribed: true
-	// Done
+	subSocket = nil
+	if err != nil {
+		t.Error("subSocket.Close:", err)
+	}
 }
 
-func Example_test_fork() {
+func TestFork(t *testing.T) {
 
 	address := "tcp://127.0.0.1:6571"
 	NUM_MESSAGES := 5
 
 	//  Create and bind pull socket to receive messages
 	pull, err := zmq.NewSocket(zmq.PULL)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
+	defer func() {
+		if pull != nil {
+			pull.SetLinger(0)
+			pull.Close()
+		}
+	}()
 	err = pull.Bind(address)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("pull.Bind:", err)
 	}
 
-	done := make(chan bool)
+	ready := make(chan bool)
 
 	go func() {
-		defer func() { done <- true }()
+		defer func() {
+			close(ready)
+		}()
 
 		//  Create new socket, connect and send some messages
 
 		push, err := zmq.NewSocket(zmq.PUSH)
-		if checkErr(err) {
+		//err = fmt.Errorf("DUMMY ERROR")
+		if err != nil {
+			t.Error("NewSocket:", err)
 			return
 		}
 		defer func() {
 			err := push.Close()
-			checkErr(err)
+			if err != nil {
+				t.Error("push.Close:", err)
+			}
 		}()
 
 		err = push.Connect(address)
-		if checkErr(err) {
+		if err != nil {
+			t.Error("push.Connect:", err)
 			return
 		}
 
 		for count := 0; count < NUM_MESSAGES; count++ {
+			ready <- true
 			_, err = push.Send("Hello", 0)
-			if checkErr(err) {
+			if err != nil {
+				t.Error("push.Send:", err)
 				return
 			}
 		}
 
 	}()
 
-	for count := 0; count < NUM_MESSAGES; count++ {
+	for {
+		if r := <-ready; !r {
+			break
+		}
 		msg, err := pull.Recv(0)
-		fmt.Printf("%q %v\n", msg, err)
+		if err != nil {
+			t.Error("pull.Recv:", err)
+		}
+		if msg != "Hello" {
+			t.Errorf("pull.Recv: expected \"Hello\", got %q", msg)
+		}
 	}
 
 	err = pull.Close()
-	checkErr(err)
+	pull = nil
+	if err != nil {
+		t.Error("pull.Close", err)
+	}
 
-	<-done
-
-	fmt.Println("Done")
-	// Output:
-	// "Hello" <nil>
-	// "Hello" <nil>
-	// "Hello" <nil>
-	// "Hello" <nil>
-	// "Hello" <nil>
-	// Done
+	<-ready // false
 }
 
-func Example_test_hwm() {
+func TestHwm(t *testing.T) {
 
 	MAX_SENDS := 10000
 	BIND_FIRST := 1
 	CONNECT_FIRST := 2
 
-	test_defaults := func() int {
+	test_defaults := func() (result int) {
+
+		result = -1
 
 		// Set up bind socket
 		bind_socket, err := zmq.NewSocket(zmq.PULL)
-		if checkErr(err) {
-			return 0
+		if err != nil {
+			t.Error("NewSocket:", err)
+			return
 		}
 		defer func() {
 			err := bind_socket.Close()
-			checkErr(err)
+			if err != nil {
+				t.Error("bind_socket.Close:", err)
+			}
 		}()
 
 		err = bind_socket.Bind("inproc://a")
-		if checkErr(err) {
-			return 0
+		if err != nil {
+			t.Error("bind_socket.Bind:", err)
+			return
 		}
 
 		// Set up connect socket
 		connect_socket, err := zmq.NewSocket(zmq.PUSH)
-		if checkErr(err) {
-			return 0
+		if err != nil {
+			t.Error("NewSocket:", err)
+			return
 		}
 		defer func() {
 			err := connect_socket.Close()
-			checkErr(err)
+			if err != nil {
+				t.Error("connect_socket.Close:", err)
+			}
 		}()
 
 		err = connect_socket.Connect("inproc://a")
-		if checkErr(err) {
-			return 0
+		if err != nil {
+			t.Error("connect_socket.Connect:", err)
+			return
 		}
 
 		// Send until we block
@@ -725,12 +759,16 @@ func Example_test_hwm() {
 			}
 			recv_count++
 		}
-		fmt.Println("send_count == recv_count:", send_count == recv_count)
+		if send_count != recv_count {
+			t.Error("test_defaults: send_count == recv_count")
+		}
 
 		return send_count
 	}
 
-	count_msg := func(send_hwm, recv_hwm, testType int) int {
+	count_msg := func(send_hwm, recv_hwm, testType int) (result int) {
+
+		result = -1
 
 		var bind_socket, connect_socket *zmq.Socket
 		var err error
@@ -738,82 +776,102 @@ func Example_test_hwm() {
 		if testType == BIND_FIRST {
 			// Set up bind socket
 			bind_socket, err = zmq.NewSocket(zmq.PULL)
-			if checkErr(err) {
-				return 0
+			if err != nil {
+				t.Error("NewSocket:", err)
+				return
 			}
 			defer func() {
 				err := bind_socket.Close()
-				checkErr(err)
+				if err != nil {
+					t.Error("bind_socket.Close:", err)
+				}
 			}()
 
 			err = bind_socket.SetRcvhwm(recv_hwm)
-			if checkErr(err) {
-				return 0
+			if err != nil {
+				t.Error("bind_socket.SetRcvhwm:", err)
+				return
 			}
 
 			err = bind_socket.Bind("inproc://a")
-			if checkErr(err) {
-				return 0
+			if err != nil {
+				t.Error("bind_socket.Bind:", err)
+				return
 			}
 
 			// Set up connect socket
 			connect_socket, err = zmq.NewSocket(zmq.PUSH)
-			if checkErr(err) {
-				return 0
+			if err != nil {
+				t.Error("NewSocket:", err)
+				return
 			}
 			defer func() {
 				err := connect_socket.Close()
-				checkErr(err)
+				if err != nil {
+					t.Error(err)
+				}
 			}()
 
 			err = connect_socket.SetSndhwm(send_hwm)
-			if checkErr(err) {
-				return 0
+			if err != nil {
+				t.Error("connect_socket.SetSndhwm:", err)
+				return
 			}
 
 			err = connect_socket.Connect("inproc://a")
-			if checkErr(err) {
-				return 0
+			if err != nil {
+				t.Error("connect_socket.Connect:", err)
+				return
 			}
 		} else {
 			// Set up connect socket
 			connect_socket, err = zmq.NewSocket(zmq.PUSH)
-			if checkErr(err) {
-				return 0
+			if err != nil {
+				t.Error("NewSocket:", err)
+				return
 			}
 			defer func() {
 				err := connect_socket.Close()
-				checkErr(err)
+				if err != nil {
+					t.Error("connect_socket.Close:", err)
+				}
 			}()
 
 			err = connect_socket.SetSndhwm(send_hwm)
-			if checkErr(err) {
-				return 0
+			if err != nil {
+				t.Error("connect_socket.SetSndhwm:", err)
+				return
 			}
 
 			err = connect_socket.Connect("inproc://a")
-			if checkErr(err) {
-				return 0
+			if err != nil {
+				t.Error("connect_socket.Connect:", err)
+				return
 			}
 
 			// Set up bind socket
 			bind_socket, err = zmq.NewSocket(zmq.PULL)
-			if checkErr(err) {
-				return 0
+			if err != nil {
+				t.Error("NewSocket:", err)
+				return
 			}
 			defer func() {
 				err := bind_socket.Close()
-				checkErr(err)
+				if err != nil {
+					t.Error("bind_socket.Close:", err)
+				}
 			}()
 
 			err = bind_socket.SetRcvhwm(recv_hwm)
-			if checkErr(err) {
-				return 0
+			if err != nil {
+				t.Error("bind_socket.SetRcvhwm:", err)
+				return
 			}
 
 			err = bind_socket.Bind("inproc://a")
-			if checkErr(err) {
-				return 0
+			if err != nil {
+				t.Error("bind_socket.Bind:", err)
+				return
 			}
 		}
 
@@ -836,17 +894,22 @@ func Example_test_hwm() {
 			}
 			recv_count++
 		}
-		fmt.Println("send_count == recv_count:", send_count == recv_count)
+		if send_count != recv_count {
+			t.Error("count_msg: send_count != recv_count")
+		}
 
 		// Now it should be possible to send one more.
 		_, err = connect_socket.Send("", 0)
-		if checkErr(err) {
-			return 0
+		if err != nil {
+			t.Error("connect_socket.Send:", err)
+			return
 		}
 
 		//  Consume the remaining message.
 		_, err = bind_socket.Recv(0)
-		checkErr(err)
+		if err != nil {
+			t.Error("bind_socket.Recv:", err)
+		}
 
 		return send_count
 	}
@@ -859,24 +922,32 @@ func Example_test_hwm() {
 		return count_msg(send_hwm, recv_hwm, CONNECT_FIRST)
 	}
 
-	test_inproc_connect_and_close_first := func(send_hwm, recv_hwm int) int {
+	test_inproc_connect_and_close_first := func(send_hwm, recv_hwm int) (result int) {
+
+		result = -1
 
 		// Set up connect socket
 		connect_socket, err := zmq.NewSocket(zmq.PUSH)
-		if checkErr(err) {
-			return 0
+		if err != nil {
+			t.Error("NewSocket:", err)
+			return
 		}
+		defer func() {
+			if connect_socket != nil {
+				connect_socket.Close()
+			}
+		}()
 
 		err = connect_socket.SetSndhwm(send_hwm)
-		if checkErr(err) {
-			connect_socket.Close()
-			return 0
+		if err != nil {
+			t.Error("connect_socket.SetSndhwm:", err)
+			return
 		}
 
 		err = connect_socket.Connect("inproc://a")
-		if checkErr(err) {
-			connect_socket.Close()
-			return 0
+		if err != nil {
+			t.Error("connect_socket.Connect:", err)
+			return
 		}
 
 		// Send until we block
@@ -891,28 +962,35 @@ func Example_test_hwm() {
 
 		// Close connect
 		err = connect_socket.Close()
-		if checkErr(err) {
-			return 0
+		connect_socket = nil
+		if err != nil {
+			t.Error("connect_socket.Close:", err)
+			return
 		}
 
 		// Set up bind socket
 		bind_socket, err := zmq.NewSocket(zmq.PULL)
-		if checkErr(err) {
-			return 0
+		if err != nil {
+			t.Error("NewSocket:", err)
+			return
 		}
 		defer func() {
 			err := bind_socket.Close()
-			checkErr(err)
+			if err != nil {
+				t.Error("bind_socket.Close:", err)
+			}
 		}()
 
 		err = bind_socket.SetRcvhwm(recv_hwm)
-		if checkErr(err) {
-			return 0
+		if err != nil {
+			t.Error("bind_socket.SetRcvhwm:", err)
+			return
 		}
 
 		err = bind_socket.Bind("inproc://a")
-		if checkErr(err) {
-			return 0
+		if err != nil {
+			t.Error("bind_socket.Bind:", err)
+			return
 		}
 
 		// Now receive all sent messages
@@ -924,329 +1002,203 @@ func Example_test_hwm() {
 			}
 			recv_count++
 		}
-		fmt.Println("send_count == recv_count:", send_count == recv_count)
-
+		if send_count != recv_count {
+			t.Error("test_inproc_connect_and_close_first: send_count != recv_count")
+		}
 		return send_count
 	}
 
 	// Default values are 1000 on send and 1000 one receive, so 2000 total
-	fmt.Println("Default values")
-	count := test_defaults()
-	fmt.Println("count:", count)
+	if count := test_defaults(); count != 2000 {
+		t.Errorf("test_defaults: expected 2000, got %d", count)
+	}
 	time.Sleep(100 * time.Millisecond)
 
 	// Infinite send and receive buffer
-	fmt.Println("\nInfinite send and receive")
-	count = test_inproc_bind_first(0, 0)
-	fmt.Println("count:", count)
+	if count := test_inproc_bind_first(0, 0); count != MAX_SENDS {
+		t.Errorf("test_inproc_bind_first(0, 0): expected %d, got %d", MAX_SENDS, count)
+	}
 	time.Sleep(100 * time.Millisecond)
-	count = test_inproc_connect_first(0, 0)
-	fmt.Println("count:", count)
+	if count := test_inproc_connect_first(0, 0); count != MAX_SENDS {
+		t.Errorf("test_inproc_connect_first(0, 0): expected %d, got %d", MAX_SENDS, count)
+	}
 	time.Sleep(100 * time.Millisecond)
 
 	// Infinite send buffer
-	fmt.Println("\nInfinite send buffer")
-	count = test_inproc_bind_first(1, 0)
-	fmt.Println("count:", count)
+	if count := test_inproc_bind_first(1, 0); count != MAX_SENDS {
+		t.Errorf("test_inproc_bind_first(1, 0): expected %d, got %d", MAX_SENDS, count)
+	}
 	time.Sleep(100 * time.Millisecond)
-	count = test_inproc_connect_first(1, 0)
-	fmt.Println("count:", count)
+	if count := test_inproc_connect_first(1, 0); count != MAX_SENDS {
+		t.Errorf("test_inproc_connect_first(1, 0): expected %d, got %d", MAX_SENDS, count)
+	}
 	time.Sleep(100 * time.Millisecond)
 
 	// Infinite receive buffer
-	fmt.Println("\nInfinite receive buffer")
-	count = test_inproc_bind_first(0, 1)
-	fmt.Println("count:", count)
+	if count := test_inproc_bind_first(0, 1); count != MAX_SENDS {
+		t.Errorf("test_inproc_bind_first(0, 1): expected %d, got %d", MAX_SENDS, count)
+	}
 	time.Sleep(100 * time.Millisecond)
-	count = test_inproc_connect_first(0, 1)
-	fmt.Println("count:", count)
+	if count := test_inproc_connect_first(0, 1); count != MAX_SENDS {
+		t.Errorf("test_inproc_connect_first(0, 1): expected %d, got %d", MAX_SENDS, count)
+	}
 	time.Sleep(100 * time.Millisecond)
 
 	// Send and recv buffers hwm 1, so total that can be queued is 2
-	fmt.Println("\nSend and recv buffers hwm 1")
-	count = test_inproc_bind_first(1, 1)
-	fmt.Println("count:", count)
+	if count := test_inproc_bind_first(1, 1); count != 2 {
+		t.Errorf("test_inproc_bind_first(1, 1): expected 2, got %d", count)
+	}
 	time.Sleep(100 * time.Millisecond)
-	count = test_inproc_connect_first(1, 1)
-	fmt.Println("count:", count)
+	if count := test_inproc_connect_first(1, 1); count != 2 {
+		t.Errorf("test_inproc_connect_first(1, 1): expected 2, got %d", count)
+	}
 	time.Sleep(100 * time.Millisecond)
 
 	// Send hwm of 1, send before bind so total that can be queued is 1
-	fmt.Println("\nSend hwm of 1, send before bind")
-	count = test_inproc_connect_and_close_first(1, 0)
-	fmt.Println("count:", count)
+	if count := test_inproc_connect_and_close_first(1, 0); count != 1 {
+		t.Errorf("test_inproc_connect_and_close_first(1, 0): expected 1, got %d", count)
+	}
 	time.Sleep(100 * time.Millisecond)
-
-	fmt.Println("\nDone")
-	// Output:
-	// Default values
-	// send_count == recv_count: true
-	// count: 2000
-	//
-	// Infinite send and receive
-	// send_count == recv_count: true
-	// count: 10000
-	// send_count == recv_count: true
-	// count: 10000
-	//
-	// Infinite send buffer
-	// send_count == recv_count: true
-	// count: 10000
-	// send_count == recv_count: true
-	// count: 10000
-	//
-	// Infinite receive buffer
-	// send_count == recv_count: true
-	// count: 10000
-	// send_count == recv_count: true
-	// count: 10000
-	//
-	// Send and recv buffers hwm 1
-	// send_count == recv_count: true
-	// count: 2
-	// send_count == recv_count: true
-	// count: 2
-	//
-	// Send hwm of 1, send before bind
-	// send_count == recv_count: true
-	// count: 1
-	//
-	// Done
 }
 
-/*
+func TestPairIpc(t *testing.T) {
 
-func Example_test_immediate() {
+	var sb, sc *zmq.Socket
 
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_inproc_connect() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_invalid_rep() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_iov() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_issue_566() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_last_endpoint() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_linger() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_monitor() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_msg_flags() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_pair_inproc() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-*/
-
-func Example_test_pair_ipc() {
+	defer func() {
+		for _, s := range []*zmq.Socket{sb, sb} {
+			if s != nil {
+				s.SetLinger(0)
+				s.Close()
+			}
+		}
+	}()
 
 	sb, err := zmq.NewSocket(zmq.PAIR)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 
 	err = sb.Bind("ipc:///tmp/tester")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sb.Bind:", err)
 	}
 
-	sc, err := zmq.NewSocket(zmq.PAIR)
-	if checkErr(err) {
-		return
+	sc, err = zmq.NewSocket(zmq.PAIR)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 
 	err = sc.Connect("ipc:///tmp/tester")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sc.Connect:", err)
 	}
 
-	bounce(sb, sc, false)
+	msg, err := bounce(sb, sc)
+	if err != nil {
+		t.Error(msg, err)
+	}
 
 	err = sc.Close()
-	if checkErr(err) {
-		return
+	sc = nil
+	if err != nil {
+		t.Error("sc.Close:", err)
 	}
 
 	err = sb.Close()
-	if checkErr(err) {
-		return
+	sb = nil
+	if err != nil {
+		t.Error("sb.Close:", err)
 	}
-
-	fmt.Println("Done")
-	// Output:
-	// Done
 }
 
-func Example_test_pair_tcp() {
+func TestPairTcp(t *testing.T) {
+
+	var sb, sc *zmq.Socket
+
+	defer func() {
+		for _, s := range []*zmq.Socket{sb, sb} {
+			if s != nil {
+				s.SetLinger(0)
+				s.Close()
+			}
+		}
+	}()
 
 	sb, err := zmq.NewSocket(zmq.PAIR)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 
 	err = sb.Bind("tcp://127.0.0.1:9736")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sb.Bind:", err)
 	}
 
-	sc, err := zmq.NewSocket(zmq.PAIR)
-	if checkErr(err) {
-		return
+	sc, err = zmq.NewSocket(zmq.PAIR)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 
 	err = sc.Connect("tcp://127.0.0.1:9736")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("sc.Connect:", err)
 	}
 
-	bounce(sb, sc, false)
+	msg, err := bounce(sb, sc)
+
+	if err != nil {
+		t.Error(msg, err)
+	}
 
 	err = sc.Close()
-	if checkErr(err) {
-		return
+	sc = nil
+	if err != nil {
+		t.Error("sc.Close:", err)
 	}
 
 	err = sb.Close()
-	if checkErr(err) {
-		return
+	sb = nil
+	if err != nil {
+		t.Error("sb.Close:", err)
 	}
-
-	fmt.Println("Done")
-	// Output:
-	// Done
 }
 
-/*
-
-func Example_test_probe_router() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_req_correlate() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_req_relaxed() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_reqrep_device() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_reqrep_inproc() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_reqrep_ipc() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_reqrep_tcp() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_router_mandatory() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-*/
-
-func Example_test_security_curve() {
+func TestSecurityCurve(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	//  Generate new keypairs for this test
-	client_public, client_secret, err := zmq.NewCurveKeypair()
-	if checkErr(err) {
-		return
-	}
-	server_public, server_secret, err := zmq.NewCurveKeypair()
-	if checkErr(err) {
-		return
+	var handler, server, client *zmq.Socket
+	defer func() {
+		for _, s := range []*zmq.Socket{handler} {
+			if s != nil {
+				s.SetLinger(0)
+				s.Close()
+			}
+		}
+	}()
+
+	if _, minor, _ := zmq.Version(); minor >= 1 && !zmq.HasCurve() {
+		t.Skip("Curve not available")
 	}
 
-	handler, err := zmq.NewSocket(zmq.REP)
-	if checkErr(err) {
-		return
+	//  Generate new keypairs for this test
+	client_public, client_secret, err := zmq.NewCurveKeypair()
+	if err != nil {
+		t.Fatal("NewCurveKeypair:", err)
+	}
+	server_public, server_secret, err := zmq.NewCurveKeypair()
+	if err != nil {
+		t.Fatal("NewCurveKeypair:", err)
+	}
+
+	handler, err = zmq.NewSocket(zmq.REP)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = handler.Bind("inproc://zeromq.zap.01")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("handler.Bind:", err)
 	}
 
 	doHandler := func(state zmq.State) error {
@@ -1283,8 +1235,10 @@ func Example_test_security_curve() {
 
 	doQuit := func(i interface{}) error {
 		err := handler.Close()
-		checkErr(err)
-		fmt.Println("Handler closed")
+		handler = nil
+		if err != nil {
+			t.Error("handler.Close:", err)
+		}
 		return errors.New("Quit")
 	}
 	quit := make(chan interface{})
@@ -1294,7 +1248,6 @@ func Example_test_security_curve() {
 	reactor.AddChannel(quit, 0, doQuit)
 	go func() {
 		reactor.Run(100 * time.Millisecond)
-		fmt.Println("Reactor finished")
 		quit <- true
 	}()
 	defer func() {
@@ -1304,57 +1257,61 @@ func Example_test_security_curve() {
 	}()
 
 	//  Server socket will accept connections
-	server, err := zmq.NewSocket(zmq.DEALER)
-	if checkErr(err) {
-		return
+	server, err = zmq.NewSocket(zmq.DEALER)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = server.SetCurveServer(1)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.SetCurveServer(1):", err)
 	}
 	err = server.SetCurveSecretkey(server_secret)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.SetCurveSecretkey:", err)
 	}
 	err = server.SetIdentity("IDENT")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.SetIdentity:", err)
 	}
 	server.Bind("tcp://127.0.0.1:9998")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.Bind:", err)
 	}
 
 	err = server.SetRcvtimeo(time.Second)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.SetRcvtimeo:", err)
 	}
 
 	//  Check CURVE security with valid credentials
-	client, err := zmq.NewSocket(zmq.DEALER)
-	if checkErr(err) {
-		return
+	client, err = zmq.NewSocket(zmq.DEALER)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = client.SetCurveServerkey(server_public)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurveServerkey:", err)
 	}
 	err = client.SetCurvePublickey(client_public)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurvePublickey:", err)
 	}
 	err = client.SetCurveSecretkey(client_secret)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurveSecretkey:", err)
 	}
 	err = client.Connect("tcp://127.0.0.1:9998")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.Connect:", err)
 	}
-	bounce(server, client, false)
+	msg, err := bounce(server, client)
+	if err != nil {
+		t.Error(msg, err)
+	}
 	err = client.Close()
-	if checkErr(err) {
-		return
+	client = nil
+	if err != nil {
+		t.Fatal("client.Close:", err)
 	}
 
 	time.Sleep(100 * time.Millisecond)
@@ -1363,34 +1320,38 @@ func Example_test_security_curve() {
 	//  This will be caught by the curve_server class, not passed to ZAP
 	garbage_key := "0000111122223333444455556666777788889999"
 	client, err = zmq.NewSocket(zmq.DEALER)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = client.SetCurveServerkey(garbage_key)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurveServerkey:", err)
 	}
 	err = client.SetCurvePublickey(client_public)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurvePublickey:", err)
 	}
 	err = client.SetCurveSecretkey(client_secret)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurveSecretkey:", err)
 	}
 	err = client.Connect("tcp://127.0.0.1:9998")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.Connect:", err)
 	}
 	err = client.SetRcvtimeo(time.Second)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetRcvtimeo:", err)
 	}
-	bounce(server, client, true)
+	_, err = bounce(server, client)
+	if err == nil {
+		t.Error("Expected failure, got success")
+	}
 	client.SetLinger(0)
 	err = client.Close()
-	if checkErr(err) {
-		return
+	client = nil
+	if err != nil {
+		t.Fatal("client.Close:", err)
 	}
 
 	time.Sleep(100 * time.Millisecond)
@@ -1398,34 +1359,38 @@ func Example_test_security_curve() {
 	//  Check CURVE security with a garbage client secret key
 	//  This will be caught by the curve_server class, not passed to ZAP
 	client, err = zmq.NewSocket(zmq.DEALER)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = client.SetCurveServerkey(server_public)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurveServerkey:", err)
 	}
 	err = client.SetCurvePublickey(garbage_key)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurvePublickey:", err)
 	}
 	err = client.SetCurveSecretkey(client_secret)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurveSecretkey:", err)
 	}
 	err = client.Connect("tcp://127.0.0.1:9998")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.Connect:", err)
 	}
 	err = client.SetRcvtimeo(time.Second)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetRcvtimeo:", err)
 	}
-	bounce(server, client, true)
+	_, err = bounce(server, client)
+	if err == nil {
+		t.Error("Expected failure, got success")
+	}
 	client.SetLinger(0)
 	err = client.Close()
-	if checkErr(err) {
-		return
+	client = nil
+	if err != nil {
+		t.Fatal("client.Close:", err)
 	}
 
 	time.Sleep(100 * time.Millisecond)
@@ -1433,34 +1398,38 @@ func Example_test_security_curve() {
 	//  Check CURVE security with a garbage client secret key
 	//  This will be caught by the curve_server class, not passed to ZAP
 	client, err = zmq.NewSocket(zmq.DEALER)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = client.SetCurveServerkey(server_public)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurveServerkey:", err)
 	}
 	err = client.SetCurvePublickey(client_public)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurvePublickey:", err)
 	}
 	err = client.SetCurveSecretkey(garbage_key)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurveSecretkey:", err)
 	}
 	err = client.Connect("tcp://127.0.0.1:9998")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.Connect:", err)
 	}
 	err = client.SetRcvtimeo(time.Second)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetRcvtimeo:", err)
 	}
-	bounce(server, client, true)
+	_, err = bounce(server, client)
+	if err == nil {
+		t.Error("Expected failure, got success")
+	}
 	client.SetLinger(0)
 	err = client.Close()
-	if checkErr(err) {
-		return
+	client = nil
+	if err != nil {
+		t.Fatal("client.Close:", err)
 	}
 
 	time.Sleep(100 * time.Millisecond)
@@ -1470,62 +1439,69 @@ func Example_test_security_curve() {
 
 	bogus_public, bogus_secret, _ := zmq.NewCurveKeypair()
 	client, err = zmq.NewSocket(zmq.DEALER)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = client.SetCurveServerkey(server_public)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurveServerkey:", err)
 	}
 	err = client.SetCurvePublickey(bogus_public)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurvePublickey:", err)
 	}
 	err = client.SetCurveSecretkey(bogus_secret)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetCurveSecretkey:", err)
 	}
 	err = client.Connect("tcp://127.0.0.1:9998")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.Connect:", err)
 	}
 	err = client.SetRcvtimeo(time.Second)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetRcvtimeo:", err)
 	}
-	bounce(server, client, true)
+	_, err = bounce(server, client)
+	if err == nil {
+		t.Error("Expected failure, got success")
+	}
 	client.SetLinger(0)
 	err = client.Close()
-	if checkErr(err) {
-		return
+	client = nil
+	if err != nil {
+		t.Fatal("client.Close:", err)
 	}
 
 	//  Shutdown
 	err = server.Close()
-	checkErr(err)
-
-	fmt.Println("Done")
-	// Output:
-	// 5 error
-	// 5 error
-	// 5 error
-	// 5 error
-	// Done
-	// Handler closed
-	// Reactor finished
+	server = nil
+	if err != nil {
+		t.Error("server.Close:", err)
+	}
 }
 
-func Example_test_security_null() {
+func TestSecurityNull(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
+	var handler, server, client *zmq.Socket
+	defer func() {
+		for _, s := range []*zmq.Socket{handler} {
+			if s != nil {
+				s.SetLinger(0)
+				s.Close()
+			}
+		}
+	}()
+
 	handler, err := zmq.NewSocket(zmq.REP)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = handler.Bind("inproc://zeromq.zap.01")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("handler.Bind:", err)
 	}
 
 	doHandler := func(state zmq.State) error {
@@ -1557,8 +1533,10 @@ func Example_test_security_null() {
 
 	doQuit := func(i interface{}) error {
 		err := handler.Close()
-		checkErr(err)
-		fmt.Println("Handler closed")
+		handler = nil
+		if err != nil {
+			t.Error("handler.Close:", err)
+		}
 		return errors.New("Quit")
 	}
 	quit := make(chan interface{})
@@ -1568,7 +1546,6 @@ func Example_test_security_null() {
 	reactor.AddChannel(quit, 0, doQuit)
 	go func() {
 		reactor.Run(100 * time.Millisecond)
-		fmt.Println("Reactor finished")
 		quit <- true
 	}()
 	defer func() {
@@ -1578,26 +1555,29 @@ func Example_test_security_null() {
 	}()
 
 	//  We bounce between a binding server and a connecting client
-	server, err := zmq.NewSocket(zmq.DEALER)
-	if checkErr(err) {
-		return
+	server, err = zmq.NewSocket(zmq.DEALER)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
-	client, err := zmq.NewSocket(zmq.DEALER)
-	if checkErr(err) {
-		return
+	client, err = zmq.NewSocket(zmq.DEALER)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 
 	//  We first test client/server with no ZAP domain
 	//  Libzmq does not call our ZAP handler, the connect must succeed
 	err = server.Bind("tcp://127.0.0.1:9683")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.Bind:", err)
 	}
 	err = client.Connect("tcp://127.0.0.1:9683")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.Connect:", err)
 	}
-	bounce(server, client, false)
+	msg, err := bounce(server, client)
+	if err != nil {
+		t.Error(msg, err)
+	}
 	server.Unbind("tcp://127.0.0.1:9683")
 	client.Disconnect("tcp://127.0.0.1:9683")
 
@@ -1605,70 +1585,85 @@ func Example_test_security_null() {
 	//  authentication. We're using the wrong domain so this test
 	//  must fail.
 	err = server.SetZapDomain("WRONG")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.SetZapDomain:", err)
 	}
 	err = server.Bind("tcp://127.0.0.1:9687")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.Bind:", err)
 	}
 	err = client.Connect("tcp://127.0.0.1:9687")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.Connect:", err)
 	}
 	err = client.SetRcvtimeo(time.Second)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetRcvtimeo:", err)
 	}
 	err = server.SetRcvtimeo(time.Second)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.SetRcvtimeo:", err)
 	}
-	bounce(server, client, true)
+	_, err = bounce(server, client)
+	if err == nil {
+		t.Error("Expected failure, got success")
+	}
 	server.Unbind("tcp://127.0.0.1:9687")
 	client.Disconnect("tcp://127.0.0.1:9687")
 
 	//  Now use the right domain, the test must pass
 	err = server.SetZapDomain("TEST")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.SetZapDomain:", err)
 	}
 	err = server.Bind("tcp://127.0.0.1:9688")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.Bind:", err)
 	}
 	err = client.Connect("tcp://127.0.0.1:9688")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.Connect:", err)
 	}
-	bounce(server, client, false)
+	msg, err = bounce(server, client)
+	if err != nil {
+		t.Error(msg, err)
+	}
 	server.Unbind("tcp://127.0.0.1:9688")
 	client.Disconnect("tcp://127.0.0.1:9688")
 
 	err = client.Close()
-	checkErr(err)
+	client = nil
+	if err != nil {
+		t.Error("client.Close:", err)
+	}
 	err = server.Close()
-	checkErr(err)
-
-	fmt.Println("Done")
-	// Output:
-	// 5 error
-	// Done
-	// Handler closed
-	// Reactor finished
+	server = nil
+	if err != nil {
+		t.Error("server.Close:", err)
+	}
 }
 
-func Example_test_security_plain() {
+func TestSecurityPlain(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
+	var handler, server, client *zmq.Socket
+	defer func() {
+		for _, s := range []*zmq.Socket{handler} {
+			if s != nil {
+				s.SetLinger(0)
+				s.Close()
+			}
+		}
+	}()
+
 	handler, err := zmq.NewSocket(zmq.REP)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = handler.Bind("inproc://zeromq.zap.01")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("handler.Bind:", err)
 	}
 
 	doHandler := func(state zmq.State) error {
@@ -1705,8 +1700,9 @@ func Example_test_security_plain() {
 
 	doQuit := func(i interface{}) error {
 		err := handler.Close()
-		checkErr(err)
-		fmt.Println("Handler closed")
+		if err != nil {
+			t.Error("handler.Close:", err)
+		}
 		return errors.New("Quit")
 	}
 	quit := make(chan interface{})
@@ -1716,7 +1712,6 @@ func Example_test_security_plain() {
 	reactor.AddChannel(quit, 0, doQuit)
 	go func() {
 		reactor.Run(100 * time.Millisecond)
-		fmt.Println("Reactor finished")
 		quit <- true
 	}()
 	defer func() {
@@ -1726,347 +1721,147 @@ func Example_test_security_plain() {
 	}()
 
 	//  Server socket will accept connections
-	server, err := zmq.NewSocket(zmq.DEALER)
-	if checkErr(err) {
-		return
+	server, err = zmq.NewSocket(zmq.DEALER)
+	if err != nil {
+		t.Fatal("NewSocket", err)
 	}
 	err = server.SetIdentity("IDENT")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.SetIdentity:", err)
 	}
 	err = server.SetPlainServer(1)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.SetPlainServer(1):", err)
 	}
 	err = server.Bind("tcp://127.0.0.1:9998")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.Bind")
 	}
 
 	//  Check PLAIN security with correct username/password
-	client, err := zmq.NewSocket(zmq.DEALER)
-	if checkErr(err) {
-		return
+	client, err = zmq.NewSocket(zmq.DEALER)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	err = client.SetPlainUsername("admin")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetPlainUsername:", err)
 	}
 	err = client.SetPlainPassword("password")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetPlainPassword:", err)
 	}
 	err = client.Connect("tcp://127.0.0.1:9998")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.Connect:", err)
 	}
-	bounce(server, client, false)
+	msg, err := bounce(server, client)
+	if err != nil {
+		t.Error(msg, err)
+	}
 	err = client.Close()
-	if checkErr(err) {
-		return
+	client = nil
+	if err != nil {
+		t.Fatal("client.Close:", err)
 	}
 
 	//  Check PLAIN security with badly configured client (as_server)
 	//  This will be caught by the plain_server class, not passed to ZAP
 	client, err = zmq.NewSocket(zmq.DEALER)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("NewSocket:", err)
 	}
 	client.SetPlainServer(1)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetPlainServer(1):", err)
 	}
 	err = client.Connect("tcp://127.0.0.1:9998")
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.Connect:", err)
 	}
 	err = client.SetRcvtimeo(time.Second)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("client.SetRcvtimeo:", err)
 	}
 	err = server.SetRcvtimeo(time.Second)
-	if checkErr(err) {
-		return
+	if err != nil {
+		t.Fatal("server.SetRcvtimeo:", err)
 	}
-	bounce(server, client, true)
+	_, err = bounce(server, client)
+	if err == nil {
+		t.Error("Expected failure, got success")
+	}
 	client.SetLinger(0)
 	err = client.Close()
-	if checkErr(err) {
-		return
+	client = nil
+	if err != nil {
+		t.Fatal("client.Close:", err)
 	}
 
 	err = server.Close()
-	checkErr(err)
-
-	fmt.Println("Done")
-	// Output:
-	// 5 error
-	// Done
-	// Handler closed
-	// Reactor finished
-
+	server = nil
+	if err != nil {
+		t.Fatal("server.Close:", err)
+	}
 }
 
-/*
-
-func Example_test_shutdown_stress() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_spec_dealer() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_spec_pushpull() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_spec_rep() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_spec_req() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_spec_router() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_stream() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_sub_forward() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_system() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_term_endpoint() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-func Example_test_timeo() {
-
-	fmt.Println("Done")
-	// Output:
-	// Done
-}
-
-*/
-
-func bounce(server, client *zmq.Socket, willfail bool) {
-
-	content := "12345678ABCDEFGH12345678abcdefgh"
-
-	//  Send message from client to server
-	rc, err := client.Send(content, zmq.SNDMORE|zmq.DONTWAIT)
-	if checkErr0(err, 1) {
-		return
-	}
-	if rc != 32 {
-		checkErr0(errors.New("rc != 32"), 2)
-	}
-
-	rc, err = client.Send(content, zmq.DONTWAIT)
-	if checkErr0(err, 3) {
-		return
-	}
-	if rc != 32 {
-		checkErr0(errors.New("rc != 32"), 4)
-	}
-
-	//  Receive message at server side
-	msg, err := server.Recv(0)
-	if checkErr0(e(err, willfail), 5) {
-		return
-	}
-
-	//  Check that message is still the same
-	if msg != content {
-		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)), 6)
-	}
-
-	rcvmore, err := server.GetRcvmore()
-	if checkErr0(err, 7) {
-		return
-	}
-	if !rcvmore {
-		checkErr0(errors.New(fmt.Sprint("rcvmore ==", rcvmore)), 8)
-		return
-	}
-
-	//  Receive message at server side
-	msg, err = server.Recv(0)
-	if checkErr0(err, 9) {
-		return
-	}
-
-	//  Check that message is still the same
-	if msg != content {
-		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)), 10)
-	}
-
-	rcvmore, err = server.GetRcvmore()
-	if checkErr0(err, 11) {
-		return
-	}
-	if rcvmore {
-		checkErr0(errors.New(fmt.Sprint("rcvmore == ", rcvmore)), 12)
-		return
-	}
-
-	// The same, from server back to client
-
-	//  Send message from server to client
-	rc, err = server.Send(content, zmq.SNDMORE)
-	if checkErr0(err, 13) {
-		return
-	}
-	if rc != 32 {
-		checkErr0(errors.New("rc != 32"), 14)
-	}
-
-	rc, err = server.Send(content, 0)
-	if checkErr0(err, 15) {
-		return
-	}
-	if rc != 32 {
-		checkErr0(errors.New("rc != 32"), 16)
-	}
-
-	//  Receive message at client side
-	msg, err = client.Recv(0)
-	if checkErr0(err, 17) {
-		return
-	}
-
-	//  Check that message is still the same
-	if msg != content {
-		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)), 18)
-	}
-
-	rcvmore, err = client.GetRcvmore()
-	if checkErr0(err, 19) {
-		return
-	}
-	if !rcvmore {
-		checkErr0(errors.New(fmt.Sprint("rcvmore ==", rcvmore)), 20)
-		return
-	}
-
-	//  Receive message at client side
-	msg, err = client.Recv(0)
-	if checkErr0(err, 21) {
-		return
-	}
-
-	//  Check that message is still the same
-	if msg != content {
-		checkErr0(errors.New(fmt.Sprintf("%q != %q", msg, content)), 22)
-	}
-
-	rcvmore, err = client.GetRcvmore()
-	if checkErr0(err, 23) {
-		return
-	}
-	if rcvmore {
-		checkErr0(errors.New(fmt.Sprint("rcvmore == ", rcvmore)), 24)
-		return
-	}
-
-}
-
-func bouncee(server, client *zmq.Socket) (msg string, err error) {
+func bounce(server, client *zmq.Socket) (msg string, err error) {
 
 	content := "12345678ABCDEFGH12345678abcdefgh"
 
 	//  Send message from client to server
 	rc, err := client.Send(content, zmq.SNDMORE|zmq.DONTWAIT)
 	if err != nil {
-		return "client.Send SNDMORE|DONTWAIT", err
+		return "client.Send SNDMORE|DONTWAIT:", err
 	}
 	if rc != 32 {
-		return "client.Send SNDMORE|DONTWAIT", err32
+		return "client.Send SNDMORE|DONTWAIT:", err32
 	}
 
 	rc, err = client.Send(content, zmq.DONTWAIT)
 	if err != nil {
-		return "client.Send DONTWAIT", err
+		return "client.Send DONTWAIT:", err
 	}
 	if rc != 32 {
-		return "client.Send DONTWAIT", err32
+		return "client.Send DONTWAIT:", err32
 	}
 
 	//  Receive message at server side
 	msg, err = server.Recv(0)
 	if err != nil {
-		return "server.Recv 1", err
+		return "server.Recv 1:", err
 	}
 
 	//  Check that message is still the same
 	if msg != content {
-		return "server.Recv 1", errors.New(fmt.Sprintf("%q != %q", msg, content))
+		return "server.Recv 1:", errors.New(fmt.Sprintf("%q != %q", msg, content))
 	}
 
 	rcvmore, err := server.GetRcvmore()
 	if err != nil {
-		return "server.GetRcvmore 1", err
+		return "server.GetRcvmore 1:", err
 	}
 	if !rcvmore {
-		return "server.GetRcvmore 1", errors.New(fmt.Sprint("rcvmore ==", rcvmore))
+		return "server.GetRcvmore 1:", errors.New(fmt.Sprint("rcvmore ==", rcvmore))
 	}
 
 	//  Receive message at server side
 	msg, err = server.Recv(0)
 	if err != nil {
-		return "server.Recv 2", err
+		return "server.Recv 2:", err
 	}
 
 	//  Check that message is still the same
 	if msg != content {
-		return "server.Recv 2", errors.New(fmt.Sprintf("%q != %q", msg, content))
+		return "server.Recv 2:", errors.New(fmt.Sprintf("%q != %q", msg, content))
 	}
 
 	rcvmore, err = server.GetRcvmore()
 	if err != nil {
-		return "server.GetRcvmore 2", err
+		return "server.GetRcvmore 2:", err
 	}
 	if rcvmore {
-		return "server.GetRcvmore 2", errors.New(fmt.Sprint("rcvmore == ", rcvmore))
+		return "server.GetRcvmore 2:", errors.New(fmt.Sprint("rcvmore == ", rcvmore))
 	}
 
 	// The same, from server back to client
@@ -2074,86 +1869,58 @@ func bouncee(server, client *zmq.Socket) (msg string, err error) {
 	//  Send message from server to client
 	rc, err = server.Send(content, zmq.SNDMORE)
 	if err != nil {
-		return "server.Send SNDMORE", err
+		return "server.Send SNDMORE:", err
 	}
 	if rc != 32 {
-		return "server.Send SNDMORE", err32
+		return "server.Send SNDMORE:", err32
 	}
 
 	rc, err = server.Send(content, 0)
 	if err != nil {
-		return "server.Send 0", err
+		return "server.Send 0:", err
 	}
 	if rc != 32 {
-		return "server.Send 0", err32
+		return "server.Send 0:", err32
 	}
 
 	//  Receive message at client side
 	msg, err = client.Recv(0)
 	if err != nil {
-		return "client.Recv 1", err
+		return "client.Recv 1:", err
 	}
 
 	//  Check that message is still the same
 	if msg != content {
-		return "client.Recv 1", errors.New(fmt.Sprintf("%q != %q", msg, content))
+		return "client.Recv 1:", errors.New(fmt.Sprintf("%q != %q", msg, content))
 	}
 
 	rcvmore, err = client.GetRcvmore()
 	if err != nil {
-		return "client.GetRcvmore 1", err
+		return "client.GetRcvmore 1:", err
 	}
 	if !rcvmore {
-		return "client.GetRcvmore 1", errors.New(fmt.Sprint("rcvmore ==", rcvmore))
+		return "client.GetRcvmore 1:", errors.New(fmt.Sprint("rcvmore ==", rcvmore))
 	}
 
 	//  Receive message at client side
 	msg, err = client.Recv(0)
 	if err != nil {
-		return "client.Recv 2", err
+		return "client.Recv 2:", err
 	}
 
 	//  Check that message is still the same
 	if msg != content {
-		return "client.Recv 2", errors.New(fmt.Sprintf("%q != %q", msg, content))
+		return "client.Recv 2:", errors.New(fmt.Sprintf("%q != %q", msg, content))
 	}
 
 	rcvmore, err = client.GetRcvmore()
 	if err != nil {
-		return "client.GetRcvmore 2", err
+		return "client.GetRcvmore 2:", err
 	}
 	if rcvmore {
-		return "client.GetRcvmore 2", errors.New(fmt.Sprint("rcvmore == ", rcvmore))
+		return "client.GetRcvmore 2:", errors.New(fmt.Sprint("rcvmore == ", rcvmore))
 	}
 	return "OK", nil
-}
-
-func checkErr0(err error, num int) bool {
-	if err != nil {
-		fmt.Println(num, err)
-		return true
-	}
-	return false
-}
-
-func checkErr(err error) bool {
-	if err != nil {
-		_, filename, lineno, ok := runtime.Caller(1)
-		if ok {
-			fmt.Printf("%v:%v: %v\n", filename, lineno, err)
-		} else {
-			fmt.Println(err)
-		}
-		return true
-	}
-	return false
-}
-
-func e(err error, willfail bool) error {
-	if err == nil || willfail == false {
-		return err
-	}
-	return errerr
 }
 
 func arrayEqual(a, b []string) bool {

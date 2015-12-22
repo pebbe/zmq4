@@ -15,39 +15,40 @@ func TestRemoteEndpoint(t *testing.T) {
 	addr := "tcp://127.0.0.1:9560"
 	peer := "127.0.0.1"
 
+	var rep, req *zmq.Socket
+	defer func() {
+		for _, s := range []*zmq.Socket{rep, req} {
+			if s != nil {
+				s.SetLinger(0)
+				s.Close()
+			}
+		}
+	}()
+
 	rep, err := zmq.NewSocket(zmq.REP)
 	if err != nil {
 		t.Fatal("NewSocket:", err)
 	}
-	req, err := zmq.NewSocket(zmq.REQ)
+	req, err = zmq.NewSocket(zmq.REQ)
 	if err != nil {
-		rep.Close()
 		t.Fatal("NewSocket:", err)
 	}
 
 	if err = rep.Bind(addr); err != nil {
-		rep.Close()
-		req.Close()
 		t.Fatal("rep.Bind:", err)
 	}
 	if err = req.Connect(addr); err != nil {
-		rep.Close()
-		req.Close()
 		t.Fatal("req.Connect:", err)
 	}
 
 	tmp := "test"
 	if _, err = req.Send(tmp, 0); err != nil {
-		rep.Close()
-		req.Close()
 		t.Fatal("req.Send:", err)
 	}
 
 	// get message with peer address (remote endpoint)
 	msg, props, err := rep.RecvWithMetadata(0, "Peer-Address")
 	if err != nil {
-		rep.Close()
-		req.Close()
 		t.Fatal("rep.RecvWithMetadata:", err)
 		return
 	}
@@ -59,12 +60,15 @@ func TestRemoteEndpoint(t *testing.T) {
 		t.Errorf("rep.RecvWithMetadata: expected Peer-Address == %q, got %q", peer, p)
 	}
 
-	if err = rep.Close(); err != nil {
-		req.Close()
+	err = rep.Close()
+	rep = nil
+	if err != nil {
 		t.Fatal("rep.Close:", err)
 	}
 
-	if err = req.Close(); err != nil {
+	err = req.Close()
+	req = nil
+	if err != nil {
 		t.Fatal("req.Close:", err)
 	}
 }

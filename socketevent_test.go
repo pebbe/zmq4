@@ -17,7 +17,10 @@ func rep_socket_monitor(addr string, chMsg chan<- string) {
 		chMsg <- fmt.Sprint("NewSocket:", err)
 		return
 	}
-	defer s.Close()
+	defer func() {
+		s.SetLinger(0)
+		s.Close()
+	}()
 
 	err = s.Connect(addr)
 	if err != nil {
@@ -41,6 +44,14 @@ func rep_socket_monitor(addr string, chMsg chan<- string) {
 
 func TestSocketEvent(t *testing.T) {
 
+	var rep *zmq.Socket
+	defer func() {
+		if rep != nil {
+			rep.SetLinger(0)
+			rep.Close()
+		}
+	}()
+
 	// REP socket
 	rep, err := zmq.NewSocket(zmq.REP)
 	if err != nil {
@@ -50,7 +61,6 @@ func TestSocketEvent(t *testing.T) {
 	// REP socket monitor, all events
 	err = rep.Monitor("inproc://monitor.rep", zmq.EVENT_ALL)
 	if err != nil {
-		rep.Close()
 		t.Fatal("rep.Monitor:", err)
 	}
 	chMsg := make(chan string, 10)
@@ -60,11 +70,11 @@ func TestSocketEvent(t *testing.T) {
 	// Generate an event
 	err = rep.Bind("tcp://*:9689")
 	if err != nil {
-		rep.Close()
 		t.Fatal("rep.Bind:", err)
 	}
 
 	rep.Close()
+	rep = nil
 
 	expect := []string{
 		"EVENT_LISTENING tcp://0.0.0.0:9689",
