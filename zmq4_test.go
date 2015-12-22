@@ -12,8 +12,7 @@ import (
 )
 
 var (
-	errerr = errors.New("error") // TODO: REMOVE
-	err32  = errors.New("rc != 32")
+	err32 = errors.New("rc != 32")
 )
 
 func TestVersion(t *testing.T) {
