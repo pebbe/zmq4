@@ -27,56 +27,71 @@ func (soc *Socket) SendMessageDontwait(parts ...interface{}) (total int, err err
 
 func (soc *Socket) sendMessage(dontwait Flag, parts ...interface{}) (total int, err error) {
 	// TODO: make this faster
+	// Done, ;)
 
-	// flatten first, just in case the last part may be an empty []string or [][]byte
-	pp := make([]interface{}, 0)
-	for _, p := range parts {
-		switch t := p.(type) {
+	last0 := len(parts) - 1
+	opt := SNDMORE | dontwait
+	for i0, p0 := range parts {
+		switch t0 := p0.(type) {
 		case []string:
-			for _, s := range t {
-				pp = append(pp, s)
+			last1 := len(t0) - 1
+			if last1 < 0 && i0 == last0 {
+				// A bug in the program?, kept for compatibility of the
+				// previous version.
+				// The program has sent an empty slice as last
+				// argument. Force to send the message with no SNDMORE.
+				// I'm (gallir) not sure if must be sent also a zero sized byte
+				// array for intermediate empty slices
+				soc.sendSinglePart(dontwait, []byte{})
+			} else {
+				for i1, p1 := range t0 {
+					if i0 == last0 && i1 == last1 {
+						opt = dontwait
+					}
+					soc.sendSinglePart(opt, p1)
+				}
 			}
 		case [][]byte:
-			for _, b := range t {
-				pp = append(pp, b)
+			last1 := len(t0) - 1
+			if last1 < 0 && i0 == last0 {
+				// A bug in the program, see above comment..
+				soc.sendSinglePart(dontwait, []byte{})
+			} else {
+				for i1, p1 := range t0 {
+					if i0 >= last0 && i1 >= last1 {
+						opt = dontwait
+					}
+					soc.sendSinglePart(opt, p1)
+				}
 			}
 		default:
-			pp = append(pp, t)
+			if i0 == last0 {
+				opt = dontwait
+			}
+			switch t := p0.(type) {
+			case string:
+				soc.sendSinglePart(opt, t)
+			case []byte:
+				soc.sendSinglePart(opt, t)
+			default:
+				soc.sendSinglePart(opt, fmt.Sprintf("%v", t))
+			}
 		}
 	}
+	return
+}
 
-	n := len(pp)
-	if n == 0 {
-		return
+func (soc *Socket) sendSinglePart(opt Flag, part interface{}) (total int, err error) {
+	switch t := part.(type) {
+	case string:
+		total, err = soc.Send(t, opt)
+	case []byte:
+		total, err = soc.SendBytes(t, opt)
+	default:
+		total, err = soc.Send(fmt.Sprintf("%v", t), opt)
 	}
-	opt := SNDMORE | dontwait
-	for i, p := range pp {
-		if i == n-1 {
-			opt = dontwait
-		}
-		switch t := p.(type) {
-		case string:
-			j, e := soc.Send(t, opt)
-			if e == nil {
-				total += j
-			} else {
-				return -1, e
-			}
-		case []byte:
-			j, e := soc.SendBytes(t, opt)
-			if e == nil {
-				total += j
-			} else {
-				return -1, e
-			}
-		default:
-			j, e := soc.Send(fmt.Sprintf("%v", t), opt)
-			if e == nil {
-				total += j
-			} else {
-				return -1, e
-			}
-		}
+	if err != nil {
+		return -1, err
 	}
 	return
 }
