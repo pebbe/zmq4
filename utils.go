@@ -26,53 +26,76 @@ func (soc *Socket) SendMessageDontwait(parts ...interface{}) (total int, err err
 }
 
 func (soc *Socket) sendMessage(dontwait Flag, parts ...interface{}) (total int, err error) {
-	// TODO: make this faster
 
-	// flatten first, just in case the last part may be an empty []string or [][]byte
-	pp := make([]interface{}, 0)
-	for _, p := range parts {
-		switch t := p.(type) {
+	var last int
+PARTS:
+	for last = len(parts) - 1; last >= 0; last-- {
+		switch t := parts[last].(type) {
 		case []string:
-			for _, s := range t {
-				pp = append(pp, s)
+			if len(t) > 0 {
+				break PARTS
 			}
 		case [][]byte:
-			for _, b := range t {
-				pp = append(pp, b)
+			if len(t) > 0 {
+				break PARTS
 			}
 		default:
-			pp = append(pp, t)
+			break PARTS
 		}
 	}
 
-	n := len(pp)
-	if n == 0 {
-		return
-	}
 	opt := SNDMORE | dontwait
-	for i, p := range pp {
-		if i == n-1 {
+	for i := 0; i <= last; i++ {
+		if i == last {
 			opt = dontwait
 		}
-		switch t := p.(type) {
+		switch t := parts[i].(type) {
+		case []string:
+			opt = SNDMORE | dontwait
+			n := len(t) - 1
+			for j, s := range t {
+				if j == n && i == last {
+					opt = dontwait
+				}
+				c, e := soc.Send(s, opt)
+				if e == nil {
+					total += c
+				} else {
+					return -1, e
+				}
+			}
+		case [][]byte:
+			opt = SNDMORE | dontwait
+			n := len(t) - 1
+			for j, b := range t {
+				if j == n && i == last {
+					opt = dontwait
+				}
+				c, e := soc.SendBytes(b, opt)
+				if e == nil {
+					total += c
+				} else {
+					return -1, e
+				}
+			}
 		case string:
-			j, e := soc.Send(t, opt)
+			c, e := soc.Send(t, opt)
 			if e == nil {
-				total += j
+				total += c
 			} else {
 				return -1, e
 			}
 		case []byte:
-			j, e := soc.SendBytes(t, opt)
+			c, e := soc.SendBytes(t, opt)
 			if e == nil {
-				total += j
+				total += c
 			} else {
 				return -1, e
 			}
 		default:
-			j, e := soc.Send(fmt.Sprintf("%v", t), opt)
+			c, e := soc.Send(fmt.Sprintf("%v", t), opt)
 			if e == nil {
-				total += j
+				total += c
 			} else {
 				return -1, e
 			}
