@@ -28,7 +28,7 @@ func (soc *Socket) SendMessageDontwait(parts ...interface{}) (total int, err err
 func (soc *Socket) sendMessage(dontwait Flag, parts ...interface{}) (total int, err error) {
 	// TODO: make this faster
 	// Done, ;)
-
+	var partial int
 	last0 := len(parts) - 1
 	opt := SNDMORE | dontwait
 	for i0, p0 := range parts {
@@ -42,27 +42,44 @@ func (soc *Socket) sendMessage(dontwait Flag, parts ...interface{}) (total int, 
 				// argument. Force to send the message with no SNDMORE.
 				// I'm (gallir) not sure if must be sent also a zero sized byte
 				// array for intermediate empty slices
-				soc.sendSinglePart(dontwait, []byte{})
+				partial, err = soc.sendSinglePart(dontwait, []byte{})
+				total += partial
 			} else {
 				for i1, p1 := range t0 {
 					if i0 == last0 && i1 == last1 {
 						opt = dontwait
 					}
-					soc.sendSinglePart(opt, p1)
+					partial, err = soc.sendSinglePart(opt, p1)
+					if err != nil {
+						break // Don't continue
+					}
+					total += partial
 				}
 			}
+			if err != nil {
+				return -1, err
+			}
+
 		case [][]byte:
 			last1 := len(t0) - 1
 			if last1 < 0 && i0 == last0 {
 				// A bug in the program, see above comment..
-				soc.sendSinglePart(dontwait, []byte{})
+				partial, err = soc.sendSinglePart(dontwait, []byte{})
+				total += partial
 			} else {
 				for i1, p1 := range t0 {
 					if i0 >= last0 && i1 >= last1 {
 						opt = dontwait
 					}
-					soc.sendSinglePart(opt, p1)
+					partial, err = soc.sendSinglePart(opt, p1)
+					if err != nil {
+						break // Don't continue
+					}
+					total += partial
 				}
+			}
+			if err != nil {
+				return -1, err
 			}
 		default:
 			if i0 == last0 {
@@ -70,12 +87,16 @@ func (soc *Socket) sendMessage(dontwait Flag, parts ...interface{}) (total int, 
 			}
 			switch t := p0.(type) {
 			case string:
-				soc.sendSinglePart(opt, t)
+				partial, err = soc.sendSinglePart(opt, t)
 			case []byte:
-				soc.sendSinglePart(opt, t)
+				partial, err = soc.sendSinglePart(opt, t)
 			default:
-				soc.sendSinglePart(opt, fmt.Sprintf("%v", t))
+				partial, err = soc.sendSinglePart(opt, fmt.Sprintf("%v", t))
 			}
+			if err != nil {
+				return -1, err
+			}
+			total += partial
 		}
 	}
 	return
