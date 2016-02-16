@@ -19,7 +19,6 @@ type Polled struct {
 type Poller struct {
 	items []C.zmq_pollitem_t
 	socks []*Socket
-	size  int
 }
 
 // Create a new Poller
@@ -27,20 +26,43 @@ func NewPoller() *Poller {
 	return &Poller{
 		items: make([]C.zmq_pollitem_t, 0),
 		socks: make([]*Socket, 0),
-		size:  0}
+	}
 }
 
 // Add items to the poller
 //
 // Events is a bitwise OR of zmq.POLLIN and zmq.POLLOUT
-func (p *Poller) Add(soc *Socket, events State) {
+//
+// Returns the id of the item, which can be used as a handle to Update and an an index to PollAll
+func (p *Poller) Add(soc *Socket, events State) int {
 	var item C.zmq_pollitem_t
 	item.socket = soc.soc
 	item.fd = 0
 	item.events = C.short(events)
 	p.items = append(p.items, item)
 	p.socks = append(p.socks, soc)
-	p.size += 1
+	return len(p.items) - 1
+}
+
+// Update the Events mask of a poller
+//
+// Replaces the Poller's bitmask for the specified id with the events parameter passed
+func (p *Poller) Update(id int, events State) {
+	if id >= 0 && id < len(p.items) {
+		p.items[id].events = C.short(events)
+	}
+}
+
+// Update the Events mask of a poller
+//
+// Replaces the Poller's bitmask for the specified socket with the events parameter passed
+func (p *Poller) UpdateBySocket(soc *Socket, events State) {
+	for id, _ := range p.socks {
+		if p.socks[id] == soc {
+			p.items[id].events = C.short(events)
+			return
+		}
+	}
 }
 
 /*
@@ -89,7 +111,7 @@ func (p *Poller) PollAll(timeout time.Duration) ([]Polled, error) {
 }
 
 func (p *Poller) poll(timeout time.Duration, all bool) ([]Polled, error) {
-	lst := make([]Polled, 0, p.size)
+	lst := make([]Polled, 0, len(p.items))
 
 	for _, soc := range p.socks {
 		if !soc.opened {

@@ -496,8 +496,9 @@ type State int
 const (
 	// Flags for (*Socket)GetEvents()
 	// See: http://api.zeromq.org/4-1:zmq-getsockopt#toc8
-	POLLIN  = State(C.ZMQ_POLLIN)
-	POLLOUT = State(C.ZMQ_POLLOUT)
+	POLLNONE = State(0)
+	POLLIN   = State(C.ZMQ_POLLIN)
+	POLLOUT  = State(C.ZMQ_POLLOUT)
 )
 
 /*

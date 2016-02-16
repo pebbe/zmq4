@@ -1163,6 +1163,115 @@ func TestPairTcp(t *testing.T) {
 	}
 }
 
+func TestPoller(t *testing.T) {
+
+	var sb, sc *zmq.Socket
+
+	defer func() {
+		for _, s := range []*zmq.Socket{sb, sb} {
+			if s != nil {
+				s.SetLinger(0)
+				s.Close()
+			}
+		}
+	}()
+
+	sb, err := zmq.NewSocket(zmq.PAIR)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
+	}
+
+	err = sb.Bind("tcp://127.0.0.1:9737")
+	if err != nil {
+		t.Fatal("sb.Bind:", err)
+	}
+
+	sc, err = zmq.NewSocket(zmq.PAIR)
+	if err != nil {
+		t.Fatal("NewSocket:", err)
+	}
+
+	err = sc.Connect("tcp://127.0.0.1:9737")
+	if err != nil {
+		t.Fatal("sc.Connect:", err)
+	}
+
+	poller := zmq.NewPoller()
+	idxb := poller.Add(sb, zmq.POLLNONE)
+	idxc := poller.Add(sc, zmq.POLLNONE)
+	if idxb != 0 || idxc != 1 {
+		t.Errorf("idxb=%d idxc=%d", idxb, idxc)
+	}
+
+	if pa, err := poller.PollAll(100 * time.Millisecond); err != nil {
+		t.Error("PollAll 1:", err)
+	} else if len(pa) != 2 {
+		t.Errorf("PollAll 1 len = %d", len(pa))
+	} else if pa[0].Events != zmq.POLLNONE || pa[1].Events != zmq.POLLNONE {
+		t.Errorf("PollAll 1 events = %v, %v", pa[0], pa[1])
+	}
+
+	poller.Update(idxb, zmq.POLLOUT)
+	poller.UpdateBySocket(sc, zmq.POLLIN)
+
+	if pa, err := poller.PollAll(100 * time.Millisecond); err != nil {
+		t.Error("PollAll 2:", err)
+	} else if len(pa) != 2 {
+		t.Errorf("PollAll 2 len = %d", len(pa))
+	} else if pa[0].Events != zmq.POLLOUT || pa[1].Events != zmq.POLLNONE {
+		t.Errorf("PollAll 2 events = %v, %v", pa[0], pa[1])
+	}
+
+	poller.UpdateBySocket(sb, zmq.POLLNONE)
+
+	content := "12345678ABCDEFGH12345678abcdefgh"
+
+	//  Send message from client to server
+	if rc, err := sb.Send(content, zmq.DONTWAIT); err != nil {
+		t.Error("sb.Send DONTWAIT:", err)
+	} else if rc != 32 {
+		t.Error("sb.Send DONTWAIT:", err32)
+	}
+
+	if pa, err := poller.PollAll(100 * time.Millisecond); err != nil {
+		t.Error("PollAll 3:", err)
+	} else if len(pa) != 2 {
+		t.Errorf("PollAll 3 len = %d", len(pa))
+	} else if pa[0].Events != zmq.POLLNONE || pa[1].Events != zmq.POLLIN {
+		t.Errorf("PollAll 3 events = %v, %v", pa[0], pa[1])
+	}
+
+	//  Receive message
+	if msg, err := sc.Recv(zmq.DONTWAIT); err != nil {
+		t.Error("sb.Recv DONTWAIT:", err)
+	} else if msg != content {
+		t.Error("sb.Recv msg != content")
+	}
+
+	poller.UpdateBySocket(sb, zmq.POLLOUT)
+	poller.Update(idxc, zmq.POLLIN)
+
+	if pa, err := poller.PollAll(100 * time.Millisecond); err != nil {
+		t.Error("PollAll 4:", err)
+	} else if len(pa) != 2 {
+		t.Errorf("PollAll 4 len = %d", len(pa))
+	} else if pa[0].Events != zmq.POLLOUT || pa[1].Events != zmq.POLLNONE {
+		t.Errorf("PollAll 4 events = %v, %v", pa[0], pa[1])
+	}
+
+	err = sc.Close()
+	sc = nil
+	if err != nil {
+		t.Error("sc.Close:", err)
+	}
+
+	err = sb.Close()
+	sb = nil
+	if err != nil {
+		t.Error("sb.Close:", err)
+	}
+}
+
 func TestSecurityCurve(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
