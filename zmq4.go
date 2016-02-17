@@ -629,6 +629,14 @@ func (soc *Socket) Close() error {
 	return soc.err
 }
 
+// Return the context associated with a socket
+func (soc *Socket) Context() (*Context, error) {
+	if !soc.opened {
+		return nil, ErrorSocketClosed
+	}
+	return soc.ctx, nil
+}
+
 /*
 Accept incoming connections on a socket.
 
