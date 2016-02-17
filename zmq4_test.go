@@ -1065,7 +1065,7 @@ func TestPairIpc(t *testing.T) {
 	var sb, sc *zmq.Socket
 
 	defer func() {
-		for _, s := range []*zmq.Socket{sb, sb} {
+		for _, s := range []*zmq.Socket{sb, sc} {
 			if s != nil {
 				s.SetLinger(0)
 				s.Close()
@@ -1116,7 +1116,7 @@ func TestPairTcp(t *testing.T) {
 	var sb, sc *zmq.Socket
 
 	defer func() {
-		for _, s := range []*zmq.Socket{sb, sb} {
+		for _, s := range []*zmq.Socket{sb, sc} {
 			if s != nil {
 				s.SetLinger(0)
 				s.Close()
@@ -1168,7 +1168,7 @@ func TestPoller(t *testing.T) {
 	var sb, sc *zmq.Socket
 
 	defer func() {
-		for _, s := range []*zmq.Socket{sb, sb} {
+		for _, s := range []*zmq.Socket{sb, sc} {
 			if s != nil {
 				s.SetLinger(0)
 				s.Close()
