@@ -38,7 +38,7 @@ LOOP:
 				log.Println("Client Recv:", err)
 				break
 			} else {
-				// some error occured
+				// some error occurred
 				log.Panicln(err)
 			}
 		}
