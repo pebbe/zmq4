@@ -25,7 +25,7 @@ func main() {
 	//  Initialize random number generator
 	rand.Seed(time.Now().UnixNano())
 
-	// loop for a while aparently
+	// loop for a while apparently
 	for {
 
 		//  Get values that will fool the boss

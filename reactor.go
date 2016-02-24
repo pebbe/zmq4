@@ -103,7 +103,7 @@ func (r *Reactor) AddChannelTime(ch <-chan time.Time, limit int, handler func(in
 
 // Remove a channel from the reactor.
 //
-// Closed channels are removed automaticly.
+// Closed channels are removed automatically.
 func (r *Reactor) RemoveChannel(id uint64) {
 	r.remove = append(r.remove, id)
 }
