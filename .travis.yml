@@ -1,4 +1,5 @@
 language: go
+warnings_are_errors: false
 
 go:
   - 1.4
