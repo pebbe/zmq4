@@ -1,3 +1,5 @@
+# zmqchan [![Build Status](https://travis-ci.org/abligh/zmqchan.svg?branch=master)](https://travis-ci.org/abligh/zmqchan) [![GoDoc](http://godoc.org/github.com/abligh/zmqchan?status.png)](http://godoc.org/github.com/abligh/zmqchan) [![GitHub release](https://img.shields.io/github/release/abligh/zmqchan.svg)](https://github.com/abligh/zmqchan/releases)
+zmqchan provides an idiomatic channels interface for go to zeromq
 
 A library to provide channels for the [Go interface](https://github.com/pebbe/zmq4) to [ZeroMQ](http://www.zeromq.org/) version 4.
 
