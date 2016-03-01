@@ -1,3 +1,4 @@
+sudo: required
 language: go
 warnings_are_errors: false
 
