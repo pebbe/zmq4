@@ -30,5 +30,6 @@ func main() {
 		//  Send reply back to client
 		reply := "World"
 		responder.Send(reply, 0)
+		fmt.Println("Sent ", reply)
 	}
 }
