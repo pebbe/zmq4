@@ -36,6 +36,7 @@ const (
 	ENOTSUP         = Errno(C.ENOTSUP)
 	EPROTONOSUPPORT = Errno(C.EPROTONOSUPPORT)
 	ETIMEDOUT       = Errno(C.ETIMEDOUT)
+	EAGAIN          = Errno(C.EAGAIN)
 
 	// Native 0MQ error codes.
 	EFSM           = Errno(C.EFSM)
