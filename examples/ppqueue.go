@@ -45,9 +45,9 @@ func s_worker_ready(self worker_t, workers []worker_t) []worker_t {
 			if i == 0 {
 				workers = workers[1:]
 			} else if i == len(workers)-1 {
-				workers = workers[:i-1]
+				workers = workers[:i]
 			} else {
-				workers = append(workers[:i-1], workers[i:]...)
+				workers = append(workers[:i], workers[i+1:]...)
 			}
 			break
 		}
