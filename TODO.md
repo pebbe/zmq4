@@ -28,10 +28,6 @@ see: https://github.com/zeromq/libzmq/releases/tag/v4.2.0
 
 See `doc/zmq_setsockopt.txt` and `doc/zmq_getsockopt.txt` for details.
 
-### New CURVE helper function to derive z85 public key from secret key:
-
-    zmq_curve_public
-
 ### New DRAFT APIs early-release mechanism.
 
 New APIs will be introduced early in public releases, and until they are

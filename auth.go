@@ -15,10 +15,25 @@ Notable differences in here:
 
 package zmq4
 
+/*
+#include <zmq.h>
+#include <stdlib.h>
+
+#if ZMQ_VERSION_MINOR < 2
+// Version < 4.2.x
+
+int zmq_curve_public (char *z85_public_key, const char *z85_secret_key) { return 0; }
+
+#endif // Version < 4.2.x
+*/
+import "C"
+
 import (
 	"errors"
 	"log"
 	"net"
+	"strings"
+	"unsafe"
 )
 
 const CURVE_ALLOW_ANY = "*"
@@ -609,4 +624,22 @@ func (client *Socket) ClientAuthCurve(server_public_key, client_public_key, clie
 		client.SetCurveSecretkey(client_secret_key)
 	}
 	return err
+}
+
+// Helper function to derive z85 public key from secret key
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+func AuthCurvePublic(z85SecretKey string) (z85PublicKey string, err error) {
+	if minor < 2 {
+		return "", ErrorNotImplemented42
+	}
+	secret := C.CString(z85SecretKey)
+	defer C.free(unsafe.Pointer(secret))
+	public := C.CString(strings.Repeat(" ", 41))
+	defer C.free(unsafe.Pointer(public))
+	if i, err := C.zmq_curve_public(public, secret); int(i) != 0 {
+		return "", errget(err)
+	}
+	z85PublicKey = C.GoString(public)
+	return z85PublicKey, nil
 }

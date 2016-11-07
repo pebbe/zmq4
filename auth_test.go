@@ -6,6 +6,24 @@ import (
 	"testing"
 )
 
+func TestAuthCurvePublic(t *testing.T) {
+	if _, minor, _ := zmq.Version(); minor < 2 {
+		t.Skip("CurvePublic not available in ZeroMQ versions prior to 4.2.0")
+	}
+	expected := "Yne@$w-vo<fVvi]a<NY6T1ed:M$fCG*[IaLV{hID"
+	public, err := zmq.AuthCurvePublic("D:)Q[IlAW!ahhC2ac:9*A}h:p?([4%wOTJ%JR%cs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if public != expected {
+		t.Fatalf("Expected: %s, got: %s", expected, public)
+	}
+	public, err = zmq.AuthCurvePublic("blabla")
+	if err == nil {
+		t.Fatal("Error expected")
+	}
+}
+
 func TestAuthStart(t *testing.T) {
 
 	if _, minor, _ := zmq.Version(); minor >= 1 && !zmq.HasCurve() {
