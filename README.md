@@ -3,8 +3,9 @@ A Go interface to [ZeroMQ](http://www.zeromq.org/) version 4.
 [![Go Report Card](https://goreportcard.com/badge/github.com/pebbe/zmq4)](https://goreportcard.com/report/github.com/pebbe/zmq4)
 [![GoDoc](https://godoc.org/github.com/pebbe/zmq4?status.svg)](https://godoc.org/github.com/pebbe/zmq4)
 
-This requires ZeroMQ version 4.0.1 or above. To use CURVE security,
-ZeroMQ must be installed with [libsodium](https://github.com/jedisct1/libsodium) enabled.
+This requires ZeroMQ version 4.0.1 or above. To use CURVE security in
+versions prior to 4.2, ZeroMQ must be installed with
+[libsodium](https://github.com/jedisct1/libsodium) enabled.
 
 For ZeroMQ version 3, see: http://github.com/pebbe/zmq3
 
