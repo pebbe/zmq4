@@ -248,6 +248,31 @@ func (ctx *Context) GetIpv6() (bool, error) {
 	return true, e
 }
 
+/*
+Returns the blocky setting in the default context.
+
+Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+*/
+func GetBlocky() (bool, error) {
+	return defaultCtx.GetBlocky()
+}
+
+/*
+Returns the blocky setting.
+
+Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+*/
+func (ctx *Context) GetBlocky() (bool, error) {
+	if minor < 2 {
+		return false, ErrorNotImplemented42
+	}
+	i, e := getOption(ctx, C.ZMQ_BLOCKY)
+	if i == 0 {
+		return false, e
+	}
+	return true, e
+}
+
 func setOption(ctx *Context, o C.int, n int) error {
 	if !ctx.opened {
 		return ErrorContextClosed
@@ -391,6 +416,35 @@ func (ctx *Context) SetIpv6(i bool) error {
 		n = 1
 	}
 	return setOption(ctx, C.ZMQ_IPV6, n)
+}
+
+/*
+Sets the blocky behavior in the default context.
+
+See: http://api.zeromq.org/4-2:zmq-ctx-set#toc3
+
+Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+*/
+func SetBlocky(i bool) error {
+	return defaultCtx.SetBlocky(i)
+}
+
+/*
+Sets the blocky behavior.
+
+See: http://api.zeromq.org/4-2:zmq-ctx-set#toc3
+
+Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+*/
+func (ctx *Context) SetBlocky(i bool) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	n := 0
+	if i {
+		n = 1
+	}
+	return setOption(ctx, C.ZMQ_BLOCKY, n)
 }
 
 //. Sockets
