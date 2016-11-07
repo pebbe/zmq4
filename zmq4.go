@@ -47,18 +47,6 @@ int zmq_proxy_steerable (const void *frontend, const void *backend, const void *
 
 #endif // Version == 4.0.x
 
-#if ZMQ_VERSION_MINOR < 2
-// Version < 4.2.x
-
-void *zmq_atomic_counter_new (void) { return NULL; }
-void zmq_atomic_counter_set (void *counter, int value) { }
-int zmq_atomic_counter_inc (void *counter) { return 0; }
-int zmq_atomic_counter_dec (void *counter) { return 0; }
-int zmq_atomic_counter_value (void *counter) { return 0; }
-void zmq_atomic_counter_destroy (void **counter_p) { }
-
-#endif // Version < 4.2.x
-
 void zmq4_get_event40(zmq_msg_t *msg, int *ev, int *val) {
     zmq_event_t event;
     const char* data = (char*)zmq_msg_data(msg);

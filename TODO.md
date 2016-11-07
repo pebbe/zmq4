@@ -32,17 +32,6 @@ See `doc/zmq_setsockopt.txt` and `doc/zmq_getsockopt.txt` for details.
 
     zmq_curve_public
 
-### New cross-platform atomic counter helper functions:
-
-    zmq_atomic_counter_new
-	zmq_atomic_counter_set
-	zmq_atomic_counter_inc
-    zmq_atomic_counter_dec
-	zmq_atomic_counter_value
-	zmq_atomic_counter_destroy
-	
-See `doc/zmq_atomic_*.txt` for details.
-
 ### New DRAFT APIs early-release mechanism.
 
 New APIs will be introduced early in public releases, and until they are
