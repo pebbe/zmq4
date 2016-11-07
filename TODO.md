@@ -2,32 +2,6 @@
 
 see: https://github.com/zeromq/libzmq/releases/tag/v4.2.0
  
-### New Socket options:
-
-	ZMQ_HANDSHAKE_IVL
-	ZMQ_SOCKS_PROXY
-	ZMQ_XPUB_NODROP
-	ZMQ_BLOCKY
-	ZMQ_XPUB_MANUAL
-	ZMQ_XPUB_WELCOME_MSG
-	ZMQ_STREAM_NOTIFY
-	ZMQ_INVERT_MATCHING
-	ZMQ_HEARTBEAT_IVL
-	ZMQ_HEARTBEAT_TTL
-	ZMQ_HEARTBEAT_TIMEOUT
-	ZMQ_XPUB_VERBOSER
-	ZMQ_CONNECT_TIMEOUT
-	ZMQ_TCP_MAXRT
-	ZMQ_THREAD_SAFE
-	ZMQ_MULTICAST_MAXTPDU
-	ZMQ_VMCI_BUFFER_SIZE
-	ZMQ_VMCI_BUFFER_MIN_SIZE
-	ZMQ_VMCI_BUFFER_MAX_SIZE
-	ZMQ_VMCI_CONNECT_TIMEOUT
-	ZMQ_USE_FD
-
-See `doc/zmq_setsockopt.txt` and `doc/zmq_getsockopt.txt` for details.
-
 ### New DRAFT APIs early-release mechanism.
 
 New APIs will be introduced early in public releases, and until they are

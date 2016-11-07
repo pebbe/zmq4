@@ -471,6 +471,9 @@ func (soc *Socket) GetGssapiPlaintext() (bool, error) {
 //
 // See: http://api.zeromq.org/4-1:zmq-getsockopt#toc14
 func (soc *Socket) GetHandshakeIvl() (time.Duration, error) {
+	if minor < 1 {
+		return time.Duration(0), ErrorNotImplemented41
+	}
 	v, err := soc.getInt(C.ZMQ_HANDSHAKE_IVL)
 	return time.Duration(v) * time.Millisecond, err
 }
@@ -487,3 +490,159 @@ func (soc *Socket) GetSocksProxy() (string, error) {
 }
 
 // ZMQ_XPUB_NODROP: SET ONLY? (not documented)
+
+////////////////////////////////////////////////////////////////
+//
+// New in ZeroMQ 4.2.0
+//
+////////////////////////////////////////////////////////////////
+//
+// + : yes
+// o : setsockopt only
+//                                implemented  documented test
+// ZMQ_BLOCKY
+// ZMQ_XPUB_MANUAL                      o
+// ZMQ_XPUB_WELCOME_MSG                 o
+// ZMQ_STREAM_NOTIFY                    o
+// ZMQ_INVERT_MATCHING                  +         +
+// ZMQ_HEARTBEAT_IVL                    o
+// ZMQ_HEARTBEAT_TTL                    o
+// ZMQ_HEARTBEAT_TIMEOUT                o
+// ZMQ_XPUB_VERBOSER                    o
+// ZMQ_CONNECT_TIMEOUT                  +         +
+// ZMQ_TCP_MAXRT                        +         +
+// ZMQ_THREAD_SAFE                      +         +
+// ZMQ_MULTICAST_MAXTPDU                +         +
+// ZMQ_VMCI_BUFFER_SIZE                 +         +
+// ZMQ_VMCI_BUFFER_MIN_SIZE             +         +
+// ZMQ_VMCI_BUFFER_MAX_SIZE             +         +
+// ZMQ_VMCI_CONNECT_TIMEOUT             +         +
+// ZMQ_USE_FD                           +         +
+//
+////////////////////////////////////////////////////////////////
+
+// ZMQ_BLOCKY doesn't look like a socket option
+
+// ZMQ_INVERT_MATCHING: Retrieve inverted filtering status
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-getsockopt#toc18
+func (soc *Socket) GetInvertMatching() (int, error) {
+	if minor < 2 {
+		return 0, ErrorNotImplemented42
+	}
+	return soc.getInt(C.ZMQ_INVERT_MATCHING)
+}
+
+// ZMQ_CONNECT_TIMEOUT: Retrieve connect() timeout
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-getsockopt#toc5
+func (soc *Socket) GetConnectTimeout() (time.Duration, error) {
+	if minor < 2 {
+		return time.Duration(0), ErrorNotImplemented42
+	}
+	v, err := soc.getInt(C.ZMQ_CONNECT_TIMEOUT)
+	return time.Duration(v) * time.Millisecond, err
+}
+
+// ZMQ_TCP_MAXRT: Retrieve Max TCP Retransmit Timeout
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-getsockopt#toc44
+func (soc *Socket) GetTcpMaxrt() (time.Duration, error) {
+	if minor < 2 {
+		return time.Duration(0), ErrorNotImplemented42
+	}
+	v, err := soc.getInt(C.ZMQ_TCP_MAXRT)
+	return time.Duration(v) * time.Millisecond, err
+}
+
+// ZMQ_THREAD_SAFE: Retrieve socket thread safety
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-getsockopt#toc45
+func (soc *Socket) GetThreadSafe() (bool, error) {
+	if minor < 2 {
+		return false, ErrorNotImplemented42
+	}
+	v, err := soc.getInt(C.ZMQ_THREAD_SAFE)
+	return v != 0, err
+}
+
+// ZMQ_MULTICAST_MAXTPDU: Maximum transport data unit size for multicast packets
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-getsockopt#toc26
+func (soc *Socket) GetMulticastMaxtpdu() (int, error) {
+	if minor < 2 {
+		return 0, ErrorNotImplemented42
+	}
+	return soc.getInt(C.ZMQ_MULTICAST_MAXTPDU)
+}
+
+// ZMQ_VMCI_BUFFER_SIZE: Retrieve buffer size of the VMCI socket
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-getsockopt#toc49
+func (soc *Socket) GetVmciBufferSize() (uint64, error) {
+	if minor < 2 {
+		return 0, ErrorNotImplemented42
+	}
+	return soc.getUInt64(C.ZMQ_VMCI_BUFFER_SIZE)
+}
+
+// ZMQ_VMCI_BUFFER_MIN_SIZE: Retrieve min buffer size of the VMCI socket
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-getsockopt#toc50
+func (soc *Socket) GetVmciBufferMinSize() (uint64, error) {
+	if minor < 2 {
+		return 0, ErrorNotImplemented42
+	}
+	return soc.getUInt64(C.ZMQ_VMCI_BUFFER_MIN_SIZE)
+}
+
+// ZMQ_VMCI_BUFFER_MAX_SIZE: Retrieve max buffer size of the VMCI socket
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-getsockopt#toc51
+func (soc *Socket) GetVmciBufferMaxSize() (uint64, error) {
+	if minor < 2 {
+		return 0, ErrorNotImplemented42
+	}
+	return soc.getUInt64(C.ZMQ_VMCI_BUFFER_MAX_SIZE)
+}
+
+// ZMQ_VMCI_CONNECT_TIMEOUT: Retrieve connection timeout of the VMCI socket
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-getsockopt#toc52
+func (soc *Socket) GetVmciConnectTimeout() (time.Duration, error) {
+	if minor < 2 {
+		return time.Duration(0), ErrorNotImplemented42
+	}
+	v, err := soc.getInt(C.ZMQ_VMCI_CONNECT_TIMEOUT)
+	return time.Duration(v) * time.Millisecond, err
+}
+
+// ZMQ_USE_FD: Retrieve the pre-allocated socket file descriptor
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-getsockopt#toc29
+func (soc *Socket) Getusefd() (int, error) {
+	if minor < 2 {
+		return 0, ErrorNotImplemented42
+	}
+	return soc.getInt(C.ZMQ_USE_FD)
+}

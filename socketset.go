@@ -251,7 +251,7 @@ func (soc *Socket) SetRouterMandatory(value int) error {
 
 // ZMQ_ROUTER_RAW: switch ROUTER socket to raw mode
 //
-// This option is deprecated, please use ZMQ_STREAM sockets instead.
+// This option is deprecated since ZeroMQ version 4.1, please use ZMQ_STREAM sockets instead.
 //
 // See: http://api.zeromq.org/4-1:zmq-setsockopt#toc37
 func (soc *Socket) SetRouterRaw(value int) error {
@@ -316,7 +316,7 @@ func (soc *Socket) SetTcpKeepaliveIntvl(value int) error {
 
 // ZMQ_TCP_ACCEPT_FILTER: Assign filters to allow new TCP connections
 //
-// This option is deprecated, please use authentication via
+// This option is deprecated since ZeroMQ version 4.1, please use authentication via
 // the ZAP API and IP address whitelisting / blacklisting.
 //
 // See: http://api.zeromq.org/4-1:zmq-setsockopt#toc50
@@ -550,9 +550,13 @@ func (soc *Socket) SetSocksProxy(value string) error {
 	return soc.setString(C.ZMQ_SOCKS_PROXY, value)
 }
 
-// ZMQ_XPUB_NODROP: NOT DOCUMENTED
+// Available since ZeroMQ 4.1, documented since ZeroMQ 4.2
+
+// ZMQ_XPUB_NODROP: do not silently drop messages if SENDHWM is reached
 //
 // Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc60
 func (soc *Socket) SetXpubNodrop(value bool) error {
 	if minor < 1 {
 		return ErrorNotImplemented41
@@ -562,4 +566,235 @@ func (soc *Socket) SetXpubNodrop(value bool) error {
 		val = 1
 	}
 	return soc.setInt(C.ZMQ_XPUB_NODROP, val)
+}
+
+////////////////////////////////////////////////////////////
+//
+// New in ZeroMQ 4.2.0
+//
+////////////////////////////////////////////////////////////////
+//
+// + : yes
+// o : getsockopt only
+//                                implemented  documented test
+// ZMQ_BLOCKY
+// ZMQ_XPUB_MANUAL                      +         +
+// ZMQ_XPUB_WELCOME_MSG                 +         +
+// ZMQ_STREAM_NOTIFY                    +         +
+// ZMQ_INVERT_MATCHING                  +         +
+// ZMQ_HEARTBEAT_IVL                    +         +
+// ZMQ_HEARTBEAT_TTL                    +         +
+// ZMQ_HEARTBEAT_TIMEOUT                +         +
+// ZMQ_XPUB_VERBOSER                    +         +
+// ZMQ_CONNECT_TIMEOUT                  +         +
+// ZMQ_TCP_MAXRT                        +         +
+// ZMQ_THREAD_SAFE                      o
+// ZMQ_MULTICAST_MAXTPDU                +         +
+// ZMQ_VMCI_BUFFER_SIZE                 +         +
+// ZMQ_VMCI_BUFFER_MIN_SIZE             +         +
+// ZMQ_VMCI_BUFFER_MAX_SIZE             +         +
+// ZMQ_VMCI_CONNECT_TIMEOUT             +         +
+// ZMQ_USE_FD                           +         +
+//
+////////////////////////////////////////////////////////////////
+
+// ZMQ_XPUB_MANUAL: change the subscription handling to manual
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc59
+func (soc *Socket) SetXpubManual(value int) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	return soc.setInt(C.ZMQ_XPUB_MANUAL, value)
+}
+
+// ZMQ_XPUB_WELCOME_MSG: set welcome message that will be received by subscriber when connecting
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc61
+func (soc *Socket) SetXpubWelcomeMsg(value string) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	if value == "" {
+		return soc.setNullString(C.ZMQ_XPUB_WELCOME_MSG)
+	}
+	return soc.setString(C.ZMQ_XPUB_WELCOME_MSG, value)
+}
+
+// ZMQ_STREAM_NOTIFY: send connect and disconnect notifications
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc48
+func (soc *Socket) SetStreamNotify(value int) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	return soc.setInt(C.ZMQ_STREAM_NOTIFY, value)
+}
+
+// ZMQ_INVERT_MATCHING: Invert message filtering
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc22
+func (soc *Socket) SetInvertMatching(value int) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	return soc.setInt(C.ZMQ_INVERT_MATCHING, value)
+}
+
+// ZMQ_HEARTBEAT_IVL: Set interval between sending ZMTP heartbeats
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc17
+func (soc *Socket) SetHeartbeatIvl(value time.Duration) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	val := int(value / time.Millisecond)
+	return soc.setInt(C.ZMQ_HEARTBEAT_IVL, val)
+}
+
+// ZMQ_HEARTBEAT_TTL: Set the TTL value for ZMTP heartbeats
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc19
+func (soc *Socket) SetHeartbeatTtl(value time.Duration) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	val := int(value / time.Millisecond)
+	return soc.setInt(C.ZMQ_HEARTBEAT_TTL, val)
+}
+
+// ZMQ_HEARTBEAT_TIMEOUT: Set timeout for ZMTP heartbeats
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc18
+func (soc *Socket) SetHeartbeatTimeout(value time.Duration) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	val := int(value / time.Millisecond)
+	return soc.setInt(C.ZMQ_HEARTBEAT_TIMEOUT, val)
+}
+
+// ZMQ_XPUB_VERBOSER: pass subscribe and unsubscribe messages on XPUB socket
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc58
+func (soc *Socket) SetXpubVerboser(value int) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	return soc.setInt(C.ZMQ_XPUB_VERBOSER, value)
+}
+
+// ZMQ_CONNECT_TIMEOUT: Set connect() timeout
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc7
+func (soc *Socket) SetConnectTimeout(value time.Duration) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	val := int(value / time.Millisecond)
+	return soc.setInt(C.ZMQ_CONNECT_TIMEOUT, val)
+}
+
+// ZMQ_TCP_MAXRT: Set TCP Maximum Retransmit Timeout
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc54
+func (soc *Socket) SetTcpMaxrt(value time.Duration) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	val := int(value / time.Millisecond)
+	return soc.setInt(C.ZMQ_TCP_MAXRT, val)
+}
+
+// ZMQ_MULTICAST_MAXTPDU: Maximum transport data unit size for multicast packets
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc27
+func (soc *Socket) SetMulticastMaxtpdu(value int) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	return soc.setInt(C.ZMQ_MULTICAST_MAXTPDU, value)
+}
+
+// ZMQ_VMCI_BUFFER_SIZE: Set buffer size of the VMCI socket
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc68
+func (soc *Socket) SetVmciBufferSize(value uint64) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	return soc.setUInt64(C.ZMQ_VMCI_BUFFER_SIZE, value)
+}
+
+// ZMQ_VMCI_BUFFER_MIN_SIZE: Set min buffer size of the VMCI socket
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc69
+func (soc *Socket) SetVmciBufferMinSize(value uint64) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	return soc.setUInt64(C.ZMQ_VMCI_BUFFER_MIN_SIZE, value)
+}
+
+// ZMQ_VMCI_BUFFER_MAX_SIZE: Set max buffer size of the VMCI socket
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc70
+func (soc *Socket) SetVmciBufferMaxSize(value uint64) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	return soc.setUInt64(C.ZMQ_VMCI_BUFFER_MAX_SIZE, value)
+}
+
+// ZMQ_VMCI_CONNECT_TIMEOUT: Set connection timeout of the VMCI socket
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc71
+func (soc *Socket) SetVmciConnectTimeout(value time.Duration) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	val := int(value / time.Millisecond)
+	return soc.setInt(C.ZMQ_VMCI_CONNECT_TIMEOUT, val)
+}
+
+// ZMQ_USE_FD: Set the pre-allocated socket file descriptor
+//
+// Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
+//
+// See: http://api.zeromq.org/4-2:zmq-setsockopt#toc31
+func (soc *Socket) SetUseFd(value int) error {
+	if minor < 2 {
+		return ErrorNotImplemented42
+	}
+	return soc.setInt(C.ZMQ_USE_FD, value)
 }
