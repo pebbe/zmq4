@@ -24,7 +24,7 @@ Keywords: zmq, zeromq, 0mq, networks, distributed computing, message passing, fa
 
     go get github.com/pebbe/zmq4
 
-If you need support for ZeroMQ 4.2 DRAFT, checkout the branch `draft42`.
+If you need support for ZeroMQ 4.2 DRAFT, checkout the branch `draft4.2`.
 
 ## Docs
 
