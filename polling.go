@@ -75,6 +75,35 @@ func (p *Poller) UpdateBySocket(soc *Socket, events State) (previous State, err 
 	return 0, ErrorNoSocket
 }
 
+// Remove a socket from the poller
+//
+// Returns ErrorNoSocket if the id was out of range
+func (p *Poller) Remove(id int) error {
+	if id >= 0 && id < len(p.items) {
+		if id == len(p.items)-1 {
+			p.items = p.items[:id]
+			p.socks = p.socks[:id]
+		} else {
+			p.items = append(p.items[:id], p.items[id+1:]...)
+			p.socks = append(p.socks[:id], p.socks[id+1:]...)
+		}
+		return nil
+	}
+	return ErrorNoSocket
+}
+
+// Remove a socket from the poller
+//
+// Returns ErrorNoSocket if the socket didn't match
+func (p *Poller) RemoveBySocket(soc *Socket) error {
+	for id, s := range p.socks {
+		if s == soc {
+			return p.Remove(id)
+		}
+	}
+	return ErrorNoSocket
+}
+
 /*
 Input/output multiplexing
 
