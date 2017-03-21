@@ -434,20 +434,20 @@ func TestCtxOptions(t *testing.T) {
 	}
 
 	b, err := zmq.GetIpv6()
-	if b != false || err != nil {
+	if b || err != nil {
 		t.Errorf("GetIpv6 1: expected false <nil>, got %v %v", b, err)
 	}
 
 	zmq.SetIpv6(true)
 	defer zmq.SetIpv6(false)
 	b, err = zmq.GetIpv6()
-	if b != true || err != nil {
+	if !b || err != nil {
 		t.Errorf("GetIpv6 2: expected true <nil>, got %v %v", b, err)
 	}
 
 	router, _ := zmq.NewSocket(zmq.ROUTER)
 	b, err = router.GetIpv6()
-	if b != true || err != nil {
+	if !b || err != nil {
 		t.Errorf("GetIpv6 3: expected true <nil>, got %v %v", b, err)
 	}
 	router.Close()
@@ -514,12 +514,12 @@ func TestDisconnectInproc(t *testing.T) {
 					}
 
 					if buffer[0] == 0 {
-						if isSubscribed != true {
+						if !isSubscribed {
 							t.Errorf("Poller: expected subscribed")
 						}
 						isSubscribed = false
 					} else {
-						if isSubscribed != false {
+						if isSubscribed {
 							t.Errorf("Poller: expected not subscribed")
 						}
 						isSubscribed = true
