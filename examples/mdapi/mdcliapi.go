@@ -116,8 +116,9 @@ func (mdcli *Mdcli) Send(service string, request ...string) (reply []string, err
 		log.Printf("I: send request to '%s' service: %q\n", service, req)
 	}
 	for retries_left := mdcli.retries; retries_left > 0; retries_left-- {
-		_, err = mdcli.client.SendMessage(req)
-		if err != nil {
+		_, err1 := mdcli.client.SendMessage(req)
+		if err1 != nil {
+			err = err1
 			break
 		}
 
@@ -126,16 +127,18 @@ func (mdcli *Mdcli) Send(service string, request ...string) (reply []string, err
 		//  but in practice it's OK to assume it was EINTR (Ctrl-C):
 
 		var polled []zmq.Polled
-		polled, err = mdcli.poller.Poll(mdcli.timeout)
-		if err != nil {
+		polled, err1 = mdcli.poller.Poll(mdcli.timeout)
+		if err1 != nil {
+			err = err1
 			break //  Interrupted
 		}
 
 		//  If we got a reply, process it
 		if len(polled) > 0 {
 			var msg []string
-			msg, err = mdcli.client.RecvMessage(0)
-			if err != nil {
+			msg, err1 = mdcli.client.RecvMessage(0)
+			if err1 != nil {
+				err = err1
 				break
 			}
 			if mdcli.verbose {
