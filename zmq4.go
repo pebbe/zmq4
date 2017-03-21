@@ -102,7 +102,7 @@ func init() {
 	if major != 4 {
 		panic("Using zmq4 with ZeroMQ major version " + fmt.Sprint(major))
 	}
-	if major != int(C.zmq4_major) || minor != int(C.zmq4_minor) || patch != int(C.zmq4_patch) {
+	if minor < int(C.zmq4_minor) || minor == int(C.zmq4_minor) && patch < int(C.zmq4_patch) {
 		panic(
 			fmt.Sprintf(
 				"zmq4 was installed with ZeroMQ version %d.%d.%d, but the application links with version %d.%d.%d",
