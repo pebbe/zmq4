@@ -272,6 +272,13 @@ func (soc *Socket) SetXpubVerbose(value int) error {
 	return soc.setInt(C.ZMQ_XPUB_VERBOSE, value)
 }
 
+// ZMQ_XPUB_VERBOSE_UNSUBSCRIBE: provide all unsubscription messages on XPUB sockets
+//
+// See: XXX
+func (soc *Socket) SetXpubVerboseUnsubscribe(value int) error {
+	return soc.setInt(C.ZMQ_XPUB_VERBOSE_UNSUBSCRIBE, value)
+}
+
 // ZMQ_REQ_CORRELATE: match replies with requests
 //
 // See: http://api.zeromq.org/4-1:zmq-setsockopt#toc33
