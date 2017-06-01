@@ -88,33 +88,43 @@ var (
 	ErrorNotImplemented42      = errors.New("Not implemented, requires 0MQ version 4.2")
 	ErrorNotImplementedWindows = errors.New("Not implemented on Windows")
 	ErrorNoSocket              = errors.New("No such socket")
+
+	initVersionError error
+	initContextError error
 )
 
 func init() {
+	major, minor, patch = Version()
+	if major != 4 {
+		initVersionError = fmt.Errorf("Using zmq4 with ZeroMQ major version %d", major)
+		return
+	}
+	if major != int(C.zmq4_major) || minor != int(C.zmq4_minor) || patch != int(C.zmq4_patch) {
+		initVersionError =
+			fmt.Errorf(
+				"zmq4 was installed with ZeroMQ version %d.%d.%d, but the application links with version %d.%d.%d",
+				int(C.zmq4_major), int(C.zmq4_minor), int(C.zmq4_patch),
+				major, minor, patch)
+		return
+	}
+
 	var err error
 	defaultCtx = &Context{}
 	defaultCtx.ctx, err = C.zmq_ctx_new()
+	if defaultCtx.ctx == nil || err != nil {
+		initContextError = fmt.Errorf("Init of ZeroMQ context failed: %v", errget(err))
+		return
+	}
 	defaultCtx.opened = true
-	if defaultCtx.ctx == nil {
-		panic("Init of ZeroMQ context failed: " + errget(err).Error())
-	}
-	major, minor, patch = Version()
-	if major != 4 {
-		panic("Using zmq4 with ZeroMQ major version " + fmt.Sprint(major))
-	}
-	if major != int(C.zmq4_major) || minor != int(C.zmq4_minor) || patch != int(C.zmq4_patch) {
-		panic(
-			fmt.Sprintf(
-				"zmq4 was installed with ZeroMQ version %d.%d.%d, but the application links with version %d.%d.%d",
-				int(C.zmq4_major), int(C.zmq4_minor), int(C.zmq4_patch),
-				major, minor, patch))
-	}
 }
 
 //. Util
 
 // Report 0MQ library version.
 func Version() (major, minor, patch int) {
+	if initVersionError != nil {
+		return 0, 0, 0
+	}
 	var maj, min, pat C.int
 	C.zmq_version(&maj, &min, &pat)
 	return int(maj), int(min), int(pat)
@@ -143,6 +153,9 @@ type Context struct {
 
 // Create a new context.
 func NewContext() (ctx *Context, err error) {
+	if initVersionError != nil {
+		return nil, initVersionError
+	}
 	ctx = &Context{}
 	c, e := C.zmq_ctx_new()
 	if c == nil {
@@ -162,6 +175,12 @@ Terminates the default context.
 For linger behavior, see: http://api.zeromq.org/4-1:zmq-ctx-term
 */
 func Term() error {
+	if initVersionError != nil {
+		return initVersionError
+	}
+	if initContextError != nil {
+		return initContextError
+	}
 	return defaultCtx.Term()
 }
 
@@ -195,6 +214,12 @@ func getOption(ctx *Context, o C.int) (int, error) {
 
 // Returns the size of the 0MQ thread pool in the default context.
 func GetIoThreads() (int, error) {
+	if initVersionError != nil {
+		return 0, initVersionError
+	}
+	if initContextError != nil {
+		return 0, initContextError
+	}
 	return defaultCtx.GetIoThreads()
 }
 
@@ -205,6 +230,12 @@ func (ctx *Context) GetIoThreads() (int, error) {
 
 // Returns the maximum number of sockets allowed in the default context.
 func GetMaxSockets() (int, error) {
+	if initVersionError != nil {
+		return 0, initVersionError
+	}
+	if initContextError != nil {
+		return 0, initContextError
+	}
 	return defaultCtx.GetMaxSockets()
 }
 
@@ -219,6 +250,12 @@ Returns the maximum message size in the default context.
 Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
 */
 func GetMaxMsgsz() (int, error) {
+	if initVersionError != nil {
+		return 0, initVersionError
+	}
+	if initContextError != nil {
+		return 0, initContextError
+	}
 	return defaultCtx.GetMaxMsgsz()
 }
 
@@ -236,6 +273,12 @@ func (ctx *Context) GetMaxMsgsz() (int, error) {
 
 // Returns the IPv6 option in the default context.
 func GetIpv6() (bool, error) {
+	if initVersionError != nil {
+		return false, initVersionError
+	}
+	if initContextError != nil {
+		return false, initContextError
+	}
 	return defaultCtx.GetIpv6()
 }
 
@@ -254,6 +297,12 @@ Returns the blocky setting in the default context.
 Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
 */
 func GetBlocky() (bool, error) {
+	if initVersionError != nil {
+		return false, initVersionError
+	}
+	if initContextError != nil {
+		return false, initContextError
+	}
 	return defaultCtx.GetBlocky()
 }
 
@@ -293,6 +342,12 @@ least one. This option only applies before creating any sockets.
 Default value: 1
 */
 func SetIoThreads(n int) error {
+	if initVersionError != nil {
+		return initVersionError
+	}
+	if initContextError != nil {
+		return initContextError
+	}
 	return defaultCtx.SetIoThreads(n)
 }
 
@@ -325,6 +380,12 @@ Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
 Returns ErrorNotImplementedWindows on Windows
 */
 func SetThreadSchedPolicy(n int) error {
+	if initVersionError != nil {
+		return initVersionError
+	}
+	if initContextError != nil {
+		return initContextError
+	}
 	return defaultCtx.SetThreadSchedPolicy(n)
 }
 
@@ -346,6 +407,12 @@ Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
 Returns ErrorNotImplementedWindows on Windows
 */
 func SetThreadPriority(n int) error {
+	if initVersionError != nil {
+		return initVersionError
+	}
+	if initContextError != nil {
+		return initContextError
+	}
 	return defaultCtx.SetThreadPriority(n)
 }
 
@@ -357,6 +424,12 @@ Default value: INT_MAX
 Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
 */
 func SetMaxMsgsz(n int) error {
+	if initVersionError != nil {
+		return initVersionError
+	}
+	if initContextError != nil {
+		return initContextError
+	}
 	return defaultCtx.SetMaxMsgsz(n)
 }
 
@@ -380,6 +453,12 @@ Sets the maximum number of sockets allowed in the default context.
 Default value: 1024
 */
 func SetMaxSockets(n int) error {
+	if initVersionError != nil {
+		return initVersionError
+	}
+	if initContextError != nil {
+		return initContextError
+	}
 	return defaultCtx.SetMaxSockets(n)
 }
 
@@ -400,6 +479,12 @@ When IPv6 is enabled, a socket will connect to, or accept connections from, both
 Default value: false
 */
 func SetIpv6(i bool) error {
+	if initVersionError != nil {
+		return initVersionError
+	}
+	if initContextError != nil {
+		return initContextError
+	}
 	return defaultCtx.SetIpv6(i)
 }
 
@@ -426,6 +511,12 @@ See: http://api.zeromq.org/4-2:zmq-ctx-set#toc3
 Returns ErrorNotImplemented42 with ZeroMQ version < 4.2
 */
 func SetBlocky(i bool) error {
+	if initVersionError != nil {
+		return initVersionError
+	}
+	if initContextError != nil {
+		return initContextError
+	}
 	return defaultCtx.SetBlocky(i)
 }
 
@@ -689,6 +780,12 @@ from different goroutines without using something like a mutex.
 For a description of socket types, see: http://api.zeromq.org/4-1:zmq-socket#toc3
 */
 func NewSocket(t Type) (soc *Socket, err error) {
+	if initVersionError != nil {
+		return nil, initVersionError
+	}
+	if initContextError != nil {
+		return nil, initContextError
+	}
 	return defaultCtx.NewSocket(t)
 }
 
@@ -1066,6 +1163,9 @@ Encode a binary key as Z85 printable text
 See: http://api.zeromq.org/4-1:zmq-z85-encode
 */
 func Z85encode(data string) string {
+	if initVersionError != nil {
+		return initVersionError.Error()
+	}
 	l1 := len(data)
 	if l1%4 != 0 {
 		panic("Z85encode: Length of data not a multiple of 4")
@@ -1086,6 +1186,9 @@ Decode a binary key from Z85 printable text
 See: http://api.zeromq.org/4-1:zmq-z85-decode
 */
 func Z85decode(s string) string {
+	if initVersionError != nil {
+		return initVersionError.Error()
+	}
 	l1 := len(s)
 	if l1%5 != 0 {
 		panic("Z85decode: Length of Z85 string not a multiple of 5")
@@ -1104,6 +1207,9 @@ Generate a new CURVE keypair
 See: http://api.zeromq.org/4-1:zmq-curve-keypair#toc2
 */
 func NewCurveKeypair() (z85_public_key, z85_secret_key string, err error) {
+	if initVersionError != nil {
+		return "", "", initVersionError
+	}
 	var pubkey, seckey [41]byte
 	if i, err := C.zmq_curve_keypair((*C.char)(unsafe.Pointer(&pubkey[0])), (*C.char)(unsafe.Pointer(&seckey[0]))); i != 0 {
 		return "", "", errget(err)
@@ -1175,6 +1281,9 @@ func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg 
 }
 
 func hasCap(s string) (value bool) {
+	if initVersionError != nil {
+		return false
+	}
 	if minor < 1 {
 		return false
 	}
