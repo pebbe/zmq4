@@ -94,7 +94,7 @@ var (
 	initVersionError error
 	initContextError error
 
-	// api compatibility
+	// api compatibility, based on changes in header files
 	api = map[[2]int]int{
 		[2]int{0, 0}: 1,
 		[2]int{0, 1}: 2,
@@ -104,14 +104,17 @@ var (
 		[2]int{0, 5}: 4,
 		[2]int{0, 6}: 4,
 		[2]int{0, 7}: 4,
+		[2]int{0, 8}: 4,
 		[2]int{1, 0}: 5,
 		[2]int{1, 1}: 6,
 		[2]int{1, 2}: 6,
 		[2]int{1, 3}: 6,
 		[2]int{1, 4}: 6,
-		[2]int{2, 0}: 7,
-		[2]int{2, 1}: 8,
-		[2]int{2, 2}: 8,
+		[2]int{1, 5}: 6,
+		[2]int{1, 6}: 7,
+		[2]int{2, 0}: 8,
+		[2]int{2, 1}: 9,
+		[2]int{2, 2}: 9,
 	}
 )
 
