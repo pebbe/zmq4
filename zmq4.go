@@ -91,6 +91,26 @@ var (
 
 	initVersionError error
 	initContextError error
+
+	// api compatibility
+	api = map[[2]int]int{
+		[2]int{0, 0}: 1,
+		[2]int{0, 1}: 2,
+		[2]int{0, 2}: 3,
+		[2]int{0, 3}: 3,
+		[2]int{0, 4}: 3,
+		[2]int{0, 5}: 4,
+		[2]int{0, 6}: 4,
+		[2]int{0, 7}: 4,
+		[2]int{1, 0}: 5,
+		[2]int{1, 1}: 6,
+		[2]int{1, 2}: 6,
+		[2]int{1, 3}: 6,
+		[2]int{1, 4}: 6,
+		[2]int{2, 0}: 7,
+		[2]int{2, 1}: 8,
+		[2]int{2, 2}: 8,
+	}
 )
 
 func init() {
@@ -99,13 +119,18 @@ func init() {
 		initVersionError = fmt.Errorf("Using zmq4 with ZeroMQ major version %d", major)
 		return
 	}
-	if major != int(C.zmq4_major) || minor != int(C.zmq4_minor) || patch != int(C.zmq4_patch) {
-		initVersionError =
-			fmt.Errorf(
-				"zmq4 was installed with ZeroMQ version %d.%d.%d, but the application links with version %d.%d.%d",
-				int(C.zmq4_major), int(C.zmq4_minor), int(C.zmq4_patch),
-				major, minor, patch)
-		return
+
+	v, ok1 := api[[2]int{major, minor}]
+	w, ok2 := api[[2]int{int(C.zmq4_minor), int(C.zmq4_patch)}]
+	if v != w || !ok1 || !ok2 {
+		if major != int(C.zmq4_major) || minor != int(C.zmq4_minor) || patch != int(C.zmq4_patch) {
+			initVersionError =
+				fmt.Errorf(
+					"zmq4 was installed with ZeroMQ version %d.%d.%d, but the application links with version %d.%d.%d",
+					int(C.zmq4_major), int(C.zmq4_minor), int(C.zmq4_patch),
+					major, minor, patch)
+			return
+		}
 	}
 
 	var err error
