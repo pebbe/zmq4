@@ -125,7 +125,7 @@ func init() {
 		return
 	}
 
-	v, ok1 := api[[2]int{major, minor}]
+	v, ok1 := api[[2]int{minor, patch}]
 	w, ok2 := api[[2]int{int(C.zmq4_minor), int(C.zmq4_patch)}]
 	if v != w || !ok1 || !ok2 {
 		if major != int(C.zmq4_major) || minor != int(C.zmq4_minor) || patch != int(C.zmq4_patch) {
