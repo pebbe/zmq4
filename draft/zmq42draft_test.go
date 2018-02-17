@@ -72,10 +72,10 @@ func TestUdp(t *testing.T) {
 		t.Fatal("dish.RecvWithOpt: wrong number off options")
 	}
 	if string(opt[0].(zmq.OptGroup)) != "TV" {
-		t.Fatal("dish.RecvWithOpt: wrong group: %v", string(opt[0].(zmq.OptGroup)))
+		t.Fatalf("dish.RecvWithOpt: wrong group: %v", string(opt[0].(zmq.OptGroup)))
 	}
 	if msg != "Friends" {
-		t.Fatal("dish.RecvWithOpt: wrong message: %q", msg)
+		t.Fatalf("dish.RecvWithOpt: wrong message: %q", msg)
 	}
 }
 
@@ -127,7 +127,7 @@ func TestClientServer(t *testing.T) {
 	}
 	//  Check that message is still the same
 	if msg != content {
-		t.Fatal("server.Recv: %q != %q", msg, content)
+		t.Fatalf("server.Recv: %q != %q", msg, content)
 	}
 
 	rc, err = server.Send(content, 0, opts[0])

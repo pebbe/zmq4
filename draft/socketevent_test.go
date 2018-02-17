@@ -89,7 +89,7 @@ func TestSocketEvent(t *testing.T) {
 			}
 			i++
 		} else {
-			t.Error("Unexpected message: %q", msg)
+			t.Errorf("Unexpected message: %q", msg)
 		}
 	}
 	for ; i < len(expect); i++ {
