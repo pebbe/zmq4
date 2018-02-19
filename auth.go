@@ -637,7 +637,7 @@ func AuthCurvePublic(z85SecretKey string) (z85PublicKey string, err error) {
 	defer C.free(unsafe.Pointer(secret))
 	public := C.CString(strings.Repeat(" ", 41))
 	defer C.free(unsafe.Pointer(public))
-	if i, err := C.zmq_curve_public(public, secret); int(i) != 0 {
+	if i, err := C.ZMQ_CURVE_PUBLIC(public, secret); int(i) != 0 {
 		return "", errget(err)
 	}
 	z85PublicKey = C.GoString(public)
