@@ -1,3 +1,15 @@
+## TODO for ZMQ 4.5 DRAFT
+
+nothing done yet
+
+## TODO for ZMQ 4.4 DRAFT
+
+nothing done yet
+
+## TODO for ZMQ 4.3 DRAFT
+
+nothing done yet
+
 ## TODO for ZMQ 4.2 DRAFT
 
 see: https://github.com/zeromq/libzmq/releases/tag/v4.2.0

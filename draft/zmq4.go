@@ -2,7 +2,7 @@ package zmq4
 
 /*
 #cgo !windows pkg-config: libzmq
-#cgo windows CFLAGS: -I/usr/local/include
+#cgo windows CFLAGS: -I/usr/local/include -DZMQ_BUILD_DRAFT_API=1
 #cgo windows LDFLAGS: -L/usr/local/lib -lzmq
 #include <zmq.h>
 #if ZMQ_VERSION_MINOR < 2
@@ -115,6 +115,9 @@ var (
 		[2]int{2, 0}: 8,
 		[2]int{2, 1}: 9,
 		[2]int{2, 2}: 9,
+		//TODO [2]int{2, 3}: 10,
+		//TODO [2]int{2, 4}: ?,
+		//TODO [2]int{2, 5}: ?,
 	}
 )
 
