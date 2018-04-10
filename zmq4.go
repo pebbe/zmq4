@@ -142,7 +142,7 @@ func init() {
 	var err error
 	defaultCtx = &Context{}
 	defaultCtx.ctx, err = C.zmq_ctx_new()
-	if defaultCtx.ctx == nil || err != nil {
+	if defaultCtx.ctx == nil {
 		initContextError = fmt.Errorf("Init of ZeroMQ context failed: %v", errget(err))
 		return
 	}
