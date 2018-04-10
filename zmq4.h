@@ -53,3 +53,10 @@
 #define ZMQ_POLLPRI -1
 
 #endif
+
+#ifndef ZMQ_ROUTING_ID
+#define ZMQ_ROUTING_ID ZMQ_IDENTITY
+#endif
+#ifndef ZMQ_CONNECT_ROUTING_ID
+#define ZMQ_CONNECT_ROUTING_ID ZMQ_CONNECT_RID
+#endif
