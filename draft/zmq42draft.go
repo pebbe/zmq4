@@ -65,3 +65,7 @@ func (soc *Socket) Leave(group string) error {
 	}
 	return nil
 }
+
+func HasDraft() bool {
+    return has42draft
+}
