@@ -39,6 +39,7 @@ func (mdcli2 *Mdcli2) ConnectToBroker() (err error) {
 		mdcli2.client = nil
 	}
 	mdcli2.client, err = zmq.NewSocket(zmq.DEALER)
+	defer mdcli2.client.Close()
 	if err != nil {
 		if mdcli2.verbose {
 			log.Println("E: ConnectToBroker() creating socket failed")
