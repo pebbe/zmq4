@@ -1,4 +1,4 @@
-#if ZMQ_VERSION_MINOR == 2
+#if ZMQ_VERSION_MINOR >= 2
 #ifdef ZMQ_BUILD_DRAFT_API
 #define ZMQ42HASDRAFT
 #endif
