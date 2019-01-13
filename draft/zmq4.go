@@ -118,6 +118,8 @@ var (
 		//TODO [2]int{2, 3}: 10,
 		//TODO [2]int{2, 4}: ?,
 		//TODO [2]int{2, 5}: ?,
+		//TODO [2]int{3, 0}: ?,
+		//TODO [2]int{3, 1}: ?,
 	}
 )
 
