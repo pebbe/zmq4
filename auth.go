@@ -491,6 +491,18 @@ func auth_deny_for_domain(domain string, addresses ...string) {
 	}
 }
 
+// AuthRemoveAll removes all previously whitelisted and blacklisted adresses
+// created from callsto AuthAllow, AuthAllowReplaceAll and AuthDeny.
+func AuthRemoveAll(domain string) {
+	auth_mutex.Lock()
+	defer auth_mutex.Unlock()
+
+	delete(auth_allow, domain)
+	delete(auth_allow_net, domain)
+	delete(auth_deny, domain)
+	delete(auth_deny_net, domain)
+}
+
 // AuthAllowReplaceAll replaces all existing whitelisted adresses for a
 // a domain with a new set of addresses in an atomic operation.
 func AuthAllowReplaceAll(domain string, addresses ...string) {
