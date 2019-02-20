@@ -33,6 +33,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -53,6 +54,8 @@ var (
 	auth_users = make(map[string]map[string]string)
 
 	auth_pubkeys = make(map[string]map[string]bool)
+
+	auth_mutex = sync.RWMutex{}
 
 	auth_meta_handler = auth_meta_handler_default
 )
@@ -140,22 +143,31 @@ func auth_has_deny(domain string) bool {
 }
 
 func auth_do_handler() {
+
+	auth_mutex.RLock()
+	verbose := auth_verbose
+	auth_mutex.RUnlock()
+
 	for {
+
+		auth_mutex.RLock()
+		verbose = auth_verbose
+		auth_mutex.RUnlock()
 
 		msg, err := auth_handler.RecvMessage(0)
 		if err != nil {
-			if auth_verbose {
+			if verbose {
 				log.Println("AUTH: Quitting:", err)
 			}
 			break
 		}
 
 		if msg[0] == "QUIT" {
-			if auth_verbose {
+			if verbose {
 				log.Println("AUTH: Quitting: received QUIT message")
 			}
 			_, err := auth_handler.SendMessage("QUIT")
-			if err != nil && auth_verbose {
+			if err != nil && verbose {
 				log.Println("AUTH: Quitting: bouncing QUIT message:", err)
 			}
 			break
@@ -190,27 +202,29 @@ func auth_do_handler() {
 		allowed := false
 		denied := false
 
+		auth_mutex.RLock()
+
 		if auth_has_allow(domain) {
 			if auth_is_allowed(domain, address) {
 				allowed = true
-				if auth_verbose {
+				if verbose {
 					log.Printf("AUTH: PASSED (whitelist) domain=%q address=%q\n", domain, address)
 				}
 			} else {
 				denied = true
-				if auth_verbose {
+				if verbose {
 					log.Printf("AUTH: DENIED (not in whitelist) domain=%q address=%q\n", domain, address)
 				}
 			}
 		} else if auth_has_deny(domain) {
 			if auth_is_denied(domain, address) {
 				denied = true
-				if auth_verbose {
+				if verbose {
 					log.Printf("AUTH: DENIED (blacklist) domain=%q address=%q\n", domain, address)
 				}
 			} else {
 				allowed = true
-				if auth_verbose {
+				if verbose {
 					log.Printf("AUTH: PASSED (not in blacklist) domain=%q address=%q\n", domain, address)
 				}
 			}
@@ -220,7 +234,7 @@ func auth_do_handler() {
 		if !denied {
 			if mechanism == "NULL" && !allowed {
 				// For NULL, we allow if the address wasn't blacklisted
-				if auth_verbose {
+				if verbose {
 					log.Printf("AUTH: ALLOWED (NULL)\n")
 				}
 				allowed = true
@@ -232,8 +246,15 @@ func auth_do_handler() {
 				allowed = authenticate_curve(domain, client_key)
 			}
 		}
+
+		var m map[string]string
 		if allowed {
-			m := auth_meta_handler(version, request_id, domain, address, identity, mechanism, credentials...)
+			m = auth_meta_handler(version, request_id, domain, address, identity, mechanism, credentials...)
+		}
+
+		auth_mutex.RUnlock()
+
+		if allowed {
 			user_id := ""
 			if uid, ok := m["User-Id"]; ok {
 				user_id = uid
@@ -252,10 +273,10 @@ func auth_do_handler() {
 	}
 
 	err := auth_handler.Close()
-	if err != nil && auth_verbose {
+	if err != nil && verbose {
 		log.Println("AUTH: Quitting: Close:", err)
 	}
-	if auth_verbose {
+	if verbose {
 		log.Println("AUTH: Quit")
 	}
 }
@@ -397,6 +418,9 @@ func AuthStop() {
 // interpreted as another address, and it and all remaining addresses will be added
 // to all domains.
 func AuthAllow(domain string, addresses ...string) {
+	auth_mutex.Lock()
+	defer auth_mutex.Unlock()
+
 	if auth_isIP(domain) {
 		auth_allow_for_domain("*", domain)
 		auth_allow_for_domain("*", addresses...)
@@ -438,6 +462,9 @@ func auth_allow_for_domain(domain string, addresses ...string) {
 // interpreted as another address, and it and all remaining addresses will be added
 // to all domains.
 func AuthDeny(domain string, addresses ...string) {
+	auth_mutex.Lock()
+	defer auth_mutex.Unlock()
+
 	if auth_isIP(domain) {
 		auth_deny_for_domain("*", domain)
 		auth_deny_for_domain("*", addresses...)
@@ -464,10 +491,30 @@ func auth_deny_for_domain(domain string, addresses ...string) {
 	}
 }
 
+// AuthAllowReplaceAll replaces all existing whitelisted adresses for a
+// a domain with a new set of addresses in an atomic operation.
+func AuthAllowReplaceAll(domain string, addresses ...string) {
+	auth_mutex.Lock()
+	defer auth_mutex.Unlock()
+
+	delete(auth_allow, domain)
+	delete(auth_allow_net, domain)
+
+	if auth_isIP(domain) {
+		auth_allow_for_domain("*", domain)
+		auth_allow_for_domain("*", addresses...)
+	} else {
+		auth_allow_for_domain(domain, addresses...)
+	}
+}
+
 // Add a user for PLAIN authentication for a given domain.
 //
 // Set `domain` to "*" to apply to all domains.
 func AuthPlainAdd(domain, username, password string) {
+	auth_mutex.Lock()
+	defer auth_mutex.Unlock()
+
 	if _, ok := auth_users[domain]; !ok {
 		auth_users[domain] = make(map[string]string)
 	}
@@ -476,6 +523,9 @@ func AuthPlainAdd(domain, username, password string) {
 
 // Remove users from PLAIN authentication for a given domain.
 func AuthPlainRemove(domain string, usernames ...string) {
+	auth_mutex.Lock()
+	defer auth_mutex.Unlock()
+
 	if u, ok := auth_users[domain]; ok {
 		for _, username := range usernames {
 			delete(u, username)
@@ -485,6 +535,9 @@ func AuthPlainRemove(domain string, usernames ...string) {
 
 // Remove all users from PLAIN authentication for a given domain.
 func AuthPlainRemoveAll(domain string) {
+	auth_mutex.Lock()
+	defer auth_mutex.Unlock()
+
 	delete(auth_users, domain)
 }
 
@@ -496,6 +549,9 @@ func AuthPlainRemoveAll(domain string) {
 //
 // To allow all client keys without checking, specify CURVE_ALLOW_ANY for the key.
 func AuthCurveAdd(domain string, pubkeys ...string) {
+	auth_mutex.Lock()
+	defer auth_mutex.Unlock()
+
 	if _, ok := auth_pubkeys[domain]; !ok {
 		auth_pubkeys[domain] = make(map[string]bool)
 	}
@@ -506,6 +562,9 @@ func AuthCurveAdd(domain string, pubkeys ...string) {
 
 // Remove user keys from CURVE authentication for a given domain.
 func AuthCurveRemove(domain string, pubkeys ...string) {
+	auth_mutex.Lock()
+	defer auth_mutex.Unlock()
+
 	if p, ok := auth_pubkeys[domain]; ok {
 		for _, pubkey := range pubkeys {
 			delete(p, pubkey)
@@ -515,11 +574,33 @@ func AuthCurveRemove(domain string, pubkeys ...string) {
 
 // Remove all user keys from CURVE authentication for a given domain.
 func AuthCurveRemoveAll(domain string) {
+	auth_mutex.Lock()
+	defer auth_mutex.Unlock()
+
 	delete(auth_pubkeys, domain)
+}
+
+// AuthCurveReplaceAll replaces all existing public keys for the domain
+// with the new set of keys in an atomic operation.
+func AuthCurveReplaceAll(domain string, pubkeys ...string) {
+	auth_mutex.Lock()
+	defer auth_mutex.Unlock()
+
+	delete(auth_pubkeys, domain)
+
+	if _, ok := auth_pubkeys[domain]; !ok {
+		auth_pubkeys[domain] = make(map[string]bool)
+	}
+	for _, key := range pubkeys {
+		auth_pubkeys[domain][key] = true
+	}
 }
 
 // Enable verbose tracing of commands and activity.
 func AuthSetVerbose(verbose bool) {
+	auth_mutex.Lock()
+	defer auth_mutex.Unlock()
+
 	auth_verbose = verbose
 }
 
