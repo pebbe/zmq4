@@ -716,17 +716,19 @@ func (e Event) String() string {
 	if e&EVENT_DISCONNECTED != 0 {
 		ee = append(ee, "EVENT_DISCONNECTED")
 	}
-	if e&EVENT_HANDSHAKE_FAILED_NO_DETAIL != 0 {
-		ee = append(ee, "EVENT_HANDSHAKE_FAILED_NO_DETAIL")
-	}
-	if e&EVENT_HANDSHAKE_SUCCEEDED != 0 {
-		ee = append(ee, "EVENT_HANDSHAKE_SUCCEEDED")
-	}
-	if e&EVENT_HANDSHAKE_FAILED_PROTOCOL != 0 {
-		ee = append(ee, "EVENT_HANDSHAKE_FAILED_PROTOCOL")
-	}
-	if e&EVENT_HANDSHAKE_FAILED_AUTH != 0 {
-		ee = append(ee, "EVENT_HANDSHAKE_FAILED_AUTH")
+	if minor >= 3 {
+		if e&EVENT_HANDSHAKE_FAILED_NO_DETAIL != 0 {
+			ee = append(ee, "EVENT_HANDSHAKE_FAILED_NO_DETAIL")
+		}
+		if e&EVENT_HANDSHAKE_SUCCEEDED != 0 {
+			ee = append(ee, "EVENT_HANDSHAKE_SUCCEEDED")
+		}
+		if e&EVENT_HANDSHAKE_FAILED_PROTOCOL != 0 {
+			ee = append(ee, "EVENT_HANDSHAKE_FAILED_PROTOCOL")
+		}
+		if e&EVENT_HANDSHAKE_FAILED_AUTH != 0 {
+			ee = append(ee, "EVENT_HANDSHAKE_FAILED_AUTH")
+		}
 	}
 	if len(ee) == 0 {
 		return "<NONE>"
