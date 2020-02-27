@@ -1,5 +1,19 @@
 A Go interface to [ZeroMQ](http://www.zeromq.org/) version 4.
 
+
+----------------------------------------------------------------
+
+## Warning
+
+This package can't be used with Go 1.14 (and later) on Unix-like
+systems. There are issues I don't know how to solve. Any help is
+appreciated.
+
+See: https://github.com/pebbe/zmq4/issues/161
+
+----------------------------------------------------------------
+
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/pebbe/zmq4)](https://goreportcard.com/report/github.com/pebbe/zmq4)
 [![GoDoc](https://godoc.org/github.com/pebbe/zmq4?status.svg)](https://godoc.org/github.com/pebbe/zmq4)
 
