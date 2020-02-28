@@ -19,7 +19,15 @@ func (soc *Socket) getString(opt C.int, bufsize int) (string, error) {
 	}
 	value := make([]byte, bufsize)
 	size := C.size_t(bufsize)
-	if i, err := C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value[0]), &size); i != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value[0]), &size)
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if i != 0 {
 		return "", errget(err)
 	}
 	return strings.TrimRight(string(value[:int(size)]), "\x00"), nil
@@ -31,7 +39,15 @@ func (soc *Socket) getStringRaw(opt C.int, bufsize int) (string, error) {
 	}
 	value := make([]byte, bufsize)
 	size := C.size_t(bufsize)
-	if i, err := C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value[0]), &size); i != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value[0]), &size)
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if i != 0 {
 		return "", errget(err)
 	}
 	return string(value[:int(size)]), nil
@@ -43,7 +59,15 @@ func (soc *Socket) getInt(opt C.int) (int, error) {
 	}
 	value := C.int(0)
 	size := C.size_t(unsafe.Sizeof(value))
-	if i, err := C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size); i != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size)
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if i != 0 {
 		return 0, errget(err)
 	}
 	return int(value), nil
@@ -55,7 +79,15 @@ func (soc *Socket) getInt64(opt C.int) (int64, error) {
 	}
 	value := C.int64_t(0)
 	size := C.size_t(unsafe.Sizeof(value))
-	if i, err := C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size); i != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size)
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if i != 0 {
 		return 0, errget(err)
 	}
 	return int64(value), nil
@@ -67,7 +99,15 @@ func (soc *Socket) getUInt64(opt C.int) (uint64, error) {
 	}
 	value := C.uint64_t(0)
 	size := C.size_t(unsafe.Sizeof(value))
-	if i, err := C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size); i != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size)
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if i != 0 {
 		return 0, errget(err)
 	}
 	return uint64(value), nil

@@ -12,6 +12,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	var err error
 
 	//  Socket facing clients

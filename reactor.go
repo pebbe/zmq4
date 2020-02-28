@@ -36,6 +36,12 @@ Example:
     reactor.AddSocket(socket2, zmq.POLLIN, socket2_handler)
     reactor.AddChannelTime(time.Tick(time.Second), 1, ticker_handler)
     reactor.Run(time.Second)
+
+Warning:
+
+There are problems with the reactor showing up with Go 1.14 (and later)
+such as data race occurrences and code lock-up. Using SetRetryAfterEINTR
+seems an effective fix, but at the moment there is no guaranty.
 */
 func NewReactor() *Reactor {
 	r := &Reactor{
@@ -146,7 +152,7 @@ func (r *Reactor) Run(interval time.Duration) (err error) {
 						continue CHANNELS
 					}
 					if r.verbose {
-						fmt.Printf("Reactor(%p) channel %d: %q\n", r, id, val)
+						fmt.Printf("Reactor(%p) channel %d: %v\n", r, id, val)
 					}
 					err = ch.f(val)
 					if err != nil {

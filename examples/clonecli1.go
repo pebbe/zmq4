@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
 	//  Prepare our context and updates socket
 	updates, _ := zmq.NewSocket(zmq.SUB)
 	updates.SetSubscribe("")

@@ -101,6 +101,8 @@ func server_thread() {
 //  The main task is just the same as in the first model.
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	pipe := make(chan string)
 
 	//  Start child threads

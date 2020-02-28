@@ -64,6 +64,8 @@ func worker_task() {
 //  and send messages:
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	//  Prepare our sockets
 	frontend, _ := zmq.NewSocket(zmq.ROUTER)
 	backend, _ := zmq.NewSocket(zmq.ROUTER)

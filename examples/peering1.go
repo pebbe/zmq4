@@ -15,6 +15,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	//  First argument is this broker's name
 	//  Other arguments are our peers' names
 	//

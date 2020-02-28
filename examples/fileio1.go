@@ -88,6 +88,8 @@ func server_thread() {
 //  processes:
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	pipe := make(chan string)
 
 	//  Start child threads

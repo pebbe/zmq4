@@ -24,6 +24,8 @@ func TestVersion(t *testing.T) {
 
 func TestMultipleContexts(t *testing.T) {
 
+	zmq.SetRetryAfterEINTR(true)
+
 	chQuit := make(chan interface{})
 	chErr := make(chan error, 2)
 	needQuit := false
@@ -58,6 +60,7 @@ func TestMultipleContexts(t *testing.T) {
 	if err != nil {
 		t.Fatal("NewContext:", err)
 	}
+	serv_ctx1.SetRetryAfterEINTR(true)
 	serv1, err = serv_ctx1.NewSocket(zmq.REP)
 	if err != nil {
 		t.Fatal("NewSocket:", err)
@@ -71,6 +74,7 @@ func TestMultipleContexts(t *testing.T) {
 	if err != nil {
 		t.Fatal("NewContext:", err)
 	}
+	serv_ctx2.SetRetryAfterEINTR(true)
 	serv2, err = serv_ctx2.NewSocket(zmq.REP)
 	if err != nil {
 		t.Fatal("NewSocket:", err)
@@ -159,10 +163,12 @@ func TestMultipleContexts(t *testing.T) {
 	if err != nil {
 		t.Fatal("NewContext:", err)
 	}
+	ctx1.SetRetryAfterEINTR(true)
 	ctx2, err = zmq.NewContext()
 	if err != nil {
 		t.Fatal("NewContext:", err)
 	}
+	ctx2.SetRetryAfterEINTR(true)
 	sock1, err = ctx1.NewSocket(zmq.REQ)
 	if err != nil {
 		t.Fatal("ctx1.NewSocket:", err)
@@ -232,6 +238,8 @@ func TestMultipleContexts(t *testing.T) {
 
 func TestAbstractIpc(t *testing.T) {
 
+	zmq.SetRetryAfterEINTR(true)
+
 	var sb, sc *zmq.Socket
 	defer func() {
 		for _, s := range []*zmq.Socket{sb, sc} {
@@ -294,6 +302,8 @@ func TestAbstractIpc(t *testing.T) {
 }
 
 func TestConflate(t *testing.T) {
+
+	zmq.SetRetryAfterEINTR(true)
 
 	var s_in, s_out *zmq.Socket
 	defer func() {
@@ -376,6 +386,8 @@ func TestConflate(t *testing.T) {
 
 func TestConnectResolve(t *testing.T) {
 
+	zmq.SetRetryAfterEINTR(true)
+
 	sock, err := zmq.NewSocket(zmq.PUB)
 	if err != nil {
 		t.Fatal("NewSocket:", err)
@@ -411,6 +423,8 @@ func TestConnectResolve(t *testing.T) {
 }
 
 func TestCtxOptions(t *testing.T) {
+
+	zmq.SetRetryAfterEINTR(true)
 
 	type Result struct {
 		value interface{}
@@ -454,6 +468,8 @@ func TestCtxOptions(t *testing.T) {
 }
 
 func TestDisconnectInproc(t *testing.T) {
+
+	zmq.SetRetryAfterEINTR(true)
 
 	var pubSocket, subSocket *zmq.Socket
 	defer func() {
@@ -611,6 +627,8 @@ func TestDisconnectInproc(t *testing.T) {
 
 func TestFork(t *testing.T) {
 
+	zmq.SetRetryAfterEINTR(true)
+
 	address := "tcp://127.0.0.1:6571"
 	NUM_MESSAGES := 5
 
@@ -692,6 +710,8 @@ func TestFork(t *testing.T) {
 }
 
 func TestHwm(t *testing.T) {
+
+	zmq.SetRetryAfterEINTR(true)
 
 	MAX_SENDS := 10000
 	BIND_FIRST := 1
@@ -1062,6 +1082,8 @@ func TestHwm(t *testing.T) {
 
 func TestPairIpc(t *testing.T) {
 
+	zmq.SetRetryAfterEINTR(true)
+
 	var sb, sc *zmq.Socket
 
 	defer func() {
@@ -1112,6 +1134,8 @@ func TestPairIpc(t *testing.T) {
 }
 
 func TestPairTcp(t *testing.T) {
+
+	zmq.SetRetryAfterEINTR(true)
 
 	var sb, sc *zmq.Socket
 
@@ -1164,6 +1188,8 @@ func TestPairTcp(t *testing.T) {
 }
 
 func TestPoller(t *testing.T) {
+
+	zmq.SetRetryAfterEINTR(true)
 
 	var sb, sc *zmq.Socket
 
@@ -1273,6 +1299,8 @@ func TestPoller(t *testing.T) {
 }
 
 func TestSecurityCurve(t *testing.T) {
+
+	zmq.SetRetryAfterEINTR(true)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -1591,6 +1619,8 @@ func TestSecurityCurve(t *testing.T) {
 
 func TestSecurityNull(t *testing.T) {
 
+	zmq.SetRetryAfterEINTR(true)
+
 	time.Sleep(100 * time.Millisecond)
 
 	var handler, server, client *zmq.Socket
@@ -1752,6 +1782,8 @@ func TestSecurityNull(t *testing.T) {
 }
 
 func TestSecurityPlain(t *testing.T) {
+
+	zmq.SetRetryAfterEINTR(true)
 
 	time.Sleep(100 * time.Millisecond)
 

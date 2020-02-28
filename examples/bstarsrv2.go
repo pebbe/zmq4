@@ -23,6 +23,7 @@ func echo(socket *zmq.Socket) (err error) {
 }
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
 	//  Arguments can be either of:
 	//      -p  primary server, at tcp://localhost:5001
 	//      -b  backup server, at tcp://localhost:5002

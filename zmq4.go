@@ -180,9 +180,10 @@ const (
 A context that is not the default context.
 */
 type Context struct {
-	ctx    unsafe.Pointer
-	opened bool
-	err    error
+	ctx        unsafe.Pointer
+	retryEINTR bool
+	opened     bool
+	err        error
 }
 
 // Create a new context.
@@ -226,7 +227,14 @@ For linger behavior, see: http://api.zeromq.org/4-1:zmq-ctx-term
 func (ctx *Context) Term() error {
 	if ctx.opened {
 		ctx.opened = false
-		n, err := C.zmq_ctx_term(ctx.ctx)
+		var n C.int
+		var err error
+		for {
+			n, err = C.zmq_ctx_term(ctx.ctx)
+			if n == 0 || !ctx.retry(err) {
+				break
+			}
+		}
 		if n != 0 {
 			ctx.err = errget(err)
 		}
@@ -354,6 +362,20 @@ func (ctx *Context) GetBlocky() (bool, error) {
 		return false, e
 	}
 	return true, e
+}
+
+/*
+Returns the retry after EINTR setting in the default context.
+*/
+func GetRetryAfterEINTR() bool {
+	return defaultCtx.GetRetryAfterEINTR()
+}
+
+/*
+Returns the retry after EINTR setting.
+*/
+func (ctx *Context) GetRetryAfterEINTR() bool {
+	return ctx.retryEINTR
 }
 
 func setOption(ctx *Context, o C.int, n int) error {
@@ -570,6 +592,20 @@ func (ctx *Context) SetBlocky(i bool) error {
 		n = 1
 	}
 	return setOption(ctx, C.ZMQ_BLOCKY, n)
+}
+
+/*
+Sets the retry after EINTR setting in the default context.
+*/
+func SetRetryAfterEINTR(retry bool) {
+	defaultCtx.SetRetryAfterEINTR(retry)
+}
+
+/*
+Sets the retry after EINTR setting.
+*/
+func (ctx *Context) SetRetryAfterEINTR(retry bool) {
+	ctx.retryEINTR = retry
 }
 
 //. Sockets
@@ -855,7 +891,14 @@ func (ctx *Context) NewSocket(t Type) (soc *Socket, err error) {
 	if !ctx.opened {
 		return soc, ErrorContextClosed
 	}
-	s, e := C.zmq_socket(ctx.ctx, C.int(t))
+	var s unsafe.Pointer
+	var e error
+	for {
+		s, e = C.zmq_socket(ctx.ctx, C.int(t))
+		if s != nil || !ctx.retry(e) {
+			break
+		}
+	}
 	if s == nil {
 		err = errget(e)
 		soc.err = err
@@ -872,7 +915,15 @@ func (ctx *Context) NewSocket(t Type) (soc *Socket, err error) {
 func (soc *Socket) Close() error {
 	if soc.opened {
 		soc.opened = false
-		if i, err := C.zmq_close(soc.soc); int(i) != 0 {
+		var i C.int
+		var err error
+		for {
+			i, err = C.zmq_close(soc.soc)
+			if i == 0 || !soc.ctx.retry(err) {
+				break
+			}
+		}
+		if int(i) != 0 {
 			soc.err = errget(err)
 		}
 		soc.soc = unsafe.Pointer(nil)
@@ -900,7 +951,15 @@ func (soc *Socket) Bind(endpoint string) error {
 	}
 	s := C.CString(endpoint)
 	defer C.free(unsafe.Pointer(s))
-	if i, err := C.zmq_bind(soc.soc, s); int(i) != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_bind(soc.soc, s)
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if int(i) != 0 {
 		return errget(err)
 	}
 	return nil
@@ -917,7 +976,15 @@ func (soc *Socket) Unbind(endpoint string) error {
 	}
 	s := C.CString(endpoint)
 	defer C.free(unsafe.Pointer(s))
-	if i, err := C.zmq_unbind(soc.soc, s); int(i) != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_unbind(soc.soc, s)
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if int(i) != 0 {
 		return errget(err)
 	}
 	return nil
@@ -934,7 +1001,15 @@ func (soc *Socket) Connect(endpoint string) error {
 	}
 	s := C.CString(endpoint)
 	defer C.free(unsafe.Pointer(s))
-	if i, err := C.zmq_connect(soc.soc, s); int(i) != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_connect(soc.soc, s)
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if int(i) != 0 {
 		return errget(err)
 	}
 	return nil
@@ -951,7 +1026,15 @@ func (soc *Socket) Disconnect(endpoint string) error {
 	}
 	s := C.CString(endpoint)
 	defer C.free(unsafe.Pointer(s))
-	if i, err := C.zmq_disconnect(soc.soc, s); int(i) != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_disconnect(soc.soc, s)
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if int(i) != 0 {
 		return errget(err)
 	}
 	return nil
@@ -982,7 +1065,14 @@ func (soc *Socket) RecvBytes(flags Flag) ([]byte, error) {
 	}
 	defer C.zmq_msg_close(&msg)
 
-	size, err := C.zmq_msg_recv(&msg, soc.soc, C.int(flags))
+	var size C.int
+	var err error
+	for {
+		size, err = C.zmq_msg_recv(&msg, soc.soc, C.int(flags))
+		if size >= 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
 	if size < 0 {
 		return []byte{}, errget(err)
 	}
@@ -1016,7 +1106,14 @@ func (soc *Socket) SendBytes(data []byte, flags Flag) (int, error) {
 	if len(data) == 0 {
 		d = []byte{0}
 	}
-	size, err := C.zmq_send(soc.soc, unsafe.Pointer(&d[0]), C.size_t(len(data)), C.int(flags))
+	var size C.int
+	var err error
+	for {
+		size, err = C.zmq_send(soc.soc, unsafe.Pointer(&d[0]), C.size_t(len(data)), C.int(flags))
+		if size >= 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
 	if size < 0 {
 		return int(size), errget(err)
 	}
@@ -1095,7 +1192,15 @@ func (soc *Socket) Monitor(addr string, events Event) error {
 		return ErrorSocketClosed
 	}
 	if addr == "" {
-		if i, err := C.zmq_socket_monitor(soc.soc, nil, C.int(events)); i != 0 {
+		var i C.int
+		var err error
+		for {
+			i, err = C.zmq_socket_monitor(soc.soc, nil, C.int(events))
+			if i == 0 || !soc.ctx.retry(err) {
+				break
+			}
+		}
+		if i != 0 {
 			return errget(err)
 		}
 		return nil
@@ -1103,7 +1208,15 @@ func (soc *Socket) Monitor(addr string, events Event) error {
 
 	s := C.CString(addr)
 	defer C.free(unsafe.Pointer(s))
-	if i, err := C.zmq_socket_monitor(soc.soc, s, C.int(events)); i != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_socket_monitor(soc.soc, s, C.int(events))
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if i != 0 {
 		return errget(err)
 	}
 	return nil
@@ -1128,7 +1241,14 @@ func (soc *Socket) RecvEvent(flags Flag) (event_type Event, addr string, value i
 		return
 	}
 	defer C.zmq_msg_close(&msg)
-	size, e := C.zmq_msg_recv(&msg, soc.soc, C.int(flags))
+	var size C.int
+	var e error
+	for {
+		size, e = C.zmq_msg_recv(&msg, soc.soc, C.int(flags))
+		if size >= 0 || !soc.ctx.retry(e) {
+			break
+		}
+	}
 	if size < 0 {
 		err = errget(e)
 		return
@@ -1175,7 +1295,13 @@ func Proxy(frontend, backend, capture *Socket) error {
 	if capture != nil {
 		capt = capture.soc
 	}
-	_, err := C.zmq_proxy(frontend.soc, backend.soc, capt)
+	var err error
+	for {
+		_, err = C.zmq_proxy(frontend.soc, backend.soc, capt)
+		if !frontend.ctx.retry(err) {
+			break
+		}
+	}
 	return errget(err)
 }
 
@@ -1200,7 +1326,14 @@ func ProxySteerable(frontend, backend, capture, control *Socket) error {
 	if control != nil {
 		ctrl = control.soc
 	}
-	i, err := C.zmq_proxy_steerable(frontend.soc, backend.soc, capt, ctrl)
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_proxy_steerable(frontend.soc, backend.soc, capt, ctrl)
+		if i >= 0 || !frontend.ctx.retry(err) {
+			break
+		}
+	}
 	if i < 0 {
 		return errget(err)
 	}
@@ -1309,7 +1442,13 @@ func (soc *Socket) RecvBytesWithMetadata(flags Flag, properties ...string) (msg 
 	}
 	defer C.zmq_msg_close(&m)
 
-	size, err := C.zmq_msg_recv(&m, soc.soc, C.int(flags))
+	var size C.int
+	for {
+		size, err = C.zmq_msg_recv(&m, soc.soc, C.int(flags))
+		if size >= 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
 	if size < 0 {
 		return []byte{}, metadata, errget(err)
 	}

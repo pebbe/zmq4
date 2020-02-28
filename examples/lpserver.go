@@ -17,6 +17,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	rand.Seed(time.Now().UnixNano())
 
 	server, _ := zmq.NewSocket(zmq.REP)

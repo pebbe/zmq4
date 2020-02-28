@@ -15,6 +15,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	publisher, _ := zmq.NewSocket(zmq.PUB)
 	if len(os.Args) == 2 {
 		publisher.Connect(os.Args[1])

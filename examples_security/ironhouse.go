@@ -14,6 +14,7 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
 
 	//  Start authentication engine
 	zmq.AuthSetVerbose(true)

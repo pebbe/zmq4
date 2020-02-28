@@ -43,6 +43,8 @@ func try_request(endpoint string, request []string) (reply []string, err error) 
 //  once:
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	request := []string{"Hello world"}
 	reply := []string{}
 	var err error

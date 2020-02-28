@@ -152,10 +152,13 @@ func (p *Poller) PollAll(timeout time.Duration) ([]Polled, error) {
 func (p *Poller) poll(timeout time.Duration, all bool) ([]Polled, error) {
 	lst := make([]Polled, 0, len(p.items))
 
+	var ctx *Context
 	for _, soc := range p.socks {
 		if !soc.opened {
 			return lst, ErrorSocketClosed
 		}
+		// assume all sockets have the same context
+		ctx = soc.ctx
 	}
 
 	t := timeout
@@ -165,7 +168,14 @@ func (p *Poller) poll(timeout time.Duration, all bool) ([]Polled, error) {
 	if t < 0 {
 		t = -1
 	}
-	rv, err := C.zmq_poll(&p.items[0], C.int(len(p.items)), C.long(t))
+	var rv C.int
+	var err error
+	for {
+		rv, err = C.zmq_poll(&p.items[0], C.int(len(p.items)), C.long(t))
+		if rv >= 0 || ctx == nil || !ctx.retry(err) {
+			break
+		}
+	}
 	if rv < 0 {
 		return lst, errget(err)
 	}

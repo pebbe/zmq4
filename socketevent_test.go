@@ -44,6 +44,8 @@ func rep_socket_monitor(addr string, chMsg chan<- string) {
 
 func TestSocketEvent(t *testing.T) {
 
+	zmq.SetRetryAfterEINTR(true)
+
 	var rep *zmq.Socket
 	defer func() {
 		if rep != nil {

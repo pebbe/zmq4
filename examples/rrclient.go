@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	requester, _ := zmq.NewSocket(zmq.REQ)
 	defer requester.Close()
 	requester.Connect("tcp://localhost:5559")

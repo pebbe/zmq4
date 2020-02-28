@@ -46,6 +46,8 @@ type clonesrv_t struct {
 //  and ports 5558/5568 by the collector:
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	var err error
 
 	srv := &clonesrv_t{}

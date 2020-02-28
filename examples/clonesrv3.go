@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	snapshot, _ := zmq.NewSocket(zmq.ROUTER)
 	snapshot.Bind("tcp://*:5556")
 	publisher, _ := zmq.NewSocket(zmq.PUB)

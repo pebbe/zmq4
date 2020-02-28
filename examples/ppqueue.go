@@ -72,6 +72,8 @@ func s_workers_purge(workers []worker_t) []worker_t {
 //  can detect crashed or blocked worker tasks:
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	frontend, _ := zmq.NewSocket(zmq.ROUTER)
 	backend, _ := zmq.NewSocket(zmq.ROUTER)
 	defer frontend.Close()

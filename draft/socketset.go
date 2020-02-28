@@ -19,7 +19,15 @@ func (soc *Socket) setString(opt C.int, s string) error {
 	}
 	cs := C.CString(s)
 	defer C.free(unsafe.Pointer(cs))
-	if i, err := C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(cs), C.size_t(len(s))); i != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(cs), C.size_t(len(s)))
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if i != 0 {
 		return errget(err)
 	}
 	return nil
@@ -29,7 +37,15 @@ func (soc *Socket) setNullString(opt C.int) error {
 	if !soc.opened {
 		return ErrorSocketClosed
 	}
-	if i, err := C.zmq_setsockopt(soc.soc, opt, nil, 0); i != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_setsockopt(soc.soc, opt, nil, 0)
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if i != 0 {
 		return errget(err)
 	}
 	return nil
@@ -40,7 +56,15 @@ func (soc *Socket) setInt(opt C.int, value int) error {
 		return ErrorSocketClosed
 	}
 	val := C.int(value)
-	if i, err := C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val))); i != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val)))
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if i != 0 {
 		return errget(err)
 	}
 	return nil
@@ -51,7 +75,15 @@ func (soc *Socket) setInt64(opt C.int, value int64) error {
 		return ErrorSocketClosed
 	}
 	val := C.int64_t(value)
-	if i, err := C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val))); i != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val)))
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if i != 0 {
 		return errget(err)
 	}
 	return nil
@@ -62,7 +94,15 @@ func (soc *Socket) setUInt64(opt C.int, value uint64) error {
 		return ErrorSocketClosed
 	}
 	val := C.uint64_t(value)
-	if i, err := C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val))); i != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val)))
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if i != 0 {
 		return errget(err)
 	}
 	return nil

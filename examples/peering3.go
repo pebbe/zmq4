@@ -120,6 +120,8 @@ func worker_task(i int) {
 //  we use a PULL monitor socket to collect printable messages from tasks:
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	//  First argument is this broker's name
 	//  Other arguments are our peers' names
 	//

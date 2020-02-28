@@ -14,6 +14,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	snapshot, _ := zmq.NewSocket(zmq.DEALER)
 	snapshot.Connect("tcp://localhost:5556")
 	subscriber, _ := zmq.NewSocket(zmq.SUB)

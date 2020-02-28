@@ -6,6 +6,7 @@
 package main
 
 import (
+	zmq "github.com/pebbe/zmq4"
 	"github.com/pebbe/zmq4/examples/flcliapi"
 
 	"fmt"
@@ -13,6 +14,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	//  Create new freelance client object
 	client := flcliapi.New()
 

@@ -22,6 +22,8 @@ const (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	if len(os.Args) == 1 {
 		fmt.Printf("I: syntax: %s <endpoint> ...\n", os.Args[0])
 		return

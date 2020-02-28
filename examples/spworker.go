@@ -19,6 +19,8 @@ const (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	worker, _ := zmq.NewSocket(zmq.REQ)
 	defer worker.Close()
 

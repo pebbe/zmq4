@@ -90,3 +90,14 @@ func AsErrno(err error) Errno {
 	}
 	return Errno(0)
 }
+
+func (ctx *Context) retry(err error) bool {
+	if !ctx.retryEINTR || err == nil {
+		return false
+	}
+	eno, ok := err.(syscall.Errno)
+	if !ok {
+		return false
+	}
+	return eno == syscall.EINTR
+}

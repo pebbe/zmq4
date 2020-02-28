@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	//  Socket to talk to server
 	fmt.Println("Connecting to hello world server...")
 	requester, _ := zmq.NewSocket(zmq.REQ)

@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	var verbose bool
 	if len(os.Args) > 1 && os.Args[1] == "-v" {
 		verbose = true

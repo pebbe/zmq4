@@ -15,6 +15,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	subscriber, _ := zmq.NewSocket(zmq.SUB)
 	if len(os.Args) == 2 {
 		subscriber.Connect(os.Args[1])

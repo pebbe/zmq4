@@ -1,6 +1,6 @@
 //
 //  UDP ping command
-//  Model 2, uses the GO net library
+//  Model 2, uses the Go net library
 //
 
 //  this doesn't use ZeroMQ at all

@@ -21,6 +21,8 @@ const (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	fmt.Println("I: connecting to server...")
 	client, err := zmq.NewSocket(zmq.REQ)
 	if err != nil {

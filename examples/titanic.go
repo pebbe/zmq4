@@ -6,6 +6,7 @@
 package main
 
 import (
+	zmq "github.com/pebbe/zmq4"
 	"github.com/pebbe/zmq4/examples/mdapi"
 
 	"github.com/pborman/uuid"
@@ -132,6 +133,8 @@ func TitanicClose() {
 //  response:
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	var verbose bool
 	if len(os.Args) > 1 && os.Args[1] == "-v" {
 		verbose = true

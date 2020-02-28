@@ -146,7 +146,7 @@ func (r *Reactor) Run(interval time.Duration) (err error) {
 						continue CHANNELS
 					}
 					if r.verbose {
-						fmt.Printf("Reactor(%p) channel %d: %q\n", r, id, val)
+						fmt.Printf("Reactor(%p) channel %d: %v\n", r, id, val)
 					}
 					err = ch.f(val)
 					if err != nil {

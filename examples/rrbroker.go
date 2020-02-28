@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	//  Prepare our sockets
 	frontend, _ := zmq.NewSocket(zmq.ROUTER)
 	defer frontend.Close()

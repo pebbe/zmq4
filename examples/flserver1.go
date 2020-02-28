@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	if len(os.Args) < 2 {
 		fmt.Printf("I: syntax: %s <endpoint>\n", os.Args[0])
 		return

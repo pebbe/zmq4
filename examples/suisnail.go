@@ -73,6 +73,8 @@ LOOP:
 //  waits for the client to signal that it has died:
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	pubpipe := make(chan string)
 	subpipe := make(chan string)
 	go publisher(pubpipe)

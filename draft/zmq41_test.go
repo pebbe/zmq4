@@ -7,6 +7,7 @@ import (
 )
 
 func TestRemoteEndpoint(t *testing.T) {
+	zmq.SetRetryAfterEINTR(true)
 
 	if _, minor, _ := zmq.Version(); minor < 1 {
 		t.Skip("RemoteEndpoint not avalable in ZeroMQ versions prior to 4.1.0")

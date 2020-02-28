@@ -38,6 +38,7 @@ func step2() {
 }
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
 
 	//  Bind inproc socket before starting step2
 	receiver, _ := zmq.NewSocket(zmq.PAIR)

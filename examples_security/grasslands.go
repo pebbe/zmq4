@@ -13,6 +13,7 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
 
 	//  Create and bind server socket
 	server, err := zmq.NewSocket(zmq.PUSH)

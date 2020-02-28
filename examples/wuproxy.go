@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	//  This is where the weather server sits
 	frontend, _ := zmq.NewSocket(zmq.XSUB)
 	defer frontend.Close()

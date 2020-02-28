@@ -8,6 +8,7 @@ import (
 )
 
 func TestUdp(t *testing.T) {
+	zmq.SetRetryAfterEINTR(true)
 
 	if _, minor, _ := zmq.Version(); minor < 2 {
 		t.Skip("Sockets RADIO and DISH need ZeroMQ 4.2 with draft enabled")
@@ -18,6 +19,7 @@ func TestUdp(t *testing.T) {
 		t.Fatal("NewContext:", err)
 	}
 	defer ctx.Term()
+	ctx.SetRetryAfterEINTR(true)
 
 	radio, err := ctx.NewSocket(zmq.RADIO)
 	if err != nil {
@@ -80,6 +82,7 @@ func TestUdp(t *testing.T) {
 }
 
 func TestClientServer(t *testing.T) {
+	zmq.SetRetryAfterEINTR(true)
 
 	if _, minor, _ := zmq.Version(); minor < 2 {
 		t.Skip("Sockets CLIENT and SERVER need ZeroMQ 4.2 with draft enabled")
@@ -90,6 +93,7 @@ func TestClientServer(t *testing.T) {
 		t.Fatal("NewContext:", err)
 	}
 	defer ctx.Term()
+	ctx.SetRetryAfterEINTR(true)
 
 	server, err := ctx.NewSocket(zmq.SERVER)
 	if err != nil {
@@ -118,7 +122,7 @@ func TestClientServer(t *testing.T) {
 		t.Fatal("client.Send DONTWAIT: ", err)
 	}
 	if rc != 32 {
-		t.Fatal("client.Send DONTWAIT: ", err32)
+		t.Fatalf("client.Send DONTWAIT: %v (%v)", err32, rc)
 	}
 
 	msg, opts, err := server.RecvWithOpts(0, zmq.OptRoutingId(0))
@@ -135,7 +139,7 @@ func TestClientServer(t *testing.T) {
 		t.Fatal("server.Send:", err)
 	}
 	if rc != 32 {
-		t.Fatal("server.Send: ", err32)
+		t.Fatalf("server.Send: %v (%v)", err32, rc)
 	}
 
 	//  Receive message at client side

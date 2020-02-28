@@ -19,7 +19,16 @@ See: http://api.zeromq.org/4-1:zmq-getsockopt#toc9
 func (soc *Socket) GetFd() (uintptr, error) {
 	value := C.SOCKET(0)
 	size := C.size_t(unsafe.Sizeof(value))
-	if i, err := C.zmq_getsockopt(soc.soc, C.ZMQ_FD, unsafe.Pointer(&value), &size); i != 0 {
+	var i C.int
+	var err error
+	for {
+		i, err = C.zmq_getsockopt(soc.soc, C.ZMQ_FD, unsafe.Pointer(&value), &size)
+		// not really necessary because Windows doesn't have EINTR
+		if i == 0 || !soc.ctx.retry(err) {
+			break
+		}
+	}
+	if i != 0 {
 		return uintptr(0), errget(err)
 	}
 	return uintptr(value), nil

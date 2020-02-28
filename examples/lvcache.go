@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	frontend, _ := zmq.NewSocket(zmq.SUB)
 	frontend.Bind("tcp://*:5557")
 	backend, _ := zmq.NewSocket(zmq.XPUB)

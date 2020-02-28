@@ -75,6 +75,8 @@ func worker_task() {
 //  just a queue of next available workers.
 
 func main() {
+	zmq.SetRetryAfterEINTR(true)
+
 	//  Prepare our sockets
 	frontend, _ := zmq.NewSocket(zmq.ROUTER)
 	backend, _ := zmq.NewSocket(zmq.ROUTER)

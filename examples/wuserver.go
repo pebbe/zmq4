@@ -16,6 +16,8 @@ import (
 
 func main() {
 
+	zmq.SetRetryAfterEINTR(true)
+
 	//  Prepare our publisher
 	publisher, _ := zmq.NewSocket(zmq.PUB)
 	defer publisher.Close()
