@@ -1234,15 +1234,9 @@ func (soc *Socket) SendBytes(data []byte, flags Flag, options ...interface{}) (i
 	}
 
 	var size C.int
+	var err error
 	for {
-		var size C.int
-		var err error
-		for {
-			size, err = C.zmq_msg_send(&msg, soc.soc, C.int(flags))
-			if size >= 0 || !soc.ctx.retry(err) {
-				break
-			}
-		}
+		size, err = C.zmq_msg_send(&msg, soc.soc, C.int(flags))
 		if size >= 0 || !soc.ctx.retry(err) {
 			break
 		}
