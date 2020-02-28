@@ -5,16 +5,9 @@ A Go interface to [ZeroMQ](http://www.zeromq.org/) version 4.
 
 ## Warning
 
-This package has some issues with Go 1.14 (and later) on Unix-like
-systems. And perhaps on earlier versions of Go too, but perhaps those 
-issues surfaced less often.
-
- 1. The Reactor is broken. It will cause freezes. Don't use it. I
-    don't know if I can fix this.
- 2. You will get a lot of interrupted system calls. I will work on
-    a solution. Or you could handle those errors yourself, if you like.
-
-See: https://github.com/pebbe/zmq4/issues/161
+Starting with Go 1.14, on Unix-like systems, you will get a lot of
+interrupted signal calls. See the top of a package documentation
+for a fix.
 
 ----------------------------------------------------------------
 
