@@ -34,8 +34,6 @@ func worker_routine() {
 }
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	//  Socket to talk to clients
 	clients, _ := zmq.NewSocket(zmq.ROUTER)
 	defer clients.Close()

@@ -5,7 +5,6 @@
 package main
 
 import (
-	zmq "github.com/pebbe/zmq4"
 	"github.com/pebbe/zmq4/examples/clone"
 
 	"fmt"
@@ -19,8 +18,6 @@ const (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	//  Create distributed hash instance
 	clone := clone.New()
 

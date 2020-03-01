@@ -71,8 +71,6 @@ func BrokerTask() {
 //  broker, and then runs until the client signals it to stop:
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	//  Create threads
 	pipe := make(chan bool)
 	go ClientTask(pipe)

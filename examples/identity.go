@@ -17,8 +17,6 @@ var (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	sink, _ := zmq.NewSocket(zmq.ROUTER)
 	defer sink.Close()
 	sink.Bind("inproc://example")

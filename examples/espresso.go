@@ -70,8 +70,6 @@ func listener_thread() {
 //  itself up as a listening proxy. The listener runs as a child thread:
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	//  Start child threads
 	go publisher_thread()
 	go subscriber_thread()

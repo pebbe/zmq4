@@ -12,7 +12,6 @@ import (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
 
 	//  Connect to task ventilator
 	receiver, _ := zmq.NewSocket(zmq.PULL)

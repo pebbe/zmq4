@@ -150,6 +150,7 @@ func init() {
 		return
 	}
 	defaultCtx.opened = true
+	defaultCtx.retryEINTR = true
 }
 
 //. Util
@@ -198,6 +199,7 @@ func NewContext() (ctx *Context, err error) {
 		ctx.err = err
 	} else {
 		ctx.ctx = c
+		ctx.retryEINTR = true
 		ctx.opened = true
 		runtime.SetFinalizer(ctx, (*Context).Term)
 	}
@@ -596,6 +598,8 @@ func (ctx *Context) SetBlocky(i bool) error {
 
 /*
 Sets the retry after EINTR setting in the default context.
+
+Initital value is true.
 */
 func SetRetryAfterEINTR(retry bool) {
 	defaultCtx.SetRetryAfterEINTR(retry)
@@ -603,6 +607,8 @@ func SetRetryAfterEINTR(retry bool) {
 
 /*
 Sets the retry after EINTR setting.
+
+Initital value is true.
 */
 func (ctx *Context) SetRetryAfterEINTR(retry bool) {
 	ctx.retryEINTR = retry

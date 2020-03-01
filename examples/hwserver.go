@@ -14,8 +14,6 @@ import (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	//  Socket to talk to clients
 	responder, _ := zmq.NewSocket(zmq.REP)
 	defer responder.Close()

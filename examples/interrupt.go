@@ -18,8 +18,6 @@ import (
 )
 
 func main() {
-	// zmq.SetRetryAfterEINTR(true)
-
 	//  Socket to talk to server
 	fmt.Println("Connecting to hello world server...")
 	client, _ := zmq.NewSocket(zmq.REQ)
@@ -29,6 +27,8 @@ func main() {
 	// Without signal handling, Go will exit on signal, even if the signal was caught by ZeroMQ
 	chSignal := make(chan os.Signal, 1)
 	signal.Notify(chSignal, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+
+	zmq.SetRetryAfterEINTR(false)
 
 LOOP:
 	for {

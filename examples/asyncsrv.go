@@ -110,8 +110,6 @@ func server_worker() {
 //  waits for the server to finish.
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	rand.Seed(time.Now().UnixNano())
 
 	go client_task()

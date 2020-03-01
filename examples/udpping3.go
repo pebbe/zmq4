@@ -6,7 +6,6 @@
 package main
 
 import (
-	zmq "github.com/pebbe/zmq4"
 	"github.com/pebbe/zmq4/examples/intface"
 
 	"fmt"
@@ -14,8 +13,6 @@ import (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	log.SetFlags(log.Lshortfile)
 	iface := intface.New()
 	for {

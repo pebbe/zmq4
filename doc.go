@@ -33,22 +33,13 @@ The first option is to build your program with the environment variable:
 
 The second option is to let the program retry after an interrupted system call.
 
-For sockets in the global context:
-
-    zmq4.SetRetryAfterEINTR(true)
-
-For sockets in a non-global context:
-
-    zctx, _ := zmq.NewContext()
-    zctx.SetRetryAfterEINTR(true)
+Initially, this is set to true, for the global context, and for contexts
+created with NewContext().
 
 When you install a signal handler, for instance to handle Ctrl-C, you should
 probably clear this option in your signal handler. For example:
 
-    zmq4.SetRetryAfterEINTR(true)
-
     zctx, _ := zmq.NewContext()
-    zctx.SetRetryAfterEINTR(true)
 
     ctx, cancel := context.WithCancel(context.Background())
 

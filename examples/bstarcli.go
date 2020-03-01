@@ -18,7 +18,6 @@ const (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
 
 	server := []string{"tcp://localhost:5001", "tcp://localhost:5002"}
 	server_nbr := 0

@@ -81,8 +81,6 @@ func worker_task(name string, i int) {
 //  and then starting its client and worker tasks:
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	//  First argument is this broker's name
 	//  Other arguments are our peers' names
 	//

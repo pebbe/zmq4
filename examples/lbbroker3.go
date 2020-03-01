@@ -118,8 +118,6 @@ func handle_backend(lbbroker *lbbroker_t) error {
 //  and send messages:
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	lbbroker := &lbbroker_t{}
 	lbbroker.frontend, _ = zmq.NewSocket(zmq.ROUTER)
 	lbbroker.backend, _ = zmq.NewSocket(zmq.ROUTER)

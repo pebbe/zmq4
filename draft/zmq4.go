@@ -152,6 +152,7 @@ func init() {
 		return
 	}
 	defaultCtx.opened = true
+	defaultCtx.retryEINTR = true
 }
 
 //. Util
@@ -200,6 +201,7 @@ func NewContext() (ctx *Context, err error) {
 		ctx.err = err
 	} else {
 		ctx.ctx = c
+		ctx.retryEINTR = true
 		ctx.opened = true
 		runtime.SetFinalizer(ctx, (*Context).Term)
 	}

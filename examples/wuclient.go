@@ -16,8 +16,6 @@ import (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	//  Socket to talk to server
 	fmt.Println("Collecting updates from weather server...")
 	subscriber, _ := zmq.NewSocket(zmq.SUB)

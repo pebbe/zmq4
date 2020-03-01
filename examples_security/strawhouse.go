@@ -15,7 +15,6 @@ import (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
 
 	//  Get some indication of what the authenticator is deciding
 	zmq.AuthSetVerbose(true)

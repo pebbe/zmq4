@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
 
 	mailbox, _ := zmq.NewSocket(zmq.DEALER)
 	mailbox.SetSndhwm(4)

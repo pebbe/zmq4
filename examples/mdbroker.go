@@ -331,8 +331,6 @@ func (worker *Worker) Waiting() {
 //  then processes messages on the broker socket:
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	verbose := false
 	if len(os.Args) > 1 && os.Args[1] == "-v" {
 		verbose = true

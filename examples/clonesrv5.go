@@ -27,7 +27,6 @@ type clonesrv_t struct {
 }
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
 
 	srv := &clonesrv_t{
 		port:  5556,

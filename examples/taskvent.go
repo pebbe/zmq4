@@ -15,8 +15,6 @@ import (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	//  Socket to send messages on
 	sender, _ := zmq.NewSocket(zmq.PUSH)
 	defer sender.Close()

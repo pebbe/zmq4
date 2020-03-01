@@ -15,8 +15,6 @@ const (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	frontend, _ := zmq.NewSocket(zmq.ROUTER)
 	backend, _ := zmq.NewSocket(zmq.ROUTER)
 	defer frontend.Close()

@@ -19,8 +19,6 @@ import (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	//  Prepare our context and sockets
 	publisher, _ := zmq.NewSocket(zmq.PUB)
 	publisher.Bind("tcp://*:5557")

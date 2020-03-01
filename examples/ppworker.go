@@ -46,8 +46,6 @@ func s_worker_socket() (*zmq.Socket, *zmq.Poller) {
 //  died, and vice-versa:
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	worker, poller := s_worker_socket()
 
 	//  If liveness hits zero, queue is considered disconnected

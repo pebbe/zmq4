@@ -43,8 +43,6 @@ func worker_task() {
 }
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	broker, _ := zmq.NewSocket(zmq.ROUTER)
 	defer broker.Close()
 

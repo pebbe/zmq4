@@ -11,8 +11,6 @@ import (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	major, minor, patch := zmq.Version()
 	fmt.Printf("Current 0MQ version is %d.%d.%d\n", major, minor, patch)
 }

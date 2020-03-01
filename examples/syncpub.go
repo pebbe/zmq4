@@ -16,11 +16,9 @@ const (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
 
 	ctx, _ := zmq.NewContext()
 	defer ctx.Term()
-	ctx.SetRetryAfterEINTR(true)
 
 	//  Socket to talk to clients
 	publisher, _ := ctx.NewSocket(zmq.PUB)

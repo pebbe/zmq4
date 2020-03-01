@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
 
 	//  First, connect our subscriber socket
 	subscriber, _ := zmq.NewSocket(zmq.SUB)

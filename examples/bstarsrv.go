@@ -117,7 +117,6 @@ func StateMachine(fsm *bstar_t) (exception bool) {
 //  one for client requests/replies:
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
 	//  Arguments can be either of:
 	//      -p  primary server, at tcp://localhost:5001
 	//      -b  backup server, at tcp://localhost:5002

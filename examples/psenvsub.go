@@ -11,8 +11,6 @@ import (
 )
 
 func main() {
-	zmq.SetRetryAfterEINTR(true)
-
 	//  Prepare our subscriber
 	subscriber, _ := zmq.NewSocket(zmq.SUB)
 	defer subscriber.Close()
