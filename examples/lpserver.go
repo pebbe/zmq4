@@ -24,7 +24,6 @@ func main() {
 	server.Bind("tcp://*:5555")
 
 	for cycles := 0; true; {
-		request, _ := server.RecvMessage(0)
 		cycles++
 
 		//  Simulate various problems, after a few cycles
@@ -35,6 +34,8 @@ func main() {
 			fmt.Println("I: simulating CPU overload")
 			time.Sleep(2 * time.Second)
 		}
+
+		request, _ := server.RecvMessage(0)
 		fmt.Printf("I: normal request (%s)\n", request)
 		time.Sleep(time.Second) //  Do some heavy work
 		server.SendMessage(request)
