@@ -7,6 +7,20 @@ package zmq4
 #include <errno.h>
 #include <zmq.h>
 
+#if ZMQ_VERSION_MINOR < 2
+// Version < 4.2.x
+#include <zmq_utils.h>
+int zmq_curve_public (char *z85_public_key, const char *z85_secret_key);
+#endif // Version < 4.2.x
+
+#if ZMQ_VERSION_MINOR < 1
+const char *zmq_msg_gets (zmq_msg_t *msg, const char *property);
+#if ZMQ_VERSION_PATCH < 5
+// Version < 4.0.5
+int zmq_proxy_steerable (const void *frontend, const void *backend, const void *capture, const void *control);
+#endif // Version < 4.0.5
+#endif // Version == 4.0.x
+
 int zmq4_bind (void *socket, const char *endpoint)
 {
     int i;
