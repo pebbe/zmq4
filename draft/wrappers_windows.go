@@ -253,7 +253,7 @@ int zmq4_msg_set_routing_id (zmq_msg_t *message, uint32_t routing_id)
 int zmq4_join (void *s, const char *group)
 {
     int i;
-    i = zmq4_join(s, group);
+    i = zmq_join(s, group);
     if (i < 0)
         errno = zmq_errno();
     return i;
@@ -263,7 +263,7 @@ int zmq4_join (void *s, const char *group)
 int zmq4_leave (void *s, const char *group)
 {
     int i;
-    i = zmq4_leave(s, group);
+    i = zmq_leave(s, group);
     if (i < 0)
         errno = zmq_errno();
     return i;

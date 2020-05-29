@@ -152,13 +152,13 @@ int zmq4_msg_set_routing_id (zmq_msg_t *message, uint32_t routing_id)
 // not documented, so just assuming about return value...
 int zmq4_join (void *s, const char *group)
 {
-    return zmq4_join(s, group);
+    return zmq_join(s, group);
 }
 
 // not documented, so just assuming about return value...
 int zmq4_leave (void *s, const char *group)
 {
-    return zmq4_leave(s, group);
+    return zmq_leave(s, group);
 }
 
 */
