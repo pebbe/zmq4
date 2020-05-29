@@ -46,7 +46,7 @@ func (soc *Socket) Join(group string) error {
 	}
 	cs := C.CString(group)
 	defer C.free(unsafe.Pointer(cs))
-	n, err := C.zmq_join(soc.soc, cs)
+	n, err := C.zmq4_join(soc.soc, cs)
 	if n != 0 {
 		return errget(err)
 	}
@@ -59,7 +59,7 @@ func (soc *Socket) Leave(group string) error {
 	}
 	cs := C.CString(group)
 	defer C.free(unsafe.Pointer(cs))
-	n, err := C.zmq_leave(soc.soc, cs)
+	n, err := C.zmq4_leave(soc.soc, cs)
 	if n != 0 {
 		return errget(err)
 	}
@@ -67,5 +67,5 @@ func (soc *Socket) Leave(group string) error {
 }
 
 func HasDraft() bool {
-    return has42draft
+	return has42draft
 }

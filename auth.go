@@ -19,6 +19,8 @@ package zmq4
 #include <zmq.h>
 #include <stdlib.h>
 
+#include "zmq4.h"
+
 #if ZMQ_VERSION_MINOR < 2
 // Version < 4.2.x
 
@@ -637,7 +639,7 @@ func AuthCurvePublic(z85SecretKey string) (z85PublicKey string, err error) {
 	defer C.free(unsafe.Pointer(secret))
 	public := C.CString(strings.Repeat(" ", 41))
 	defer C.free(unsafe.Pointer(public))
-	if i, err := C.zmq_curve_public(public, secret); int(i) != 0 {
+	if i, err := C.zmq4_curve_public(public, secret); int(i) != 0 {
 		return "", errget(err)
 	}
 	z85PublicKey = C.GoString(public)

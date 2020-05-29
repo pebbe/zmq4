@@ -2,6 +2,7 @@ package zmq4
 
 /*
 #include <zmq.h>
+#include "zmq4.h"
 */
 import "C"
 
@@ -171,7 +172,7 @@ func (p *Poller) poll(timeout time.Duration, all bool) ([]Polled, error) {
 	var rv C.int
 	var err error
 	for {
-		rv, err = C.zmq_poll(&p.items[0], C.int(len(p.items)), C.long(t))
+		rv, err = C.zmq4_poll(&p.items[0], C.int(len(p.items)), C.long(t))
 		if rv >= 0 || ctx == nil || !ctx.retry(err) {
 			break
 		}

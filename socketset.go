@@ -22,7 +22,7 @@ func (soc *Socket) setString(opt C.int, s string) error {
 	var i C.int
 	var err error
 	for {
-		i, err = C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(cs), C.size_t(len(s)))
+		i, err = C.zmq4_setsockopt(soc.soc, opt, unsafe.Pointer(cs), C.size_t(len(s)))
 		if i == 0 || !soc.ctx.retry(err) {
 			break
 		}
@@ -40,7 +40,7 @@ func (soc *Socket) setNullString(opt C.int) error {
 	var i C.int
 	var err error
 	for {
-		i, err = C.zmq_setsockopt(soc.soc, opt, nil, 0)
+		i, err = C.zmq4_setsockopt(soc.soc, opt, nil, 0)
 		if i == 0 || !soc.ctx.retry(err) {
 			break
 		}
@@ -59,7 +59,7 @@ func (soc *Socket) setInt(opt C.int, value int) error {
 	var i C.int
 	var err error
 	for {
-		i, err = C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val)))
+		i, err = C.zmq4_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val)))
 		if i == 0 || !soc.ctx.retry(err) {
 			break
 		}
@@ -78,7 +78,7 @@ func (soc *Socket) setInt64(opt C.int, value int64) error {
 	var i C.int
 	var err error
 	for {
-		i, err = C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val)))
+		i, err = C.zmq4_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val)))
 		if i == 0 || !soc.ctx.retry(err) {
 			break
 		}
@@ -97,7 +97,7 @@ func (soc *Socket) setUInt64(opt C.int, value uint64) error {
 	var i C.int
 	var err error
 	for {
-		i, err = C.zmq_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val)))
+		i, err = C.zmq4_setsockopt(soc.soc, opt, unsafe.Pointer(&val), C.size_t(unsafe.Sizeof(val)))
 		if i == 0 || !soc.ctx.retry(err) {
 			break
 		}

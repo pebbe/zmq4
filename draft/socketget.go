@@ -22,7 +22,7 @@ func (soc *Socket) getString(opt C.int, bufsize int) (string, error) {
 	var i C.int
 	var err error
 	for {
-		i, err = C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value[0]), &size)
+		i, err = C.zmq4_getsockopt(soc.soc, opt, unsafe.Pointer(&value[0]), &size)
 		if i == 0 || !soc.ctx.retry(err) {
 			break
 		}
@@ -42,7 +42,7 @@ func (soc *Socket) getStringRaw(opt C.int, bufsize int) (string, error) {
 	var i C.int
 	var err error
 	for {
-		i, err = C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value[0]), &size)
+		i, err = C.zmq4_getsockopt(soc.soc, opt, unsafe.Pointer(&value[0]), &size)
 		if i == 0 || !soc.ctx.retry(err) {
 			break
 		}
@@ -62,7 +62,7 @@ func (soc *Socket) getInt(opt C.int) (int, error) {
 	var i C.int
 	var err error
 	for {
-		i, err = C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size)
+		i, err = C.zmq4_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size)
 		if i == 0 || !soc.ctx.retry(err) {
 			break
 		}
@@ -82,7 +82,7 @@ func (soc *Socket) getInt64(opt C.int) (int64, error) {
 	var i C.int
 	var err error
 	for {
-		i, err = C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size)
+		i, err = C.zmq4_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size)
 		if i == 0 || !soc.ctx.retry(err) {
 			break
 		}
@@ -102,7 +102,7 @@ func (soc *Socket) getUInt64(opt C.int) (uint64, error) {
 	var i C.int
 	var err error
 	for {
-		i, err = C.zmq_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size)
+		i, err = C.zmq4_getsockopt(soc.soc, opt, unsafe.Pointer(&value), &size)
 		if i == 0 || !soc.ctx.retry(err) {
 			break
 		}

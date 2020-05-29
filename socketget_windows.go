@@ -4,6 +4,7 @@ package zmq4
 
 /*
 #include <zmq.h>
+#include "zmq4.h"
 */
 import "C"
 
@@ -22,7 +23,7 @@ func (soc *Socket) GetFd() (uintptr, error) {
 	var i C.int
 	var err error
 	for {
-		i, err = C.zmq_getsockopt(soc.soc, C.ZMQ_FD, unsafe.Pointer(&value), &size)
+		i, err = C.zmq4_getsockopt(soc.soc, C.ZMQ_FD, unsafe.Pointer(&value), &size)
 		// not really necessary because Windows doesn't have EINTR
 		if i == 0 || !soc.ctx.retry(err) {
 			break
