@@ -633,6 +633,7 @@ const (
 	// For Recv, see: http://api.zeromq.org/4-1:zmq-msg-recv#toc2
 	DONTWAIT = Flag(C.ZMQ_DONTWAIT)
 	SNDMORE  = Flag(C.ZMQ_SNDMORE)
+	RCVMORE  = Flag(C.ZMQ_RCVMORE)
 )
 
 /*
