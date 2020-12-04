@@ -4,9 +4,12 @@ package zmq4
 
 /*
 #include <zmq.h>
+#include <winsock2.h>
 #include "zmq4.h"
 */
 import "C"
+
+// winsock2.h needed for ZeroMQ version 4.3.3
 
 import (
 	"unsafe"
