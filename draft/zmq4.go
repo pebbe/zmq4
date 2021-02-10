@@ -144,8 +144,8 @@ func init() {
 			initVersionError =
 				fmt.Errorf(
 					"zmq4 was installed with ZeroMQ version %d.%d.%d, but the application links with version %d.%d.%d",
-					int(C.zmq4_major), int(C.zmq4_minor), int(C.zmq4_patch),
-					major, minor, patch)
+					major, minor, patch,
+					int(C.zmq4_major), int(C.zmq4_minor), int(C.zmq4_patch))
 			return
 		}
 	}
