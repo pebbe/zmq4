@@ -35,6 +35,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -44,8 +45,9 @@ var (
 	auth_handler *Socket
 	auth_quit    *Socket
 
-	auth_init    = false
-	auth_verbose = false
+	auth_init          = false
+	auth_verbose_value = false
+	auth_verbose_lock  sync.RWMutex
 
 	auth_allow     = make(map[string]map[string]bool)
 	auth_deny      = make(map[string]map[string]bool)
@@ -58,6 +60,19 @@ var (
 
 	auth_meta_handler = auth_meta_handler_default
 )
+
+func auth_verbose() bool {
+	auth_verbose_lock.RLock()
+	value := auth_verbose_value
+	auth_verbose_lock.RUnlock()
+	return value
+}
+
+func auth_verbose_set(value bool) {
+	auth_verbose_lock.Lock()
+	auth_verbose_value = value
+	auth_verbose_lock.Unlock()
+}
 
 func auth_meta_handler_default(version, request_id, domain, address, identity, mechanism string, credentials ...string) (metadata map[string]string) {
 	return map[string]string{}
@@ -146,18 +161,18 @@ func auth_do_handler() {
 
 		msg, err := auth_handler.RecvMessage(0)
 		if err != nil {
-			if auth_verbose {
+			if auth_verbose() {
 				log.Println("AUTH: Quitting:", err)
 			}
 			break
 		}
 
 		if msg[0] == "QUIT" {
-			if auth_verbose {
+			if auth_verbose() {
 				log.Println("AUTH: Quitting: received QUIT message")
 			}
 			_, err := auth_handler.SendMessage("QUIT")
-			if err != nil && auth_verbose {
+			if err != nil && auth_verbose() {
 				log.Println("AUTH: Quitting: bouncing QUIT message:", err)
 			}
 			break
@@ -195,24 +210,24 @@ func auth_do_handler() {
 		if auth_has_allow(domain) {
 			if auth_is_allowed(domain, address) {
 				allowed = true
-				if auth_verbose {
+				if auth_verbose() {
 					log.Printf("AUTH: PASSED (whitelist) domain=%q address=%q\n", domain, address)
 				}
 			} else {
 				denied = true
-				if auth_verbose {
+				if auth_verbose() {
 					log.Printf("AUTH: DENIED (not in whitelist) domain=%q address=%q\n", domain, address)
 				}
 			}
 		} else if auth_has_deny(domain) {
 			if auth_is_denied(domain, address) {
 				denied = true
-				if auth_verbose {
+				if auth_verbose() {
 					log.Printf("AUTH: DENIED (blacklist) domain=%q address=%q\n", domain, address)
 				}
 			} else {
 				allowed = true
-				if auth_verbose {
+				if auth_verbose() {
 					log.Printf("AUTH: PASSED (not in blacklist) domain=%q address=%q\n", domain, address)
 				}
 			}
@@ -222,7 +237,7 @@ func auth_do_handler() {
 		if !denied {
 			if mechanism == "NULL" && !allowed {
 				// For NULL, we allow if the address wasn't blacklisted
-				if auth_verbose {
+				if auth_verbose() {
 					log.Printf("AUTH: ALLOWED (NULL)\n")
 				}
 				allowed = true
@@ -254,10 +269,10 @@ func auth_do_handler() {
 	}
 
 	err := auth_handler.Close()
-	if err != nil && auth_verbose {
+	if err != nil && auth_verbose() {
 		log.Println("AUTH: Quitting: Close:", err)
 	}
-	if auth_verbose {
+	if auth_verbose() {
 		log.Println("AUTH: Quit")
 	}
 }
@@ -266,14 +281,14 @@ func authenticate_plain(domain, username, password string) bool {
 	for _, dom := range []string{domain, "*"} {
 		if m, ok := auth_users[dom]; ok {
 			if m[username] == password {
-				if auth_verbose {
+				if auth_verbose() {
 					log.Printf("AUTH: ALLOWED (PLAIN) domain=%q username=%q password=%q\n", dom, username, password)
 				}
 				return true
 			}
 		}
 	}
-	if auth_verbose {
+	if auth_verbose() {
 		log.Printf("AUTH: DENIED (PLAIN) domain=%q username=%q password=%q\n", domain, username, password)
 	}
 	return false
@@ -283,20 +298,20 @@ func authenticate_curve(domain, client_key string) bool {
 	for _, dom := range []string{domain, "*"} {
 		if m, ok := auth_pubkeys[dom]; ok {
 			if m[CURVE_ALLOW_ANY] {
-				if auth_verbose {
+				if auth_verbose() {
 					log.Printf("AUTH: ALLOWED (CURVE any client) domain=%q\n", dom)
 				}
 				return true
 			}
 			if m[client_key] {
-				if auth_verbose {
+				if auth_verbose() {
 					log.Printf("AUTH: ALLOWED (CURVE) domain=%q client_key=%q\n", dom, client_key)
 				}
 				return true
 			}
 		}
 	}
-	if auth_verbose {
+	if auth_verbose() {
 		log.Printf("AUTH: DENIED (CURVE) domain=%q client_key=%q\n", domain, client_key)
 	}
 	return false
@@ -308,7 +323,7 @@ func authenticate_curve(domain, client_key string) bool {
 // (classic ZeroMQ behaviour), and all PLAIN and CURVE connections are denied.
 func AuthStart() (err error) {
 	if auth_init {
-		if auth_verbose {
+		if auth_verbose() {
 			log.Println("AUTH: Already running")
 		}
 		return errors.New("Auth is already running")
@@ -340,7 +355,7 @@ func AuthStart() (err error) {
 
 	go auth_do_handler()
 
-	if auth_verbose {
+	if auth_verbose() {
 		log.Println("AUTH: Starting")
 	}
 
@@ -352,27 +367,27 @@ func AuthStart() (err error) {
 // Stop authentication.
 func AuthStop() {
 	if !auth_init {
-		if auth_verbose {
+		if auth_verbose() {
 			log.Println("AUTH: Not running, can't stop")
 		}
 		return
 	}
-	if auth_verbose {
+	if auth_verbose() {
 		log.Println("AUTH: Stopping")
 	}
 	_, err := auth_quit.SendMessageDontwait("QUIT")
-	if err != nil && auth_verbose {
+	if err != nil && auth_verbose() {
 		log.Println("AUTH: Stopping: SendMessageDontwait(\"QUIT\"):", err)
 	}
 	_, err = auth_quit.RecvMessage(0)
-	if err != nil && auth_verbose {
+	if err != nil && auth_verbose() {
 		log.Println("AUTH: Stopping: RecvMessage:", err)
 	}
 	err = auth_quit.Close()
-	if err != nil && auth_verbose {
+	if err != nil && auth_verbose() {
 		log.Println("AUTH: Stopping: Close:", err)
 	}
-	if auth_verbose {
+	if auth_verbose() {
 		log.Println("AUTH: Stopped")
 	}
 
@@ -418,7 +433,7 @@ func auth_allow_for_domain(domain string, addresses ...string) {
 		} else if net.ParseIP(address) != nil {
 			auth_allow[domain][address] = true
 		} else {
-			if auth_verbose {
+			if auth_verbose() {
 				log.Printf("AUTH: Allow for domain %q: %q is not a valid address or network\n", domain, address)
 			}
 		}
@@ -459,7 +474,7 @@ func auth_deny_for_domain(domain string, addresses ...string) {
 		} else if net.ParseIP(address) != nil {
 			auth_deny[domain][address] = true
 		} else {
-			if auth_verbose {
+			if auth_verbose() {
 				log.Printf("AUTH: Deny for domain %q: %q is not a valid address or network\n", domain, address)
 			}
 		}
@@ -522,7 +537,7 @@ func AuthCurveRemoveAll(domain string) {
 
 // Enable verbose tracing of commands and activity.
 func AuthSetVerbose(verbose bool) {
-	auth_verbose = verbose
+	auth_verbose_set(verbose)
 }
 
 /*
