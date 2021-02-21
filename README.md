@@ -37,9 +37,10 @@ Keywords: zmq, zeromq, 0mq, networks, distributed computing, message passing, fa
 
 ### See also
 
- * [Mangos](https://github.com/go-mangos/mangos) — An implementation in pure Go of the SP ("Scalable Protocols") protocols
+ * [go-zeromq/zmq4](https://github.com/go-zeromq/zmq4) — A pure-Go implementation of ØMQ (ZeroMQ), version 4
  * [go-nanomsg](https://github.com/op/go-nanomsg) — Language bindings for nanomsg in Go
  * [goczmq](https://github.com/zeromq/goczmq) — A Go interface to CZMQ
+ * [Mangos](https://github.com/go-mangos/mangos) — An implementation in pure Go of the SP ("Scalable Protocols") protocols
 
 ## Requirements
 
