@@ -1,11 +1,11 @@
 #!/bin/sh
 
-go get github.com/pborman/uuid
+#go get github.com/pborman/uuid
 
-for i in bstar mdapi flcliapi kvsimple kvmsg clone intface
-do
-    go install github.com/pebbe/zmq4/examples/$i
-done
+#for i in bstar mdapi flcliapi kvsimple kvmsg clone intface
+#do
+#    go install github.com/pebbe/zmq4/examples/$i
+#done
 
 cd `dirname $0`
 
