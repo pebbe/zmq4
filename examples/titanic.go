@@ -8,7 +8,7 @@ package main
 import (
 	"github.com/pebbe/zmq4/examples/mdapi"
 
-	"github.com/pborman/uuid"
+	"github.com/google/uuid"
 
 	"fmt"
 	"io/ioutil"
@@ -53,7 +53,7 @@ func TitanicRequest(chRequest chan<- string) {
 		os.MkdirAll(TITANIC_DIR, 0700)
 
 		//  Generate UUID and save message to disk
-		uuid := uuid.New()
+		uuid := uuid.New().String()
 		file, err := os.Create(RequestFilename(uuid))
 		fmt.Fprint(file, strings.Join(request, "\n"))
 		file.Close()

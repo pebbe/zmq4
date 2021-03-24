@@ -5,7 +5,7 @@ package intface
 import (
 	zmq "github.com/pebbe/zmq4"
 
-	"github.com/pborman/uuid"
+	"github.com/google/uuid"
 
 	"bytes"
 	"errors"
@@ -73,8 +73,9 @@ const (
 //  We have a constructor for the peer class:
 
 func new_peer(uuid uuid.UUID) (peer *peer_t) {
+	uuid_bytes, _ := uuid.MarshalBinary()
 	peer = &peer_t{
-		uuid_bytes:  []byte(uuid),
+		uuid_bytes:  uuid_bytes,
 		uuid_string: uuid.String(),
 	}
 	return
@@ -127,13 +128,14 @@ func new_agent() (agent *agent_t) {
 	udp, _ := zmq.NewSocket(zmq.PAIR)
 	udp.Connect("inproc://udp")
 
-	uuid := uuid.NewRandom()
+	uuID := uuid.New()
+	uuid_bytes, _ := uuID.MarshalBinary()
 	agent = &agent_t{
 		pipe:        pipe,
 		udp:         udp,
 		conn:        conn,
-		uuid_bytes:  []byte(uuid),
-		uuid_string: uuid.String(),
+		uuid_bytes:  uuid_bytes,
+		uuid_string: uuID.String(),
 		peers:       make(map[string]*peer_t),
 	}
 
@@ -172,13 +174,14 @@ func (agent *agent_t) handle_beacon() (err error) {
 	}
 
 	//  If we got a UUID and it's not our own beacon, we have a peer
-	uuid := uuid.UUID(msg[0])
-	if bytes.Compare(uuid, agent.uuid_bytes) != 0 {
+	uuid_bytes := []byte(msg[0])
+	if bytes.Compare(uuid_bytes, agent.uuid_bytes) != 0 {
 		//  Find or create peer via its UUID string
-		uuid_string := uuid.String()
+		uuID, _ := uuid.ParseBytes(uuid_bytes)
+		uuid_string := uuID.String()
 		peer, ok := agent.peers[uuid_string]
 		if !ok {
-			peer = new_peer(uuid)
+			peer = new_peer(uuID)
 			agent.peers[uuid_string] = peer
 
 			//  Report peer joined the network

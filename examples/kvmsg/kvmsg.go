@@ -4,7 +4,7 @@ package kvmsg
 import (
 	zmq "github.com/pebbe/zmq4"
 
-	"github.com/pborman/uuid"
+	"github.com/google/uuid"
 
 	"errors"
 	"fmt"
@@ -185,7 +185,8 @@ func (kvmsg *Kvmsg) GetUuid() (uuid string, err error) {
 
 //  Sets the UUID to a random generated value
 func (kvmsg *Kvmsg) SetUuid() {
-	kvmsg.frame[frame_UUID] = string(uuid.NewRandom()) // raw 16 bytes
+	b, _ := uuid.New().MarshalBinary()
+	kvmsg.frame[frame_UUID] = string(b) // raw 16 bytes
 	kvmsg.present[frame_UUID] = true
 
 }
