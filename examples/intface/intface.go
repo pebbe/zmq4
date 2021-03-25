@@ -106,8 +106,8 @@ type agent_t struct {
 func new_agent() (agent *agent_t) {
 
 	// push output from udp into zmq socket
-	bcast := &net.UDPAddr{Port: PING_PORT_NUMBER, IP: net.IPv4bcast}
-	conn, e := net.ListenUDP("udp", bcast)
+	addr := &net.UDPAddr{Port: PING_PORT_NUMBER, IP: net.IPv4allsys}
+	conn, e := net.ListenMulticastUDP("udp", nil, addr)
 	if e != nil {
 		panic(e)
 	}
@@ -138,6 +138,8 @@ func new_agent() (agent *agent_t) {
 		uuid_string: uuID.String(),
 		peers:       make(map[string]*peer_t),
 	}
+
+	pipe.SendMessage("AGENT ", uuID.String())
 
 	return
 }
@@ -177,7 +179,7 @@ func (agent *agent_t) handle_beacon() (err error) {
 	uuid_bytes := []byte(msg[0])
 	if bytes.Compare(uuid_bytes, agent.uuid_bytes) != 0 {
 		//  Find or create peer via its UUID string
-		uuID, _ := uuid.ParseBytes(uuid_bytes)
+		uuID, _ := uuid.FromBytes(uuid_bytes)
 		uuid_string := uuID.String()
 		peer, ok := agent.peers[uuid_string]
 		if !ok {
@@ -199,7 +201,7 @@ func (agent *agent_t) handle_beacon() (err error) {
 func (agent *agent_t) reap_peer(peer *peer_t) {
 	if time.Now().After(peer.expires_at) {
 		//  Report peer left the network
-		agent.pipe.SendMessage("LEFT", peer.uuid_string)
+		agent.pipe.SendMessage("LEFT  ", peer.uuid_string)
 		delete(agent.peers, peer.uuid_string)
 	}
 }

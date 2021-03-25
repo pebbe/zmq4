@@ -2,6 +2,12 @@
 //  Titanic client example.
 //  Implements client side of http://rfc.zeromq.org/spec:9
 
+//  To use this example:
+//  1. start mdbroker
+//  2. start mdworker
+//  3. start titanic
+//  4. run ticlient
+
 package main
 
 import (

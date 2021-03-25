@@ -69,7 +69,7 @@ func main() {
 		srv.peer = 5556
 		srv.primary = false
 	} else {
-		fmt.Println("Usage: clonesrv4 { -p | -b }")
+		fmt.Println("Usage: clonesrv6 { -p | -b }")
 		return
 	}
 	//  Primary server will become first active
