@@ -63,6 +63,16 @@ $ go env CGO_ENABLED
 
 You can't do cross-compilation. That would disable C.
 
+### Windows
+
+Build with `CGO_CFLAGS` and `CGO_LDFLAGS` environment variables, for example:
+
+```
+$env:CGO_CFLAGS='-ID:/dev/vcpkg/installed/x64-windows/include'
+$env:CGO_LDFLAGS='-LD:/dev/vcpkg/installed/x64-windows/lib -l:libzmq-mt-4_3_4.lib'
+```
+> Deploy result program with `libzmq-mt-4_3_4.dll`
+
 ## Install
 
     go get github.com/pebbe/zmq4
