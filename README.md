@@ -117,3 +117,14 @@ And needs to be rewritten as:
 
 Furthermore, an address can now be a single IP address, as well as an IP
 address and mask in CIDR notation, e.g. "123.123.123.0/24".
+
+
+## Channel interface
+
+_(based on [zmqchan](https://github.com/abligh/zmqchan) by [abligh](https://github.com/abligh))_
+
+`zmq.ChannelPair` class wraps a `zmq.Socket` into a TX and RX channel.
+
+Currently `zmq.Socket`s are not threadsafe. This creates difficulty to use in combination with golang channels as you can poll on a set of sockets, or select on a set of channels, but not both. This creates problems if you want to use conventional go idioms, e.g. using a `chan bool` for ending goroutines.
+
+This library provides a means of wrapping a `zmq.Socket` into a `zmq.ChannelPair`, which provides an Rx and Tx channel (as well as an error channel). This is loosely based on the idea of the [go-zmq binding by vaughan0](https://github.com/vaughan0/go-zmq) but works with ZMQ 4.x.
