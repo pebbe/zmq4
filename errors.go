@@ -92,7 +92,7 @@ func AsErrno(err error) Errno {
 }
 
 func (ctx *Context) retry(err error) bool {
-	if !ctx.retryEINTR || err == nil {
+	if ctx == nil || !ctx.retryEINTR || err == nil {
 		return false
 	}
 	eno, ok := err.(syscall.Errno)
