@@ -153,6 +153,10 @@ func (p *Poller) PollAll(timeout time.Duration) ([]Polled, error) {
 func (p *Poller) poll(timeout time.Duration, all bool) ([]Polled, error) {
 	lst := make([]Polled, 0, len(p.items))
 
+	if len(p.items) == 0 {
+		return lst, nil
+	}
+
 	var ctx *Context
 	for _, soc := range p.socks {
 		if !soc.opened {
