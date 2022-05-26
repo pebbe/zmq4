@@ -786,6 +786,9 @@ func (e Event) String() string {
 	if e&EVENT_DISCONNECTED != 0 {
 		ee = append(ee, "EVENT_DISCONNECTED")
 	}
+	if e&EVENT_MONITOR_STOPPED != 0 {
+		ee = append(ee, "EVENT_MONITOR_STOPPED")
+	}
 	if minor == 2 && patch >= 3 || minor >= 3 {
 		if e&EVENT_HANDSHAKE_FAILED_NO_DETAIL != 0 {
 			ee = append(ee, "EVENT_HANDSHAKE_FAILED_NO_DETAIL")
