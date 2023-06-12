@@ -1007,7 +1007,7 @@ func (soc *Socket) Bind(endpoint string) error {
 /*
 Stop accepting connections on a socket.
 
-For a description of endpoint, see: http://api.zeromq.org/4-1:zmq-bind#toc2
+For a description of endpoint, see: http://api.zeromq.org/4-1:zmq-unbind#toc2
 */
 func (soc *Socket) Unbind(endpoint string) error {
 	if !soc.opened {
