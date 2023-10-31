@@ -96,37 +96,38 @@ var (
 
 	// api compatibility, based on changes in header files
 	api = map[[2]int]int{
-		[2]int{0, 0}:  1,
-		[2]int{0, 1}:  2,
-		[2]int{0, 2}:  3,
-		[2]int{0, 3}:  3,
-		[2]int{0, 4}:  3,
-		[2]int{0, 5}:  4,
-		[2]int{0, 6}:  4,
-		[2]int{0, 7}:  4,
-		[2]int{0, 8}:  4,
-		[2]int{0, 9}:  4,
-		[2]int{0, 10}: 4,
-		[2]int{1, 0}:  5,
-		[2]int{1, 1}:  6,
-		[2]int{1, 2}:  6,
-		[2]int{1, 3}:  6,
-		[2]int{1, 4}:  6,
-		[2]int{1, 5}:  6,
-		[2]int{1, 6}:  7,
-		[2]int{1, 7}:  7,
-		[2]int{1, 8}:  7,
-		[2]int{2, 0}:  8,
-		[2]int{2, 1}:  9,
-		[2]int{2, 2}:  9,
-		//TODO [2]int{2, 3}: 10,
-		//TODO [2]int{2, 4}: ?,
-		//TODO [2]int{2, 5}: ?,
-		//TODO [2]int{3, 0}: ?,
-		//TODO [2]int{3, 1}: ?,
-		//TODO [2]int{3, 2}: ?,
-		//TODO [2]int{3, 3}: ?,
-		//TODO [2]int{3, 4}: ?,
+		{0, 0}:  1,
+		{0, 1}:  2,
+		{0, 2}:  3,
+		{0, 3}:  3,
+		{0, 4}:  3,
+		{0, 5}:  4,
+		{0, 6}:  4,
+		{0, 7}:  4,
+		{0, 8}:  4,
+		{0, 9}:  4,
+		{0, 10}: 4,
+		{1, 0}:  5,
+		{1, 1}:  6,
+		{1, 2}:  6,
+		{1, 3}:  6,
+		{1, 4}:  6,
+		{1, 5}:  6,
+		{1, 6}:  7,
+		{1, 7}:  7,
+		{1, 8}:  7,
+		{2, 0}:  8,
+		{2, 1}:  9,
+		{2, 2}:  9,
+		// TODO [2]int{2, 3}: 10,
+		// TODO [2]int{2, 4}: ?,
+		// TODO [2]int{2, 5}: ?,
+		// TODO [2]int{3, 0}: ?,
+		// TODO [2]int{3, 1}: ?,
+		// TODO [2]int{3, 2}: ?,
+		// TODO [2]int{3, 3}: ?,
+		// TODO [2]int{3, 4}: ?,
+		// TODO [2]int{3, 5}: ?,
 	}
 )
 
@@ -141,11 +142,10 @@ func init() {
 	w, ok2 := api[[2]int{int(C.zmq4_minor), int(C.zmq4_patch)}]
 	if v != w || !ok1 || !ok2 {
 		if major != int(C.zmq4_major) || minor != int(C.zmq4_minor) || patch != int(C.zmq4_patch) {
-			initVersionError =
-				fmt.Errorf(
-					"zmq4 was compiled with ZeroMQ version %d.%d.%d, but the runtime links with version %d.%d.%d",
-					int(C.zmq4_major), int(C.zmq4_minor), int(C.zmq4_patch),
-					major, minor, patch)
+			initVersionError = fmt.Errorf(
+				"zmq4 was compiled with ZeroMQ version %d.%d.%d, but the runtime links with version %d.%d.%d",
+				int(C.zmq4_major), int(C.zmq4_minor), int(C.zmq4_patch),
+				major, minor, patch)
 			return
 		}
 	}
@@ -1106,9 +1106,8 @@ For a description of flags, see: http://api.zeromq.org/4-1:zmq-msg-recv#toc2
 
 Valid options are
 
- - OptRoutingId(0)
- - OptGroup("")
-
+  - OptRoutingId(0)
+  - OptGroup("")
 */
 func (soc *Socket) RecvWithOpts(flags Flag, options ...interface{}) (string, []interface{}, error) {
 	b, o, err := soc.RecvBytesWithOpts(flags, options...)
@@ -1122,9 +1121,8 @@ For a description of flags, see: http://api.zeromq.org/4-1:zmq-msg-recv#toc2
 
 Valid options are
 
- - OptRoutingId(0)
- - OptGroup("")
-
+  - OptRoutingId(0)
+  - OptGroup("")
 */
 func (soc *Socket) RecvBytesWithOpts(flags Flag, options ...interface{}) ([]byte, []interface{}, error) {
 	opts := make([]interface{}, len(options))
@@ -1266,61 +1264,61 @@ The monitoring callback has the same context as the socket it was created for.
 
 Example:
 
-    package main
+	package main
 
-    import (
-        zmq "github.com/pebbe/zmq4"
-        "log"
-        "time"
-    )
+	import (
+	    zmq "github.com/pebbe/zmq4"
+	    "log"
+	    "time"
+	)
 
-    func rep_socket_monitor(addr string) {
-        s, err := zmq.NewSocket(zmq.PAIR)
-        if err != nil {
-            log.Fatalln(err)
-        }
-        err = s.Connect(addr)
-        if err != nil {
-            log.Fatalln(err)
-        }
-        for {
-            a, b, c, err := s.RecvEvent(0)
-            if err != nil {
-                log.Println(err)
-                break
-            }
-            log.Println(a, b, c)
-        }
-        s.Close()
-    }
+	func rep_socket_monitor(addr string) {
+	    s, err := zmq.NewSocket(zmq.PAIR)
+	    if err != nil {
+	        log.Fatalln(err)
+	    }
+	    err = s.Connect(addr)
+	    if err != nil {
+	        log.Fatalln(err)
+	    }
+	    for {
+	        a, b, c, err := s.RecvEvent(0)
+	        if err != nil {
+	            log.Println(err)
+	            break
+	        }
+	        log.Println(a, b, c)
+	    }
+	    s.Close()
+	}
 
-    func main() {
+	func main() {
 
-        // REP socket
-        rep, err := zmq.NewSocket(zmq.REP)
-        if err != nil {
-            log.Fatalln(err)
-        }
+	    // REP socket
+	    rep, err := zmq.NewSocket(zmq.REP)
+	    if err != nil {
+	        log.Fatalln(err)
+	    }
 
-        // REP socket monitor, all events
-        err = rep.Monitor("inproc://monitor.rep", zmq.EVENT_ALL)
-        if err != nil {
-            log.Fatalln(err)
-        }
-        go rep_socket_monitor("inproc://monitor.rep")
+	    // REP socket monitor, all events
+	    err = rep.Monitor("inproc://monitor.rep", zmq.EVENT_ALL)
+	    if err != nil {
+	        log.Fatalln(err)
+	    }
+	    go rep_socket_monitor("inproc://monitor.rep")
 
-        // Generate an event
-        rep.Bind("tcp://*:5555")
-        if err != nil {
-            log.Fatalln(err)
-        }
+	    // Generate an event
+	    rep.Bind("tcp://*:5555")
+	    if err != nil {
+	        log.Fatalln(err)
+	    }
 
-        // Allow some time for event detection
-        time.Sleep(time.Second)
+	    // Allow some time for event detection
+	    time.Sleep(time.Second)
 
-        rep.Close()
-        zmq.Term()
-    }
+	    rep.Close()
+	    zmq.Term()
+	}
 */
 func (soc *Socket) Monitor(addr string, events Event) error {
 	if !soc.opened {
