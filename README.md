@@ -72,6 +72,7 @@ $env:CGO_CFLAGS='-ID:/dev/vcpkg/installed/x64-windows/include'
 $env:CGO_LDFLAGS='-LD:/dev/vcpkg/installed/x64-windows/lib -l:libzmq-mt-4_3_4.lib'
 ```
 > Deploy result program with `libzmq-mt-4_3_4.dll`
+> Make sure the path to `libzmq-mt-4_3_4.dll` is in your environment variables (e.g. `D:\dev\vcpkg\installed\x64-windows\bin`)
 
 ## Install
 
