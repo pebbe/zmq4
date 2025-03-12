@@ -5,6 +5,7 @@ package zmq4
 #include <stdint.h>
 #include <stdlib.h>
 #include "zmq4.h"
+#include "zmq43draft.h"
 */
 import "C"
 
@@ -837,4 +838,26 @@ func (soc *Socket) SetUseFd(value int) error {
 		return ErrorNotImplemented42
 	}
 	return soc.setInt(C.ZMQ_USE_FD, value)
+}
+
+type RouterNotifyOption int
+
+// Flags for (*Socket)SetRouterNotify(), (*Socket)GetRouterNotifyRecv()
+const (
+	NotifyConnect    = RouterNotifyOption(C.ZMQ_NOTIFY_CONNECT)
+	NotifyDisconnect = RouterNotifyOption(C.ZMQ_NOTIFY_DISCONNECT)
+)
+
+// ZMQ_ROUTER_NOTIFY: Send connect and disconnect notifications
+//
+// Multiple options can be OR'ed
+//
+// Returns ErrorNotImplemented3 with ZeroMQ version < 4.3
+//
+// See https://libzmq.readthedocs.io/en/latest/zmq_setsockopt.html#_zmq_router_notify_send_connect_and_disconnect_notifications
+func (soc *Socket) SetRouterNotify(value RouterNotifyOption) error {
+	if minor < 3 {
+		return ErrorNotImplemented43
+	}
+	return soc.setInt(C.ZMQ_ROUTER_NOTIFY, int(value))
 }

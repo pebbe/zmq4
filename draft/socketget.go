@@ -4,6 +4,7 @@ package zmq4
 #include <zmq.h>
 #include <stdint.h>
 #include "zmq4.h"
+#include "zmq43draft.h"
 */
 import "C"
 
@@ -521,7 +522,6 @@ func (soc *Socket) GetHandshakeIvl() (time.Duration, error) {
 // ZMQ_SOCKS_PROXY: NOT DOCUMENTED
 //
 // Returns ErrorNotImplemented41 with ZeroMQ version < 4.1
-//
 func (soc *Socket) GetSocksProxy() (string, error) {
 	if minor < 1 {
 		return "", ErrorNotImplemented41
@@ -685,4 +685,19 @@ func (soc *Socket) Getusefd() (int, error) {
 		return 0, ErrorNotImplemented42
 	}
 	return soc.getInt(C.ZMQ_USE_FD)
+}
+
+// ZMQ_ROUTER_NOTIFY: Retrieve router socket notification settings
+//
+// Returns OR'ed value of options
+//
+// Returns ErrorNotImplemented3 with ZeroMQ version < 4.3
+//
+// See https://libzmq.readthedocs.io/en/latest/zmq_getsockopt.html#_zmq_router_notify_retrieve_router_socket_notification_settings
+func (soc *Socket) GetRouterNotify() (RouterNotifyOption, error) {
+	if minor < 3 {
+		return 0, ErrorNotImplemented43
+	}
+	i, err := soc.getInt(C.ZMQ_ROUTER_NOTIFY)
+	return RouterNotifyOption(i), err
 }
