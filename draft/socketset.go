@@ -852,7 +852,7 @@ const (
 //
 // Multiple options can be OR'ed
 //
-// Returns ErrorNotImplemented3 with ZeroMQ version < 4.3
+// Returns ErrorNotImplemented43 with ZeroMQ version < 4.3
 //
 // See https://libzmq.readthedocs.io/en/latest/zmq_setsockopt.html#_zmq_router_notify_send_connect_and_disconnect_notifications
 func (soc *Socket) SetRouterNotify(value RouterNotifyOption) error {
@@ -860,4 +860,49 @@ func (soc *Socket) SetRouterNotify(value RouterNotifyOption) error {
 		return ErrorNotImplemented43
 	}
 	return soc.setInt(C.ZMQ_ROUTER_NOTIFY, int(value))
+}
+
+// ZMQ_HELLO_MSG: Set a message to be sent to peers when they connect
+//
+// Returns ErrorNotImplemented433 with ZeroMQ version < 4.3.3
+//
+// See https://libzmq.readthedocs.io/en/latest/zmq_setsockopt.html#_zmq_hello_msg_set_an_hello_message_that_will_be_sent_when_a_new_peer_connect
+func (soc *Socket) SetHelloMsg(value string) error {
+	if minor < 3 || (minor == 3 && patch < 3) {
+		return ErrorNotImplemented433
+	}
+	if len(value) == 0 {
+		return soc.setNullString(C.ZMQ_HELLO_MSG)
+	}
+	return soc.setString(C.ZMQ_HELLO_MSG, value)
+}
+
+// ZMQ_DISCONNECT_MSG: Set a message to be generated when accepted peers disconnect
+//
+// Returns ErrorNotImplemented433 with ZeroMQ version < 4.3.3
+//
+// See https://libzmq.readthedocs.io/en/latest/zmq_setsockopt.html#_zmq_disconnect_msg_set_a_disconnect_message_that_the_socket_will_generate_when_accepted_peer_disconnect
+func (soc *Socket) SetDisconnectMsg(value string) error {
+	if minor < 3 || (minor == 3 && patch < 3) {
+		return ErrorNotImplemented433
+	}
+	if len(value) == 0 {
+		return soc.setNullString(C.ZMQ_DISCONNECT_MSG)
+	}
+	return soc.setString(C.ZMQ_DISCONNECT_MSG, value)
+}
+
+// ZMQ_HICCUP_MSG: Set a message to be generated when connected peers temporarily disconnect
+//
+// Returns ErrorNotImplemented435 with ZeroMQ version < 4.3.5
+//
+// See https://libzmq.readthedocs.io/en/latest/zmq_setsockopt.html#_zmq_hiccup_msg_set_a_hiccup_message_that_the_socket_will_generate_when_connected_peer_temporarily_disconnect
+func (soc *Socket) SetHiccupMsg(value string) error {
+	if minor < 3 || (minor == 3 && patch < 5) {
+		return ErrorNotImplemented435
+	}
+	if len(value) == 0 {
+		return soc.setNullString(C.ZMQ_HICCUP_MSG)
+	}
+	return soc.setString(C.ZMQ_HICCUP_MSG, value)
 }
