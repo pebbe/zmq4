@@ -691,7 +691,7 @@ func (soc *Socket) Getusefd() (int, error) {
 //
 // Returns OR'ed value of options
 //
-// Returns ErrorNotImplemented3 with ZeroMQ version < 4.3
+// Returns ErrorNotImplemented43 with ZeroMQ version < 4.3
 //
 // See https://libzmq.readthedocs.io/en/latest/zmq_getsockopt.html#_zmq_router_notify_retrieve_router_socket_notification_settings
 func (soc *Socket) GetRouterNotify() (RouterNotifyOption, error) {

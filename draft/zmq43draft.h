@@ -1,5 +1,17 @@
 #if ZMQ_VERSION_MINOR < 3
+// Version < 4.3
 #define ZMQ_ROUTER_NOTIFY -1
 #define ZMQ_NOTIFY_CONNECT 1
 #define ZMQ_NOTIFY_DISCONNECT 2
+#endif
+
+#if ZMQ_VERSION_MINOR < 3 || (ZMQ_VERSION_MINOR == 3 && ZMQ_VERSION_PATCH < 3)
+// Version < 4.3.3
+#define ZMQ_HELLO_MSG -1
+#define ZMQ_DISCONNECT_MSG -1
+#endif
+
+#if ZMQ_VERSION_MINOR < 3 || (ZMQ_VERSION_MINOR == 3 && ZMQ_VERSION_PATCH < 5)
+// Version < 4.3.5
+#define ZMQ_HICCUP_MSG -1
 #endif
