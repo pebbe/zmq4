@@ -31,16 +31,16 @@ For ZeroMQ version 3, see: http://github.com/pebbe/zmq3
 
 For ZeroMQ version 2, see: http://github.com/pebbe/zmq2
 
-Including all examples of [ØMQ - The Guide](http://zguide.zeromq.org/page:all).
+Including all examples of [ØMQ - The Guide](http://zguide.zeromq.org/).
 
 Keywords: zmq, zeromq, 0mq, networks, distributed computing, message passing, fanout, pubsub, pipeline, request-reply
 
 ### See also
 
  * [go-zeromq/zmq4](https://github.com/go-zeromq/zmq4) — A pure-Go implementation of ØMQ (ZeroMQ), version 4
- * [go-nanomsg](https://github.com/op/go-nanomsg) — Language bindings for nanomsg in Go
  * [goczmq](https://github.com/zeromq/goczmq) — A Go interface to CZMQ
- * [Mangos](https://github.com/go-mangos/mangos) — An implementation in pure Go of the SP ("Scalable Protocols") protocols
+ * [Awesome Go: Messaging] — Libraries that implement messaging systems
+
 
 ## Requirements
 
