@@ -1235,6 +1235,30 @@ func (soc *Socket) Monitor(addr string, events Event) error {
 }
 
 /*
+Return a connected PAIR socket ready to receive the event notifications.
+*/
+func GetMonitorSocket(sock *Socket, events Event) (monitor_sock *Socket, err error) {
+	fd, err := sock.GetFd()
+	if err != nil {
+		return
+	}
+	addr := fmt.Sprintf("inproc://monitor.s-%d", fd)
+	err = sock.Monitor(addr, events)
+	if err != nil {
+		return
+	}
+	monitor_sock, err = NewSocket(PAIR)
+	if err != nil {
+		return
+	}
+	err = monitor_sock.Connect(addr)
+	if err != nil {
+		return
+	}
+	return
+}
+
+/*
 Receive a message part from a socket interpreted as an event.
 
 For a description of flags, see: http://api.zeromq.org/4-1:zmq-msg-recv#toc2
