@@ -37,10 +37,15 @@ Keywords: zmq, zeromq, 0mq, networks, distributed computing, message passing, fa
 
 ### See also
 
+extension:
+
+ * [zmq4chan](https://github.com/thinkdoggie/zmq4chan) — Go-native channel interface for ZeroMQ sockets
+
+alternatives:
+
  * [go-zeromq/zmq4](https://github.com/go-zeromq/zmq4) — A pure-Go implementation of ØMQ (ZeroMQ), version 4
  * [goczmq](https://github.com/zeromq/goczmq) — A Go interface to CZMQ
- * [Awesome Go: Messaging] — Libraries that implement messaging systems
-
+ * [Awesome Go: Messaging](https://awesome-go.com/messaging/) — Libraries that implement messaging systems
 
 ## Requirements
 
